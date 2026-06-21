@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { projectsApi, videosApi, uploadApi, swrKeys, type Project, type Video } from '@/lib/api'
+import { IconLogo } from "@/components/icon-logo";
+import ProjectList from "@/components/sidebar/project-list";
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -29,12 +31,14 @@ function Skeleton({ className }: { className?: string }) {
 // ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyVideos({ onUpload }: { onUpload: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-white/[0.08] p-16 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/[0.07] flex items-center justify-center mx-auto mb-4">
+    <div className="rounded-2xl border border-dashed border-white/8 p-16 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-white/4 border border-white/[0.07] flex items-center justify-center mx-auto mb-4">
         <Film size={22} className="text-white/20" />
       </div>
       <p className="text-white/40 text-sm font-medium">No videos yet</p>
-      <p className="text-white/20 text-xs mt-1 mb-6">Upload a manga panel to create your first video</p>
+      <p className="text-white/20 text-xs mt-1 mb-6">
+        Upload a manga panel to create your first video
+      </p>
       <button
         onClick={onUpload}
         className="inline-flex items-center gap-2 bg-[#bbdf50] hover:bg-[#caea60] text-black text-sm font-semibold px-5 py-2.5 rounded-xl transition"
@@ -42,7 +46,7 @@ function EmptyVideos({ onUpload }: { onUpload: () => void }) {
         <Plus size={15} /> Upload Panel
       </button>
     </div>
-  )
+  );
 }
 
 // ─── Video card ───────────────────────────────────────────────────────────────
@@ -324,24 +328,27 @@ export default function DashboardPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#080810] text-white">
-
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 border-b border-white/[0.05] bg-[#080810]/90 backdrop-blur-xl">
-        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#080810]/90 backdrop-blur-xl">
+        <div className="max-w-350 mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {/* Logo mark */}
-            <div className="w-7 h-7 rounded-lg bg-[#bbdf50] flex items-center justify-center">
-              <Sparkles size={13} className="text-black" />
+            <div className="w-7 h-7 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center shrink-0">
+              <IconLogo />
             </div>
-            <span className="font-semibold text-white tracking-tight text-sm">MangaMotion</span>
+            <span className="font-semibold text-white tracking-tight text-sm">
+              MangaMotion
+            </span>
             <span className="text-white/15 text-xs ml-1">AI Studio</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-white/30 text-xs hidden sm:block">{user?.email}</span>
+            <span className="text-white/30 text-xs hidden sm:block">
+              {user?.email}
+            </span>
             <button
-              onClick={() => signOut().then(() => router.push('/login'))}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-white/[0.08] hover:border-white/[0.16] text-white/40 hover:text-white/70 transition"
+              onClick={() => signOut().then(() => router.push("/"))}
+              className="flex items-center gap-1.5 cursor-pointer text-xs px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/16 text-white/80 hover:text-white/70 transition"
             >
               <LogOut size={12} />
               Sign out
@@ -350,15 +357,13 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="max-w-[1400px] mx-auto px-6 py-7 flex gap-6">
-
+      <div className="max-w-350 mx-auto px-6 py-7 flex gap-6">
         {/* ── Sidebar ── */}
         <aside className="w-56 shrink-0 space-y-5">
-
           {/* New project button */}
           <button
             onClick={() => setShowNewProject(true)}
-            className="w-full flex items-center justify-center gap-2 bg-[#bbdf50] hover:bg-[#caea60] active:bg-[#b0d048] text-black text-sm font-semibold py-2.5 rounded-xl transition"
+            className="w-full flex items-center justify-center cursor-pointer gap-2 bg-[#bbdf50] hover:bg-[#caea60] active:bg-[#b0d048] text-black text-sm font-semibold py-2.5 rounded-xl transition"
           >
             <Plus size={15} />
             New Project
@@ -366,18 +371,21 @@ export default function DashboardPage() {
 
           {/* New project input */}
           {showNewProject && (
-            <div className="p-3 rounded-xl border border-white/[0.08] bg-white/[0.02] space-y-2">
+            <div className="p-3 rounded-xl border border-white/8 bg-white/2 space-y-2">
               <input
                 autoFocus
                 type="text"
                 value={newProjectTitle}
-                onChange={e => setNewProjectTitle(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') createProject()
-                  if (e.key === 'Escape') { setShowNewProject(false); setNewProjectTitle('') }
+                onChange={(e) => setNewProjectTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") createProject();
+                  if (e.key === "Escape") {
+                    setShowNewProject(false);
+                    setNewProjectTitle("");
+                  }
                 }}
                 placeholder="Project name"
-                className="w-full px-3 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded-lg text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#bbdf50]/40 transition"
+                className="w-full px-3 py-1.5 bg-white/5 border border-white/8 rounded-lg text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#bbdf50]/40 transition"
               />
               <div className="flex gap-1.5">
                 <button
@@ -385,12 +393,19 @@ export default function DashboardPage() {
                   disabled={creatingProject || !newProjectTitle.trim()}
                   className="flex-1 flex items-center justify-center gap-1.5 bg-[#bbdf50] hover:bg-[#caea60] disabled:opacity-40 text-black text-xs font-semibold py-1.5 rounded-lg transition"
                 >
-                  {creatingProject ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                  {creatingProject ? (
+                    <Loader2 size={11} className="animate-spin" />
+                  ) : (
+                    <Check size={11} />
+                  )}
                   Create
                 </button>
                 <button
-                  onClick={() => { setShowNewProject(false); setNewProjectTitle('') }}
-                  className="px-2.5 py-1.5 bg-white/[0.05] hover:bg-white/[0.09] text-white/40 rounded-lg transition"
+                  onClick={() => {
+                    setShowNewProject(false);
+                    setNewProjectTitle("");
+                  }}
+                  className="cursor-pointer px-2.5 py-1.5 bg-white/5 hover:bg-white/9 text-white/40 rounded-lg transition"
                 >
                   <X size={11} />
                 </button>
@@ -405,48 +420,34 @@ export default function DashboardPage() {
             </p>
             {loadingProjects ? (
               <div className="space-y-1.5">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-8" />)}
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-8" />
+                ))}
               </div>
             ) : projects.length === 0 ? (
               <p className="text-xs text-white/25 px-1 py-2">No projects yet</p>
             ) : (
-              <div className="space-y-1">
-                {projects.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => selectProject(p.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition group ${
-                      selectedProjectId === p.id
-                        ? 'bg-[#bbdf50]/10 text-white border border-[#bbdf50]/20'
-                        : 'text-white/40 hover:bg-white/[0.04] hover:text-white/70 border border-transparent'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2 truncate">
-                      <FolderOpen size={12} className="shrink-0" />
-                      <span className="truncate font-medium">{p.title}</span>
-                    </span>
-                    <ChevronRight
-                      size={11}
-                      className={`shrink-0 transition ${
-                        selectedProjectId === p.id ? 'opacity-50' : 'opacity-0 group-hover:opacity-30'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
+              <ProjectList
+                projects={projects}
+                loadingProjects={loadingProjects}
+                selectedProjectId={selectedProjectId}
+                selectProject={selectProject}
+                onProjectsChange={() => globalMutate(swrKeys.projects())}
+              />
             )}
           </div>
         </aside>
 
         {/* ── Main content ── */}
         <main className="flex-1 min-w-0 space-y-6">
-
           {/* Upload zone */}
-          <section className="rounded-2xl border border-white/[0.06] bg-[#0c0c18] p-5">
+          <section className="rounded-2xl border border-white/6 bg-[#0c0c18] p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-semibold text-white">New Video</h2>
-                <p className="text-xs text-white/30 mt-0.5">Upload a manga panel — Gemini will analyze it automatically</p>
+                <p className="text-xs text-white/30 mt-0.5">
+                  Upload a manga panel — Gemini will analyze it automatically
+                </p>
               </div>
               {!selectedProjectId && (
                 <span className="text-xs text-amber-400/70 bg-amber-500/10 border border-amber-500/15 px-2.5 py-1 rounded-full">
@@ -466,24 +467,26 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-semibold text-white">
-                  {selectedProject?.title ?? 'Videos'}
+                  {selectedProject?.title ?? "Videos"}
                 </h2>
                 <p className="text-xs text-white/30 mt-0.5">
-                  {loadingVideos ? 'Loading…' : `${videos.length} video${videos.length !== 1 ? 's' : ''}`}
+                  {loadingVideos
+                    ? "Loading…"
+                    : `${videos.length} video${videos.length !== 1 ? "s" : ""}`}
                 </p>
               </div>
 
               {/* View toggle */}
-              <div className="flex items-center gap-0.5 p-1 rounded-lg bg-white/[0.04] border border-white/[0.05]">
+              <div className="flex items-center gap-0.5 p-1 rounded-lg bg-white/4 border border-white/5">
                 <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-md transition ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/25 hover:text-white/50'}`}
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-md transition ${viewMode === "grid" ? "bg-white/10 text-white" : "text-white/25 hover:text-white/50"}`}
                 >
                   <LayoutGrid size={13} />
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-md transition ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/25 hover:text-white/50'}`}
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-md transition ${viewMode === "list" ? "bg-white/10 text-white" : "text-white/25 hover:text-white/50"}`}
                 >
                   <List size={13} />
                 </button>
@@ -492,42 +495,58 @@ export default function DashboardPage() {
 
             {/* Loading state */}
             {loadingVideos ? (
-              <div className={viewMode === 'grid'
-                ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'
-                : 'space-y-2'
-              }>
-                {[1, 2, 3, 4, 5].map(i => (
-                  <Skeleton key={i} className={viewMode === 'grid' ? 'h-56' : 'h-14'} />
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    : "space-y-2"
+                }
+              >
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton
+                    key={i}
+                    className={viewMode === "grid" ? "h-56" : "h-14"}
+                  />
                 ))}
               </div>
             ) : !selectedProjectId ? (
-              <div className="rounded-2xl border border-dashed border-white/[0.06] p-12 text-center">
+              <div className="rounded-2xl border border-dashed border-white/6 p-12 text-center">
                 <FolderOpen size={28} className="mx-auto mb-3 text-white/15" />
-                <p className="text-sm text-white/30">Select a project to see videos</p>
+                <p className="text-sm text-white/30">
+                  Select a project to see videos
+                </p>
               </div>
             ) : videos.length === 0 ? (
               <EmptyVideos onUpload={() => {}} />
-            ) : viewMode === 'grid' ? (
+            ) : viewMode === "grid" ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {videos.map(video => (
+                {videos.map((video) => (
                   <VideoCard
                     key={video.id}
                     video={video}
                     compact={false}
                     onOpen={() => router.push(`/editor/${video.id}`)}
-                    onDelete={() => deleteVideo(video.id, { stopPropagation: () => {} } as any)}
+                    onDelete={() =>
+                      deleteVideo(video.id, {
+                        stopPropagation: () => {},
+                      } as any)
+                    }
                   />
                 ))}
               </div>
             ) : (
               <div className="space-y-1.5">
-                {videos.map(video => (
+                {videos.map((video) => (
                   <VideoCard
                     key={video.id}
                     video={video}
                     compact={true}
                     onOpen={() => router.push(`/editor/${video.id}`)}
-                    onDelete={() => deleteVideo(video.id, { stopPropagation: () => {} } as any)}
+                    onDelete={() =>
+                      deleteVideo(video.id, {
+                        stopPropagation: () => {},
+                      } as any)
+                    }
                   />
                 ))}
               </div>
@@ -536,5 +555,5 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }

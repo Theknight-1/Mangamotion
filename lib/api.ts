@@ -57,27 +57,27 @@ export const uploadApi = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface Project {
-  id: string
-  userId: string
-  title: string
-  description?: string
-  coverImage?: string
-  createdAt: string
-  updatedAt?: string
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  coverImage?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Video {
-  id: string
-  projectId: string
-  userId: string
-  title: string
-  sourceImage: string
-  status: 'draft' | 'processing' | 'completed' | 'failed'
-  timeline?: string
-  videoUrl?: string
-  duration?: number
-  createdAt: string
-  updatedAt?: string
+  id: string;
+  projectId: string;
+  userId: string;
+  title: string;
+  sourceImage: string;
+  status: "draft" | "processing" | "completed" | "failed";
+  timeline?: string;
+  videoUrl?: string;
+  duration?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ─── SWR keys ─────────────────────────────────────────────────────────────────
