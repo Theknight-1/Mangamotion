@@ -113,8 +113,8 @@ export default function MangaShowcase() {
           </div>
 
           {/* Panel 6 — bottom wide, halftone */}
-          <div className="absolute left-[107px] top-[254px] h-[86px] w-[233px] overflow-hidden rounded-[4px] border-[1.5px] border-[#e2dcc9] bg-white">
-            <div className="absolute bottom-[10px] right-[10px] grid grid-cols-4 gap-[5px]">
+          <div className="absolute left-26.75 top-63.5 h-21.5 w-58.25 overflow-hidden rounded-lg border-[1.5px] border-[#e2dcc9] bg-white">
+            <div className="absolute bottom-[10px] right-[10px] grid grid-cols-4 gap-1.25">
               {Array.from({ length: 8 }).map((_, i) => (
                 <span
                   key={i}
@@ -139,8 +139,8 @@ export default function MangaShowcase() {
         </p>
         <div className="flex gap-7">
           {[
-            { num: "20K+", label: "Character voices" },
-            { num: "2,400+", label: "Creators" },
+            { num: "100+", label: "Character voices" },
+            { num: "200+", label: "Creators" },
             { num: "4.9★", label: "Average rating" },
           ].map((s) => (
             <div

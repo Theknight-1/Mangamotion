@@ -178,7 +178,7 @@ const FEATURES = [
   },
   {
     icon: <IconVoice />,
-    title: "20,000+ AI voices",
+    title: "100+ AI voices",
     desc: "CVoice AI integration. Preview and assign character voices per scene.",
   },
   {
@@ -928,10 +928,10 @@ export default function Page() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 28px",
             position: "relative",
             zIndex: 2,
           }}
+          className="px-4 md:px-6"
         >
           {/* Logo */}
           <a
@@ -1007,7 +1007,6 @@ export default function Page() {
                 fontWeight: 500,
                 color: "rgba(232,213,163,0.65)",
                 textDecoration: "none",
-                padding: "8px 14px",
                 borderRadius: 10,
                 transition: "all 0.25s ease",
               }}
@@ -1019,6 +1018,7 @@ export default function Page() {
                 e.currentTarget.style.color = "rgba(232,213,163,0.65)";
                 e.currentTarget.style.background = "transparent";
               }}
+              className="px-1.5 md:px-4 py-2"
             >
               Sign In
             </a>
@@ -1030,7 +1030,6 @@ export default function Page() {
                 fontWeight: 700,
                 color: "#060e06",
                 background: "linear-gradient(135deg,#c9a84c 0%,#e8d5a3 100%)",
-                padding: "10px 20px",
                 borderRadius: 12,
                 textDecoration: "none",
                 letterSpacing: "0.01em",
@@ -1047,6 +1046,7 @@ export default function Page() {
                 e.currentTarget.style.boxShadow =
                   "0 4px 20px rgba(201,168,76,0.35)";
               }}
+              className="px-1.5 md:px-4 py-2"
             >
               Get Started
             </a>
@@ -1061,7 +1061,7 @@ export default function Page() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "120px 24px 80px",
+          padding: "120px 16px 80px",
           textAlign: "center",
           position: "relative",
         }}
@@ -1096,7 +1096,7 @@ export default function Page() {
           <FadeIn delay={80}>
             <h1
               style={{
-                fontSize: "clamp(36px,6.5vw,76px)",
+                fontSize: "clamp(40px,6.5vw,76px)",
                 fontWeight: 700,
                 lineHeight: 1.05,
                 letterSpacing: "-0.03em",
@@ -1120,7 +1120,7 @@ export default function Page() {
                 margin: "0 auto 40px",
               }}
             >
-              Upload manga images, assign 20,000+ AI character voices, compose a
+              Upload manga images, assign 100+ AI character voices, compose a
               multi-scene timeline, and export a cinematic MP4 — in minutes.
             </p>
           </FadeIn>
@@ -1408,7 +1408,7 @@ export default function Page() {
         style={{
           borderTop: "1px solid rgba(45,90,39,0.18)",
           borderBottom: "1px solid rgba(45,90,39,0.18)",
-          padding: "18px 24px",
+          padding: "18px 20px",
         }}
       >
         <div
@@ -1427,7 +1427,7 @@ export default function Page() {
           {[
             "No credit card required",
             "5 free videos on signup",
-            "20,000+ AI voices",
+            "100+ AI voices",
             "Export MP4 instantly",
             "FFmpeg-powered rendering",
           ].map((t, i) => (
@@ -1446,9 +1446,8 @@ export default function Page() {
 
       {/* ── features ── */}
       <section
-        className="bg-[#fceeca]"
+        className="bg-[#fceeca] px-4 md:px-6 py-20 md:py-32"
         id="features"
-        style={{ padding: "120px 24px" }}
       >
         <div style={{ maxWidth: 1080, margin: "0 auto" }}>
           <FadeIn>
@@ -1990,55 +1989,30 @@ export default function Page() {
       </section>
 
       {/* ── footer ── */}
-      <footer
-        style={{
-          borderTop: "1px solid rgba(45,90,39,0.18)",
-          padding: "36px 24px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1080,
-            margin: "0 auto",
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 20,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <footer className="border-t border-[rgba(45,90,39,0.18)] px-6 py-9">
+        <div className="mx-auto flex max-w-270 flex-col items-center justify-between gap-6 text-center md:flex-row md:text-left">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
             <IconLogo />
-            <span
-              style={{
-                fontSize: 14,
-                color: "rgba(232,213,163,0.4)",
-                fontWeight: 500,
-              }}
-            >
+            <span className="text-sm font-medium text-[rgba(232,213,163,0.4)]">
               MangaMotion AI
             </span>
           </div>
-          <p style={{ fontSize: 12, color: "rgba(232,213,163,0.2)" }}>
+
+          {/* Copyright */}
+          <p className="text-xs text-[rgba(232,213,163,0.75)]">
             © 2026 MangaMotion AI. All rights reserved.
           </p>
-          <div style={{ display: "flex", gap: 24 }}>
-            {["Terms", "Privacy", "Contact"].map((l) => (
+
+          {/* Links */}
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            {["Terms", "Privacy", "Contact"].map((link) => (
               <a
-                key={l}
+                key={link}
                 href="#"
-                style={{
-                  fontSize: 13,
-                  color: "rgba(232,213,163,0.25)",
-                  textDecoration: "none",
-                  transition: "color 0.2s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#e8d5a3")}
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.color = "rgba(232,213,163,0.25)")
-                }
+                className="text-[13px] text-[rgba(232,213,163,0.25)] transition-colors duration-200 hover:text-[#e8d5a3]"
               >
-                {l}
+                {link}
               </a>
             ))}
           </div>
