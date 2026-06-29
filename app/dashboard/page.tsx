@@ -17,7 +17,7 @@ import ProjectList from "@/components/sidebar/project-list";
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const STATUS: Record<string, { label: string; cls: string }> = {
-  draft:      { label: 'Draft',      cls: 'bg-white/[0.06] text-white/40' },
+  draft:      { label: 'Draft',      cls: 'bg-white/6 text-white/40' },
   processing: { label: 'Rendering',  cls: 'bg-amber-500/15 text-amber-300' },
   completed:  { label: 'Done',       cls: 'bg-[#bbdf50]/15 text-[#bbdf50]' },
   failed:     { label: 'Failed',     cls: 'bg-red-500/15 text-red-400' },
@@ -25,7 +25,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl bg-white/[0.04] ${className}`} />
+  return <div className={`animate-pulse rounded-xl bg-white/4 ${className}`} />
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
@@ -185,10 +185,10 @@ function UploadZone({
     <label
       className={`flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 border-dashed transition cursor-pointer ${
         disabled
-          ? 'opacity-40 cursor-not-allowed border-white/[0.06]'
+          ? 'opacity-40 cursor-not-allowed border-white/6'
           : drag
-          ? 'border-[#bbdf50]/60 bg-[#bbdf50]/[0.04]'
-          : 'border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.02]'
+          ? 'border-[#bbdf50]/60 bg-[#bbdf50]/4'
+          : 'border-white/8 hover:border-white/16 hover:bg-white/2'
       }`}
       onDragOver={e => { e.preventDefault(); if (!disabled) setDrag(true) }}
       onDragLeave={() => setDrag(false)}
@@ -205,7 +205,7 @@ function UploadZone({
         onChange={e => { const f = e.currentTarget.files?.[0]; if (f) onFile(f); e.currentTarget.value = '' }}
       />
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition ${
-        drag ? 'bg-[#bbdf50]/10 border-[#bbdf50]/30' : 'bg-white/[0.04] border-white/[0.07]'
+        drag ? 'bg-[#bbdf50]/10 border-[#bbdf50]/30' : 'bg-white/4 border-white/7'
       }`}>
         {uploading
           ? <Loader2 size={18} className="text-white/40 animate-spin" />

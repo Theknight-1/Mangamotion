@@ -27,17 +27,27 @@ import type { SoundEffect } from "@/lib/audio/sound-effects";
 import type { BGMTrack } from "@/lib/audio/background-music";
 
 // ── FFmpeg binary resolution ────────────────────────────────────────────────
-if (process.platform === "win32") {
-  ffmpeg.setFfmpegPath("ffmpeg");
-  ffmpeg.setFfprobePath("ffprobe");
-} else {
-  ffmpeg.setFfmpegPath(require("ffmpeg-static") as string);
+
+let ffmpegPath: string | undefined;
+let ffprobePath: string | undefined;
+
+if (process.env.NODE_ENV !== "production") {
   try {
-    ffmpeg.setFfprobePath(require("ffprobe-static").path as string);
-  } catch {
-    /* optional */
-  }
+    ffmpegPath = require("ffmpeg-static");
+  } catch {}
+
+  try {
+    ffprobePath = require("ffprobe-static").path;
+  } catch {}
 }
+
+ffmpeg.setFfmpegPath(
+  process.env.FFMPEG_PATH || ffmpegPath || "/usr/bin/ffmpeg",
+);
+
+ffmpeg.setFfprobePath(
+  process.env.FFPROBE_PATH || ffprobePath || "/usr/bin/ffprobe",
+);
 
 const FPS = 30;
 

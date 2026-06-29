@@ -110,11 +110,11 @@ export function VideoExport({
   );
 
   return (
-    <div className="bg-[#0d0d18] border border-white/[0.06] rounded-xl p-5 space-y-4">
+    <div className="bg-[#0d0d18] border border-white/6 rounded-xl p-5 space-y-4">
       <h3 className="text-sm font-semibold text-white">Export Video</h3>
 
       {/* Render settings */}
-      <div className="p-3 bg-white/[0.02] rounded-lg border border-white/[0.04] text-xs text-white/40 space-y-1.5">
+      <div className="p-3 bg-white/2 rounded-lg border border-white/4 text-xs text-white/40 space-y-1.5">
         <div className="flex justify-between">
           <span>Format</span>
           <span className="text-white/70 font-medium">
@@ -135,7 +135,7 @@ export function VideoExport({
 
       {status ? (
         <div className="space-y-3">
-          <div className="p-3 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+          <div className="p-3 bg-white/2 rounded-lg border border-white/4">
             <p className="text-xs text-white/40 mb-1">Status</p>
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-white capitalize">

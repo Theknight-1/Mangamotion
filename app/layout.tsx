@@ -41,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="font-sans antialiased bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <body className="font-sans antialiased bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
         {children}
         <Toaster position="bottom-right" />
         {process.env.NODE_ENV === 'production' && <Analytics />}
