@@ -854,19 +854,18 @@ export default function Page() {
                 </div>
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "2fr 1fr",
                     minHeight: 220,
                   }}
+                  className="grid grid-row-1 md:grid-cols-2`"
                 >
                   <div
                     style={{
-                      padding: 20,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       borderRight: "1px solid rgba(45,90,39,0.15)",
                     }}
+                    className="p-4 md:p-5"
                   >
                     <div
                       style={{
@@ -1724,7 +1723,7 @@ export default function Page() {
         </FadeIn>
       </section>
 
-     <Footer/>
+      <Footer />
 
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }

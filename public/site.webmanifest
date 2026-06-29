@@ -1,0 +1,21 @@
+{
+  "name": "MotionRecap",
+  "short_name": "MotionRecap",
+  "description": "Turn manga panels into narrated, animated videos.",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#060e06",
+  "background_color": "#060e06",
+  "display": "standalone",
+  "start_url": "/"
+}

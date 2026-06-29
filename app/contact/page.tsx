@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Contact — MotionRecap",
   description: "Get in touch with the MotionRecap team",
+  robots: { index: false, follow: false },
+  alternates: { canonical: "/contact" },
 };
 
 const SOCIALS = [

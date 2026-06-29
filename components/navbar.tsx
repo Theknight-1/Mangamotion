@@ -25,8 +25,8 @@ export const Navbar = () => {
           transform: "translateX(-50%)",
           zIndex: 100,
 
-          width: "calc(100% - 32px)",
-          maxWidth: 1100,
+          width: "calc(100% - 20px)",
+          maxWidth: 1150,
 
           background: scrolled ? "rgba(8,16,8,0.82)" : "rgba(8,16,8,0.58)",
 
@@ -67,7 +67,7 @@ export const Navbar = () => {
             position: "relative",
             zIndex: 2,
           }}
-          className="px-4 md:px-6"
+          className="px-3 md:px-6"
         >
           {/* Logo */}
           <a
@@ -154,7 +154,7 @@ export const Navbar = () => {
                 e.currentTarget.style.color = "rgba(232,213,163,0.65)";
                 e.currentTarget.style.background = "transparent";
               }}
-              className="px-1.5 md:px-4 py-2"
+              className="px-2 md:px-4 py-2"
             >
               Sign In
             </a>
@@ -182,7 +182,7 @@ export const Navbar = () => {
                 e.currentTarget.style.boxShadow =
                   "0 4px 20px rgba(201,168,76,0.35)";
               }}
-              className="px-1.5 md:px-4 py-2"
+              className="px-2 md:px-4 py-2"
             >
               Get Started
             </a>

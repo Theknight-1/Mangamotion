@@ -3,6 +3,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import AuthForm from "@/components/auth-form";
 import MangaShowcase from "@/components/auth/manga-showcase";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sign up",
+  robots: { index: false, follow: false },
+};
 
 export default async function SignupPage() {
   const session = await auth.api.getSession({ headers: await headers() });
