@@ -1,30 +1,61 @@
 import axios from 'axios'
 import crypto from 'crypto'
 
-// Subscription tiers
+
 export const TIERS = {
   free: {
-    name: 'Free',
+    name: "Free",
     price: 0,
-    videoLimit: 5,
-    videoMinutesLimit: 30,
-    features: ['Up to 5 videos', '30 minutes of video', 'Basic voice profiles'],
+    features: [
+      "1 video / month",
+      "Up to 10 minutes",
+      "1080p export",
+      "9:16 export only",
+      "1 AI voice",
+    ],
+  },
+  starter: {
+    name: "Starter",
+    price: 10,
+    features: [
+      "20 videos / month",
+      "Up to 120 minutes",
+      "1080p export",
+      "9:16 & 1:1 export",
+      "3 AI voices",
+      "Background music",
+    ],
   },
   pro: {
-    name: 'Pro',
-    price: 99,
-    videoLimit: 50,
-    videoMinutesLimit: 300,
-    features: ['Up to 50 videos', '300 minutes of video', 'Advanced voice profiles', 'Batch processing'],
+    name: "Pro",
+    price: 29,
+    features: [
+      "50 videos / month",
+      "Up to 300 minutes",
+      "4K export",
+      "All aspect ratios",
+      "5 AI voices",
+      "SFX library",
+      "Priority rendering",
+      "Custom branding",
+    ],
   },
   premium: {
-    name: 'Premium',
-    price: 299,
-    videoLimit: 500,
-    videoMinutesLimit: 5000,
-    features: ['Unlimited videos', 'Unlimited minutes', 'Priority support', 'Custom voice training'],
+    name: "Premium",
+    price: 59.99,
+    features: [
+      "200 videos / month",
+      "Up to 1200 minutes",
+      "4K export",
+      "All aspect ratios",
+      "20 AI voices",
+      "SFX library",
+      "Priority rendering",
+      "Custom branding",
+      "API access",
+    ],
   },
-}
+} as const;
 
 // Razorpay integration
 export async function createRazorpaySubscription(

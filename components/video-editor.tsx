@@ -1,125 +1,201 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Plus, Play, Download } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { useState, useEffect } from "react";
+import { Download, Play, RotateCw, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 
-interface Scene {
-  id: string
-  duration: number
-  voice?: {
-    audioUrl: string
-    duration: number
-    text: string
-  }
+interface VideoStatus {
+  id: string;
+  status: "draft" | "processing" | "completed" | "failed";
+  videoUrl?: string;
+  duration?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface VideoEditorProps {
-  videoId: string
-  sourceImage: string
-  onExport?: () => void
+interface VideoExportProps {
+  videoId: string;
+  scenes: any[];
+  aspectRatio?: string;
+  subtitlesEnabled?: boolean;
+  onExportStart?: () => void;
 }
 
-export function VideoEditor({ videoId, sourceImage, onExport }: VideoEditorProps) {
-  const [scenes, setScenes] = useState<Scene[]>([])
-  const [selectedScene, setSelectedScene] = useState<string | null>(null)
-  const [rendering, setRendering] = useState(false)
+export function VideoExport({
+  videoId,
+  scenes,
+  aspectRatio,
+  subtitlesEnabled,
+  onExportStart,
+}: VideoExportProps) {
+  const [status, setStatus] = useState<VideoStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [polling, setPolling] = useState(false);
 
-  async function addScene() {
-    const newScene: Scene = {
-      id: Math.random().toString(36).substr(2, 9),
-      duration: 3,
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout;
+
+    if (polling && videoId) {
+      pollInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/videos/${videoId}`);
+          if (response.ok) {
+            const data = await response.json();
+            setStatus(data.video);
+
+            if (data.video.status === "completed") {
+              setPolling(false);
+              toast.success("Video rendering completed!");
+            } else if (data.video.status === "failed") {
+              setPolling(false);
+              toast.error("Video rendering failed");
+            }
+          }
+        } catch (error) {
+          console.error("[VideoExport] Poll error:", error);
+        }
+      }, 3000);
     }
-    setScenes([...scenes, newScene])
-    setSelectedScene(newScene.id)
-  }
 
-  async function renderVideo() {
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [polling, videoId]);
+
+  async function startRender() {
     if (scenes.length === 0) {
-      toast.error('Add at least one scene to render')
-      return
+      toast.error("Add at least one scene to render");
+      return;
     }
 
-    setRendering(true)
+    setLoading(true);
     try {
-      const response = await fetch('/api/render-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId }),
-      })
+      const response = await fetch("/api/render-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId,
+          timeline: scenes,
+          aspectRatio,
+          subtitlesEnabled,
+        }),
+      });
 
-      if (!response.ok) throw new Error('Render failed')
+      if (!response.ok) throw new Error("Render request failed");
 
-      toast.success('Video rendering started! Check back in a moment.')
-      onExport?.()
+      toast.success("Rendering started! Preparing your video...");
+      setPolling(true);
+      onExportStart?.();
     } catch (error) {
-      console.error('[v0] Render error:', error)
-      toast.error('Failed to render video')
+      console.error("[VideoExport] Render error:", error);
+      toast.error("Failed to start rendering");
     } finally {
-      setRendering(false)
+      setLoading(false);
     }
   }
+
+  function downloadVideo() {
+    if (status?.videoUrl) {
+      const link = document.createElement("a");
+      link.href = status.videoUrl;
+      link.download = `mangamotion-${videoId}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
+  const hasCompletedScenes = scenes.some(
+    (s: any) => s.status === "done" || s.voice?.audioUrl,
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Preview */}
-      <div className="rounded-lg overflow-hidden bg-slate-700 aspect-video w-full">
-        <img src={sourceImage} alt="Video preview" className="w-full h-full object-cover" />
-      </div>
+    <div className="bg-[#0d0d18] border border-white/[0.06] rounded-xl p-5 space-y-4">
+      <h3 className="text-sm font-semibold text-white">Export Video</h3>
 
-      {/* Timeline */}
-      <div className="bg-slate-800 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Timeline</h3>
-          <button
-            onClick={addScene}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"
-          >
-            <Plus size={20} />
-            Add Scene
-          </button>
+      {/* Render settings */}
+      <div className="p-3 bg-white/[0.02] rounded-lg border border-white/[0.04] text-xs text-white/40 space-y-1.5">
+        <div className="flex justify-between">
+          <span>Format</span>
+          <span className="text-white/70 font-medium">
+            {aspectRatio || "9:16"}
+          </span>
         </div>
+        <div className="flex justify-between">
+          <span>Subtitles</span>
+          <span className="text-white/70 font-medium">
+            {subtitlesEnabled ? "On" : "Off"}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span>Scenes</span>
+          <span className="text-white/70 font-medium">{scenes.length}</span>
+        </div>
+      </div>
 
-        {scenes.length === 0 ? (
-          <p className="text-slate-400 text-center py-8">No scenes yet. Add a scene to get started.</p>
-        ) : (
-          <div className="space-y-2">
-            {scenes.map((scene) => (
-              <div
-                key={scene.id}
-                onClick={() => setSelectedScene(scene.id)}
-                className={`p-4 rounded-lg cursor-pointer transition ${
-                  selectedScene === scene.id ? 'bg-purple-600' : 'bg-slate-700 hover:bg-slate-600'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-white font-semibold">Scene {scenes.indexOf(scene) + 1}</p>
-                    {scene.voice && <p className="text-slate-400 text-sm truncate">{scene.voice.text}</p>}
-                  </div>
-                  <span className="text-slate-300 text-sm">{scene.duration}s</span>
+      {status ? (
+        <div className="space-y-3">
+          <div className="p-3 bg-white/[0.02] rounded-lg border border-white/[0.04]">
+            <p className="text-xs text-white/40 mb-1">Status</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-white capitalize">
+                {status.status}
+              </span>
+              {status.status === "processing" && (
+                <div className="flex items-center gap-1.5">
+                  <Loader2 size={13} className="animate-spin text-amber-400" />
+                  <span className="text-xs text-amber-400">Processing</span>
                 </div>
-              </div>
-            ))}
+              )}
+              {status.status === "completed" && (
+                <span className="text-xs text-[#4a8a42]">✓ Complete</span>
+              )}
+              {status.status === "failed" && (
+                <span className="text-xs text-red-400">✗ Failed</span>
+              )}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Actions */}
-      <div className="flex gap-4">
+          {status.status === "completed" && status.videoUrl && (
+            <button
+              onClick={downloadVideo}
+              className="w-full flex items-center justify-center gap-2 bg-[#4a8a42] hover:bg-[#3a6a32] text-white font-semibold py-2.5 rounded-lg transition"
+              type="button"
+            >
+              <Download size={16} />
+              Download MP4
+            </button>
+          )}
+
+          {status.status === "draft" && (
+            <button
+              onClick={startRender}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-[#4a8a42] hover:bg-[#3a6a32] text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50"
+              type="button"
+            >
+              <Play size={16} />
+              {loading ? "Starting..." : "Start Rendering"}
+            </button>
+          )}
+        </div>
+      ) : (
         <button
-          onClick={renderVideo}
-          disabled={rendering || scenes.length === 0}
-          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={startRender}
+          disabled={loading || scenes.length === 0}
+          className="w-full flex items-center justify-center gap-2 bg-[#4a8a42] hover:bg-[#3a6a32] text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          type="button"
         >
-          <Play size={20} />
-          {rendering ? 'Rendering...' : 'Render Video'}
+          <Play size={16} />
+          {loading ? "Preparing..." : `Render Video (${scenes.length} scenes)`}
         </button>
-        <button className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg transition disabled:opacity-50">
-          <Download size={20} />
-          Export
-        </button>
-      </div>
+      )}
+
+      {!hasCompletedScenes && scenes.length > 0 && (
+        <p className="text-xs text-amber-400/60 text-center">
+          Complete scene narration & voice generation before rendering
+        </p>
+      )}
     </div>
-  )
+  );
 }

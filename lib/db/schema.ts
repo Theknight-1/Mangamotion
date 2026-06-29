@@ -64,26 +64,26 @@ export const projects = pgTable('projects', {
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })
 
-export const videos = pgTable('videos', {
-  id: text('id').primaryKey(),
-  userId: text('userId').notNull(),
-  projectId: text('projectId').notNull(),
-  title: text('title').notNull(),
-  description: text('description'),
-  sourceImage: text('sourceImage').notNull(),
-  videoUrl: text('videoUrl'),
-  
+export const videos = pgTable("videos", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull(),
+  projectId: text("projectId").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  sourceImage: text("sourceImage").notNull(),
+  videoUrl: text("videoUrl"),
+
   // 🆕 NEW FIELDS FOR AI VIDEO FEATURES
-  subtitleUrl: text('subtitleUrl'),             // URL to the generated .vtt file
-  aspectRatio: text('aspectRatio').default('9:16'), // '9:16' | '16:9' | '1:1' | '4:5'
-  subtitlesEnabled: boolean('subtitlesEnabled').default(true), // Toggle subtitles on/off
-  
-  status: text('status').notNull().default('draft'), // draft, processing, completed, failed
-  duration: integer('duration'), // in seconds
-  timeline: text('timeline').default('[]'), // JSON string of timeline data
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
-})
+  subtitleUrl: text("subtitleUrl"), // URL to the generated .vtt file
+  aspectRatio: text("aspectRatio").default("16:9"), // '9:16' | '16:9' | '1:1' | '4:5'
+  subtitlesEnabled: boolean("subtitlesEnabled").default(true), // Toggle subtitles on/off
+
+  status: text("status").notNull().default("draft"), // draft, processing, completed, failed
+  duration: integer("duration"), // in seconds
+  timeline: text("timeline").default("[]"), // JSON string of timeline data
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
 
 
 export const voiceProfiles = pgTable('voiceProfiles', {

@@ -14,7 +14,7 @@ const SOCIALS = [
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-[#f7f3ea] px-6 py-20">
-      <div className="mx-auto max-w-[560px]">
+      <div className="mx-auto max-w-140">
         <Link
           href="/"
           className="mb-10 inline-block text-sm text-[rgba(31,46,26,0.5)] hover:text-[#1f2e1a]"

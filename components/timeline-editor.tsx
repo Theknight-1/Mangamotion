@@ -52,14 +52,13 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
           <h2 className="text-base font-semibold text-white">Scenes</h2>
           <p className="text-xs text-white/30 mt-0.5">
             {scenes.length === 0
-              ? 'Add scenes — each is one manga panel'
-              : `${doneCount}/${scenes.length} ready${totalDur > 0 ? ` · ~${totalDur}s total` : ''}`
-            }
+              ? "Add scenes — each is one manga panel"
+              : `${doneCount}/${scenes.length} ready${totalDur > 0 ? ` · ~${totalDur}s total` : ""}`}
           </p>
         </div>
         <button
           onClick={addScene}
-          className="flex items-center gap-2 bg-[#4a8a42] hover:bg-[#3a6a32] text-white text-sm font-medium px-4 py-2 rounded-xl transition cursor-pointer"
+          className="flex items-center gap-2 bg-[#bbdf50] hover:bg-[#a8c746] text-black cursor-pointer text-sm font-medium px-4 py-2 rounded-xl transition"
         >
           <Plus size={15} />
           Add Scene
@@ -71,10 +70,13 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
         <div className="rounded-2xl border border-dashed border-white/[0.07] p-16 text-center">
           <Film size={28} className="mx-auto mb-3 text-white/15" />
           <p className="text-sm text-white/30">No scenes yet</p>
-          <p className="text-xs text-white/20 mt-1 mb-5">Each scene is one manga panel with AI-generated narration and zoom effects</p>
+          <p className="text-xs text-white/20 mt-1 mb-5">
+            Each scene is one manga panel with AI-generated narration and zoom
+            effects
+          </p>
           <button
             onClick={addScene}
-            className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white text-sm px-5 py-2 rounded-xl transition"
+            className="inline-flex items-center gap-2 bg-[#bbdf50] hover:bg-[#a8c746] cursor-pointer text-black text-sm px-5 py-2 rounded-xl transition"
           >
             <Plus size={14} /> Add First Scene
           </button>
@@ -87,6 +89,7 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
               scene={scene}
               number={i + 1}
               videoId={videoId}
+              allScenes={scenes}
               onUpdate={updateScene}
               onDelete={() => deleteScene(scene.id)}
             />
@@ -95,12 +98,12 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
           {/* Add more button at bottom */}
           <button
             onClick={addScene}
-            className="w-full py-3 rounded-2xl border border-dashed border-white/[0.07] hover:border-violet-500/30 text-white/30 hover:text-violet-400 text-sm flex items-center justify-center gap-2 transition"
+            className="w-full py-3 rounded-2xl border cursor-pointer border-dashed border-white/[0.07] hover:border-[#bbdf50]/30 text-black hover:text-[#bbdf50] text-sm flex items-center justify-center gap-2 transition"
           >
             <Plus size={14} /> Add Scene
           </button>
         </div>
       )}
     </div>
-  )
+  );
 }

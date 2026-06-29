@@ -311,17 +311,17 @@ export const PremiumLoadingPage = () => (
       <motion.div
         className="absolute inset-0 opacity-5"
         animate={{
-          backgroundPosition: ['0% 0%', '100% 100%'],
+          backgroundPosition: ["0% 0%", "100% 100%"],
         }}
         transition={{
           duration: 20,
-          ease: 'linear',
+          ease: "linear",
           repeat: Infinity,
         }}
         style={{
           backgroundImage:
-            'radial-gradient(circle at center, #c8e86b 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
+            "radial-gradient(circle at center, #c8e86b 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
         }}
       />
     </div>
@@ -335,7 +335,7 @@ export const PremiumLoadingPage = () => (
         }}
         transition={{
           duration: 4,
-          ease: 'easeInOut',
+          ease: "easeInOut",
           repeat: Infinity,
         }}
       >
@@ -352,10 +352,10 @@ export const PremiumLoadingPage = () => (
         <h1 className="text-[#c8e86b] text-2xl font-bold tracking-wider">
           MangaMotion
         </h1>
-        
+
         {/* Animated progress dots */}
         <div className="flex items-center gap-2">
-          {['Loading', 'your', 'manga', 'story'].map((word, i) => (
+          {["Loading", "your", "story"].map((word, i) => (
             <motion.span
               key={i}
               className="text-[#c8e86b]/60 text-sm font-medium"
@@ -386,7 +386,7 @@ export const PremiumLoadingPage = () => (
       </motion.div>
     </div>
   </motion.div>
-)
+);
 
 // Compact loading bar version
 export const LoadingBar = () => (

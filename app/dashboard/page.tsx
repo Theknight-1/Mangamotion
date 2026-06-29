@@ -71,7 +71,11 @@ function VideoCard({
         className="group flex items-center gap-4 px-4 py-3 rounded-2xl border border-white/6 bg-[#0f0f1a] cursor-pointer hover:border-white/12 transition"
       >
         <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-white/4 shrink-0">
-          <img src={video.sourceImage} alt="" className="w-full h-full object-cover" />
+          <img
+            src={video.sourceImage}
+            alt=""
+            className="w-full h-full object-cover"
+          />
           {isProcessing && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
               <Loader2 size={12} className="animate-spin text-amber-400" />
@@ -79,23 +83,33 @@ function VideoCard({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white/80 truncate">{video.title}</p>
+          <p className="text-sm font-medium text-white/80 truncate">
+            {video.title}
+          </p>
           <p className="text-xs text-white/30 mt-0.5 flex items-center gap-1">
             <Clock size={10} />
-            {new Date(video.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {new Date(video.createdAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            })}
           </p>
         </div>
-        <span className={`text-[11px] px-2.5 py-1 rounded-full font-medium shrink-0 ${s.cls}`}>
+        <span
+          className={`text-[11px] px-2.5 py-1 rounded-full font-medium shrink-0 ${s.cls}`}
+        >
           {s.label}
         </span>
         <button
-          onClick={e => { e.stopPropagation(); onDelete() }}
-          className="shrink-0 p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="shrink-0 p-1.5 rounded-lg cursor-pointer text-white/20 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
         >
           <Trash2 size={13} />
         </button>
       </div>
-    )
+    );
   }
 
   return (
@@ -200,7 +214,7 @@ function UploadZone({
       </div>
       <div className="text-center">
         <p className="text-sm text-white/50">
-          {uploading ? 'Uploading…' : drag ? 'Drop to upload' : 'Drop manga panel here'}
+          {uploading ? 'Uploading…' : drag ? 'Drop to upload' : 'Drop cover panel here'}
         </p>
         <p className="text-xs text-white/25 mt-0.5">
           or <span className="text-[#bbdf50]/70">click to browse</span> · JPG, PNG, WebP

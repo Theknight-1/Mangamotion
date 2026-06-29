@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url)
     const search = (searchParams.get('q') ?? searchParams.get('search') ?? '').toLowerCase().trim()
-    const limit = Math.min(parseInt(searchParams.get('limit') ?? '20'), 50)
+    const limit = Math.min(parseInt(searchParams.get("limit") ?? "100"), 50);
 
     const { characters, voices } = await getDatasets()
 

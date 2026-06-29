@@ -1,39 +1,56 @@
 // types/scene.ts — shared across all components and API routes
 
+export type AspectRatio = "9:16" | "16:9" | "1:1" | "4:5";
+
+// ... rest of your types
+
 export interface Keyframe {
-  t: number   // seconds from scene start
-  x: number   // crop left (0–1 normalized)
-  y: number   // crop top  (0–1 normalized)
-  w: number   // crop width (0–1 normalized)
-  h: number   // crop height (0–1 normalized)
+  t: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export interface SceneVoice {
-  audioUrl: string
-  duration: number
-  text: string
+  audioUrl: string;
+  duration: number;
+  text: string;
 }
 
 export type SceneStatus =
-  | 'idle'             // just created, no image yet
-  | 'analyzing'        // Gemini API in progress
-  | 'ready'            // narration generated, awaiting voice
-  | 'generating_voice' // CVoice API in progress
-  | 'done'             // audio ready, can render
+  | "idle"
+  | "analyzing"
+  | "ready"
+  | "generating_voice"
+  | "done";
 
-export type AspectRatio = '9:16' | '16:9' | '1:1' | '4:5';
+export type Emotion =
+  | "action"
+  | "drama"
+  | "horror"
+  | "comedy"
+  | "romance"
+  | "mystery";
 
 export interface Scene {
-  id: string
-  index: number
-  imageUrl: string
-  narration: string
-  dialogue?: string       
-  effects?: string[]     
-  keyframes: Keyframe[]
-  voiceId: string
-  voice?: SceneVoice
-  status: SceneStatus
-  aspectRatio?: AspectRatio
-  clipUrl?: string
+  id: string;
+  index: number;
+  imageUrl: string;
+  narration: string;
+  keyframes: Keyframe[];
+  voiceId: string;
+  voice?: SceneVoice;
+  status: SceneStatus;
+  clipUrl?: string;
+
+  // Detected from narration text via keyword matching (free, no API call).
+  // Drives per-scene FFmpeg color grading in the render pipeline.
+  emotion?: Emotion;
+
+  // Cinematic effects applied to this scene (e.g. "shake", "flash", "fade_in")
+  effects?: string[];
+
+  // Extracted dialogue text for on-screen subtitles / VTT generation
+  dialogue?: string;
 }

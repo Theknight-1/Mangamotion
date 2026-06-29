@@ -5,6 +5,9 @@ import { useEffect, useState, useRef } from "react";
 import { useStore } from "@nanostores/react";
 import { useSession } from "@/lib/auth-client";
 import { IconLogo } from "@/components/icon-logo";
+import { Zap } from "lucide-react";
+import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
 
 /* ── tiny helpers ── */
 function useInView(threshold = 0.15) {
@@ -169,6 +172,25 @@ const IconPlay = () => (
   </svg>
 );
 
+const IconChevron = ({ open }: { open: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{
+      transform: open ? "rotate(180deg)" : "rotate(0deg)",
+      transition: "transform 0.25s cubic-bezier(0.16,1,0.3,1)",
+    }}
+  >
+    <path d="M4 6l4 4 4-4" />
+  </svg>
+);
+
 /* ── feature data ── */
 const FEATURES = [
   {
@@ -268,6 +290,33 @@ const TESTIMONIALS = [
     role: "Content creator, Seoul",
     avatar: "SL",
     color: "coral",
+  },
+];
+
+const FAQS = [
+  {
+    q: "How does billing work?",
+    a: "Paid plans are billed monthly in USD via Razorpay or PayPal. You can upgrade, downgrade, or cancel from your account settings at any time.",
+  },
+  {
+    q: "What happens if I exceed my plan's limits?",
+    a: "We'll notify you as you approach your monthly video or minute cap. You can upgrade instantly to keep rendering, or wait until your limits reset next month.",
+  },
+  {
+    q: "Can I cancel anytime?",
+    a: "Yes — cancel whenever you like. You'll keep access until the end of your current billing period, no cancellation fees.",
+  },
+  {
+    q: "Do unused videos roll over?",
+    a: "No, monthly video and minute allowances reset at the start of each billing cycle.",
+  },
+  {
+    q: "What's the difference between Starter and Pro?",
+    a: "Starter is built for casual creators posting a few times a week — Pro adds 4K export, SFX, custom branding, and priority rendering for channels publishing daily.",
+  },
+  {
+    q: "What payment methods do you accept?",
+    a: "Major credit/debit cards and PayPal internationally, plus UPI and net banking via Razorpay for users in India.",
   },
 ];
 
@@ -556,320 +605,20 @@ function VoiceDemo() {
   );
 }
 
-/* ── pricing toggle ── */
-function PricingSection() {
-  const [annual, setAnnual] = useState(false);
-  const plans = [
-    {
-      name: "Free",
-      mo: 0,
-      yr: 0,
-      desc: "Try it out, no card needed.",
-      features: [
-        "5 videos / month",
-        "30 min total",
-        "All 20k+ voices",
-        "MP4 export",
-      ],
-      cta: "Get started free",
-      highlight: false,
-    },
-    {
-      name: "Pro",
-      mo: 99,
-      yr: 79,
-      desc: "For regular manga creators.",
-      features: [
-        "50 videos / month",
-        "300 min total",
-        "All 20k+ voices",
-        "Priority rendering",
-        "Voice profile library",
-      ],
-      cta: "Start Pro",
-      highlight: true,
-    },
-    {
-      name: "Premium",
-      mo: 299,
-      yr: 239,
-      desc: "Unlimited creative power.",
-      features: [
-        "Unlimited videos",
-        "Unlimited minutes",
-        "All 20k+ voices",
-        "Fastest rendering",
-        "Early feature access",
-        "Dedicated support",
-      ],
-      cta: "Start Premium",
-      highlight: false,
-    },
-  ];
-
-  return (
-    <section
-      id="pricing"
-      style={{
-        padding: "120px 24px",
-        borderTop: "1px solid rgba(45,90,39,0.18)",
-      }}
-    >
-      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-        <FadeIn>
-          <p
-            style={{
-              fontSize: 11,
-              letterSpacing: "0.14em",
-              color: "#6b9e62",
-              textTransform: "uppercase",
-              fontWeight: 500,
-              marginBottom: 12,
-            }}
-          >
-            Pricing
-          </p>
-          <h2
-            style={{
-              fontSize: "clamp(28px,4vw,46px)",
-              fontWeight: 600,
-              color: "#e8d5a3",
-              lineHeight: 1.15,
-              margin: "0 0 16px",
-            }}
-          >
-            Simple, honest pricing
-          </h2>
-          <p
-            style={{
-              color: "rgba(232,213,163,0.45)",
-              fontSize: 17,
-              marginBottom: 36,
-            }}
-          >
-            Start free. Pay only when your projects grow.
-          </p>
-        </FadeIn>
-
-        <FadeIn delay={100}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 12,
-              background: "rgba(45,90,39,0.15)",
-              border: "1px solid rgba(45,90,39,0.3)",
-              borderRadius: 10,
-              padding: "8px 14px",
-              marginBottom: 40,
-            }}
-          >
-            <button
-              onClick={() => setAnnual(false)}
-              style={{
-                fontSize: 13,
-                fontWeight: annual ? 400 : 600,
-                color: annual ? "rgba(232,213,163,0.4)" : "#e8d5a3",
-                border: "none",
-                cursor: "pointer",
-                padding: "4px 10px",
-                borderRadius: 6,
-                background: annual ? "none" : "rgba(45,90,39,0.3)",
-              }}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setAnnual(true)}
-              style={{
-                fontSize: 13,
-                fontWeight: annual ? 600 : 400,
-                color: annual ? "#e8d5a3" : "rgba(232,213,163,0.4)",
-                background: annual ? "rgba(45,90,39,0.3)" : "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "4px 10px",
-                borderRadius: 6,
-              }}
-            >
-              Annual{" "}
-              <span style={{ fontSize: 11, color: "#c9a84c", marginLeft: 4 }}>
-                save 20%
-              </span>
-            </button>
-          </div>
-        </FadeIn>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-            gap: 16,
-          }}
-        >
-          {plans.map((p, i) => (
-            <FadeIn key={i} delay={i * 80}>
-              <div
-                style={{
-                  background: p.highlight ? "rgba(45,90,39,0.1)" : "#0a180a",
-                  border: p.highlight
-                    ? "1.5px solid rgba(74,138,66,0.6)"
-                    : "1px solid rgba(45,90,39,0.22)",
-                  borderRadius: 18,
-                  padding: "32px 28px",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  transition: "border-color 0.2s",
-                  position: "relative",
-                }}
-              >
-                {p.highlight && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: -12,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      background: "#c9a84c",
-                      color: "#1a0e00",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      padding: "4px 14px",
-                      borderRadius: 20,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Most popular
-                  </div>
-                )}
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "rgba(232,213,163,0.5)",
-                    marginBottom: 6,
-                    fontWeight: 500,
-                  }}
-                >
-                  {p.name}
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 4,
-                    marginBottom: 6,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 42,
-                      fontWeight: 700,
-                      color: "#e8d5a3",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {p.mo === 0 ? "₹0" : `₹${annual ? p.yr : p.mo}`}
-                  </span>
-                  {p.mo > 0 && (
-                    <span
-                      style={{ fontSize: 13, color: "rgba(232,213,163,0.35)" }}
-                    >
-                      /mo
-                    </span>
-                  )}
-                </div>
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "rgba(232,213,163,0.4)",
-                    marginBottom: 24,
-                  }}
-                >
-                  {p.desc}
-                </p>
-                <ul
-                  style={{
-                    listStyle: "none",
-                    padding: 0,
-                    margin: "0 0 28px",
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
-                  {p.features.map((f, j) => (
-                    <li
-                      key={j}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        fontSize: 13.5,
-                        color: "rgba(232,213,163,0.6)",
-                      }}
-                    >
-                      <span style={{ color: "#4a8a42", flexShrink: 0 }}>
-                        <IconCheck />
-                      </span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href="/signup"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    padding: "13px 0",
-                    borderRadius: 10,
-                    textDecoration: "none",
-                    transition: "all 0.2s",
-                    background: p.highlight ? "#2d5a27" : "transparent",
-                    color: p.highlight ? "#e8d5a3" : "rgba(232,213,163,0.5)",
-                    border: p.highlight
-                      ? "none"
-                      : "1px solid rgba(45,90,39,0.35)",
-                  }}
-                >
-                  {p.cta}
-                </a>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ══════════════════════════════════════════════ MAIN PAGE ══════════════════════════════════════════ */
 export default function Page() {
   const router = useRouter();
   const session = useStore(useSession);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
 
+   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  
   useEffect(() => {
     if (session.data) router.push("/dashboard");
   }, [session, router]);
 
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", handler, { passive: true });
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
 
-  const NAV_LINKS = [
-    { label: "Features", href: "#features" },
-    { label: "How it works", href: "#how-it-works" },
-    { label: "Pricing", href: "#pricing" },
-  ];
+
+
 
   return (
     <main
@@ -880,179 +629,7 @@ export default function Page() {
         overflowX: "hidden",
       }}
     >
-      {/* Premium Floating Navbar */}
-      <nav
-        style={{
-          position: "fixed",
-          top: 16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 100,
-
-          width: "calc(100% - 32px)",
-          maxWidth: 1100,
-
-          background: scrolled ? "rgba(8,16,8,0.82)" : "rgba(8,16,8,0.58)",
-
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-
-          border: "1px solid rgba(201,168,76,0.15)",
-          borderRadius: 18,
-
-          boxShadow: scrolled
-            ? "0 12px 40px rgba(0,0,0,0.35)"
-            : "0 8px 30px rgba(0,0,0,0.25)",
-
-          transition: "all 0.35s ease",
-          overflow: "hidden",
-        }}
-      >
-        {/* Glow Effect */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: 18,
-            background:
-              "radial-gradient(circle at top center, rgba(201,168,76,0.12), transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-
-        <div
-          style={{
-            height: 68,
-            maxWidth: 1080,
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            position: "relative",
-            zIndex: 2,
-          }}
-          className="px-4 md:px-6"
-        >
-          {/* Logo */}
-          <a
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              textDecoration: "none",
-            }}
-          >
-            <IconLogo />
-
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "#e8d5a3",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              MangaMotion
-            </span>
-          </a>
-
-          {/* Desktop Nav */}
-          <div
-            className="hide-mobile"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                style={{
-                  fontSize: 14,
-                  color: "rgba(232,213,163,0.65)",
-                  textDecoration: "none",
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  transition: "all 0.25s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(201,168,76,0.08)";
-                  e.currentTarget.style.color = "#e8d5a3";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "rgba(232,213,163,0.65)";
-                }}
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <a
-              href="/login"
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: "rgba(232,213,163,0.65)",
-                textDecoration: "none",
-                borderRadius: 10,
-                transition: "all 0.25s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#e8d5a3";
-                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(232,213,163,0.65)";
-                e.currentTarget.style.background = "transparent";
-              }}
-              className="px-1.5 md:px-4 py-2"
-            >
-              Sign In
-            </a>
-
-            <a
-              href="/signup"
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#060e06",
-                background: "linear-gradient(135deg,#c9a84c 0%,#e8d5a3 100%)",
-                borderRadius: 12,
-                textDecoration: "none",
-                letterSpacing: "0.01em",
-                boxShadow: "0 4px 20px rgba(201,168,76,0.35)",
-                transition: "all 0.25s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow =
-                  "0 8px 30px rgba(201,168,76,0.45)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px rgba(201,168,76,0.35)";
-              }}
-              className="px-1.5 md:px-4 py-2"
-            >
-              Get Started
-            </a>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* ── hero ── */}
       <section
@@ -1900,124 +1477,254 @@ export default function Page() {
         `}</style>
       </section>
 
-      {/* ── pricing ── */}
-      <PricingSection />
+      {/* ── faq ── */}
+      <section
+        style={{
+          padding: "0 24px 128px",
+          borderTop: "1px solid rgba(45,90,39,0.15)",
+        }}
+      >
+        <div style={{ maxWidth: 680, margin: "0 auto", paddingTop: 112 }}>
+          <FadeIn>
+            <div style={{ textAlign: "center", marginBottom: 52 }}>
+              <span
+                className="badge-pill"
+                style={{ marginBottom: 16, display: "inline-flex" }}
+              >
+                FAQ
+              </span>
+              <h2
+                style={{
+                  fontSize: "clamp(26px,3.5vw,42px)",
+                  fontWeight: 700,
+                  color: "#e8d5a3",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.025em",
+                  margin: 0,
+                }}
+              >
+                Frequently asked questions
+              </h2>
+            </div>
+          </FadeIn>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {FAQS.map((f, i) => {
+              const open = openFaq === i;
+              return (
+                <FadeIn key={i} delay={i * 45}>
+                  <div
+                    className="faq-item"
+                    style={{
+                      background: open ? "rgba(45,90,39,0.08)" : "#09120a",
+                      border: `1px solid ${open ? "rgba(74,138,66,0.4)" : "rgba(45,90,39,0.2)"}`,
+                      borderRadius: 14,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <button
+                      onClick={() => setOpenFaq(open ? null : i)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 16,
+                        padding: "19px 22px",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 14.5,
+                          fontWeight: 600,
+                          color: open ? "#e8d5a3" : "rgba(232,213,163,0.8)",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        {f.q}
+                      </span>
+                      <div
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 7,
+                          background: open
+                            ? "rgba(74,138,66,0.15)"
+                            : "rgba(45,90,39,0.12)",
+                          border: `1px solid ${open ? "rgba(74,138,66,0.3)" : "rgba(45,90,39,0.2)"}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: open ? "#4a8a42" : "rgba(107,158,98,0.6)",
+                          flexShrink: 0,
+                          transition: "background 0.2s, border-color 0.2s",
+                        }}
+                      >
+                        <IconChevron open={open} />
+                      </div>
+                    </button>
+                    <div
+                      style={{
+                        maxHeight: open ? 240 : 0,
+                        opacity: open ? 1 : 0,
+                        transition:
+                          "max-height 0.35s cubic-bezier(0.16,1,0.3,1), opacity 0.25s ease",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <p
+                        style={{
+                          padding: "0 22px 22px",
+                          fontSize: 14,
+                          color: "rgba(232,213,163,0.5)",
+                          lineHeight: 1.7,
+                          margin: 0,
+                        }}
+                      >
+                        {f.a}
+                      </p>
+                    </div>
+                  </div>
+                </FadeIn>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* ── final cta ── */}
       <section
         style={{
-          padding: "120px 24px",
-          borderTop: "1px solid rgba(45,90,39,0.18)",
+          padding: "0 24px 120px",
+          borderTop: "1px solid rgba(45,90,39,0.15)",
           textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <FadeIn>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 800,
+            height: 500,
+            background:
+              "radial-gradient(ellipse, rgba(45,90,39,0.1) 0%, transparent 65%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <FadeIn>
+          <div style={{ paddingTop: 112, position: "relative" }}>
             <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 14,
-                background: "rgba(45,90,39,0.3)",
-                border: "1px solid rgba(74,138,66,0.3)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 28px",
-              }}
-            >
-              <IconLogo />
-            </div>
-            <h2
-              style={{
-                fontSize: "clamp(30px,5vw,58px)",
-                fontWeight: 700,
-                color: "#e8d5a3",
-                lineHeight: 1.1,
-                letterSpacing: "-0.02em",
-                margin: "0 0 20px",
-              }}
-            >
-              Ready to animate your manga?
-            </h2>
-            <p
-              style={{
-                fontSize: 18,
-                color: "rgba(232,213,163,0.4)",
-                lineHeight: 1.65,
-                marginBottom: 40,
-              }}
-            >
-              Free to start. No credit card. Your first 5 videos are on us.
-            </p>
-            <a
-              href="/signup"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                background: "#c9a84c",
-                color: "#1a0e00",
-                fontSize: 16,
-                fontWeight: 700,
-                padding: "16px 36px",
-                borderRadius: 12,
-                textDecoration: "none",
-                transition: "background 0.2s",
-                letterSpacing: "0.01em",
+                padding: "8px 18px",
+                borderRadius: 100,
+                background: "rgba(45,90,39,0.1)",
+                border: "1px solid rgba(74,138,66,0.25)",
+                marginBottom: 28,
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#d4b55c")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "#c9a84c")
-              }
             >
-              Create your first video <IconArrow />
-            </a>
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#4a8a42",
+                  boxShadow: "0 0 8px rgba(74,138,66,0.6)",
+                }}
+              />
+              <span style={{ fontSize: 12, color: "#6b9e62", fontWeight: 600 }}>
+                Free tier always available
+              </span>
+            </div>
+
+            <h2
+              style={{
+                fontSize: "clamp(30px,5vw,54px)",
+                fontWeight: 800,
+                color: "#e8d5a3",
+                lineHeight: 1.05,
+                letterSpacing: "-0.03em",
+                margin: "0 0 16px",
+              }}
+            >
+              Start free. Upgrade when ready.
+            </h2>
             <p
               style={{
-                fontSize: 12,
-                color: "rgba(232,213,163,0.2)",
-                marginTop: 18,
+                fontSize: 17,
+                color: "rgba(232,213,163,0.4)",
+                marginBottom: 40,
+                lineHeight: 1.5,
               }}
             >
-              No signup friction. Cancel anytime.
+              1 free video, up to 10 minutes. No credit card. Cancel anytime.
             </p>
-          </FadeIn>
-        </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <a
+                href="/signup"
+                className="cta-btn"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background:
+                    "linear-gradient(135deg, #c9a84c 0%, #e0cc8a 100%)",
+                  color: "#1a0e00",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  padding: "15px 32px",
+                  borderRadius: 12,
+                  textDecoration: "none",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                <Zap size={16} />
+                Create your first video
+              </a>
+              <a
+                href="/pricing"
+                className="cta-btn"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: "rgba(45,90,39,0.1)",
+                  color: "rgba(232,213,163,0.6)",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  padding: "15px 28px",
+                  borderRadius: 12,
+                  textDecoration: "none",
+                  border: "1px solid rgba(45,90,39,0.28)",
+                }}
+              >
+                Upgrade now
+              </a>
+            </div>
+          </div>
+        </FadeIn>
       </section>
 
-      {/* ── footer ── */}
-      <footer className="border-t border-[rgba(45,90,39,0.18)] px-6 py-9">
-        <div className="mx-auto flex max-w-270 flex-col items-center justify-between gap-6 text-center md:flex-row md:text-left">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <IconLogo />
-            <span className="text-sm font-medium text-[rgba(232,213,163,0.4)]">
-              MangaMotion AI
-            </span>
-          </div>
-
-          {/* Copyright */}
-          <p className="text-xs text-[rgba(232,213,163,0.75)]">
-            © 2026 MangaMotion AI. All rights reserved.
-          </p>
-
-          {/* Links */}
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            {["Terms", "Privacy", "Contact"].map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="text-[13px] text-[rgba(232,213,163,0.25)] transition-colors duration-200 hover:text-[#e8d5a3]"
-              >
-                {link}
-              </a>
-            ))}
-          </div>
-        </div>
-      </footer>
+     <Footer/>
 
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }

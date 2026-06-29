@@ -172,7 +172,7 @@ export default function ProjectList({
                     e.stopPropagation();
                     setOpenMenuId(isMenuOpen ? null : p.id);
                   }}
-                  className="p-1 rounded-md hover:bg-white/10 text-white/60 hover:text-white transition-colors focus:outline-none focus:ring-1 focus:ring-[#bbdf50]/50"
+                  className="p-1 rounded-md group-hover:bg-black text-white/60 hover:text-white transition-colors focus:outline-none focus:ring-1 focus:ring-[#bbdf50]/50"
                   aria-label="More options"
                 >
                   <MoreHorizontal size={14} />
@@ -185,7 +185,7 @@ export default function ProjectList({
               <div className="absolute right-0 top-full mt-1 w-36 bg-zinc-900 border border-white/10 rounded-lg shadow-xl overflow-hidden py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   onClick={(e) => handleEditClick(e, p)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/70 hover:bg-white/5 hover:text-white text-left transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-white/70 hover:bg-gray-700/10 hover:text-white text-left transition-colors"
                 >
                   <Pencil size={12} />
                   Rename

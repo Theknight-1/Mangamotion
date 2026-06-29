@@ -1,0 +1,1 @@
+ALTER TABLE "videos" ALTER COLUMN "aspectRatio" SET DEFAULT '16:9';
