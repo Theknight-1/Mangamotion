@@ -142,15 +142,15 @@ export async function createPayPalSubscription(
 ) {
   try {
     const response = await axios.post(
-      'https://api-m.sandbox.paypal.com/v1/billing/subscriptions',
+      "https://api-m.sandbox.paypal.com/v1/billing/subscriptions",
       {
         plan_id: planId,
         subscriber: {
           email_address: email,
         },
         application_context: {
-          brand_name: 'MangaMotion AI',
-          locale: 'en-US',
+          brand_name: "MotionRecap AI",
+          locale: "en-US",
           return_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
           cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
         },
@@ -159,8 +159,8 @@ export async function createPayPalSubscription(
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      }
-    )
+      },
+    );
 
     return response.data
   } catch (error) {

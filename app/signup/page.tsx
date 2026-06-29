@@ -33,7 +33,7 @@ export default async function SignupPage() {
               <polygon points="15,13.5 15,22.5 23,18" fill="#060e06" />
             </svg>
             <span className="font-bold text-[15px] text-[#e8d5a3]">
-              MangaMotion
+              MotionRecap
             </span>
           </a>
 

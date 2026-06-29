@@ -93,7 +93,7 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
     if (status?.videoUrl) {
       const link = document.createElement('a')
       link.href = status.videoUrl
-      link.download = `mangamotion-${videoId}.mp4`
+      link.download = `MotionRecap-${videoId}.mp4`;
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)

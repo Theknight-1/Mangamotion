@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms of Service — MangaMotion",
-  description: "Terms of Service for MangaMotion",
+  title: "Terms of Service — MotionRecap",
+  description: "Terms of Service for MotionRecap",
 };
 
 export default function TermsPage() {
@@ -29,7 +29,7 @@ export default function TermsPage() {
               1. Who we are
             </h2>
             <p>
-              MangaMotion ("we," "us," "our") provides a web-based service that
+              MotionRecap ("we," "us," "our") provides a web-based service that
               converts manga panel images into narrated, animated video recaps
               ("the Service"). These Terms govern your access to and use of the
               Service at [your domain]. By creating an account or using the
@@ -68,7 +68,7 @@ export default function TermsPage() {
               copyrighted manga, comic, or illustrated material complies with
               applicable copyright law in your jurisdiction, including fair use,
               fair dealing, or equivalent exceptions where they apply.
-              MangaMotion does not review uploaded content for copyright
+              MotionRecap does not review uploaded content for copyright
               clearance and disclaims responsibility for infringing use by
               account holders.
             </p>
@@ -157,7 +157,7 @@ export default function TermsPage() {
               The Service is provided "as is" without warranties of any kind. We
               do not guarantee uninterrupted availability, error-free rendering,
               or particular video output quality. To the maximum extent
-              permitted by law, MangaMotion is not liable for indirect,
+              permitted by law, MotionRecap is not liable for indirect,
               incidental, or consequential damages arising from your use of the
               Service.
             </p>

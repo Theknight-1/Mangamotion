@@ -264,7 +264,7 @@ const TESTIMONIALS = [
     color: "amber",
   },
   {
-    text: "The panel-to-pan timing is the part nobody else gets right. MangaMotion nails the pacing without me touching a single keyframe.",
+    text: "The panel-to-pan timing is the part nobody else gets right. MotionRecap nails the pacing without me touching a single keyframe.",
     name: "Diego Fonseca",
     role: "YouTube editor, São Paulo",
     avatar: "DF",

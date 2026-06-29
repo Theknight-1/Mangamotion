@@ -1,14 +1,14 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Contact — MangaMotion",
-  description: "Get in touch with the MangaMotion team",
+  title: "Contact — MotionRecap",
+  description: "Get in touch with the MotionRecap team",
 };
 
 const SOCIALS = [
   { label: "Twitter / X", href: "https://twitter.com/yourhandle" },
   { label: "Discord", href: "https://discord.gg/yourinvite" },
-  { label: "GitHub", href: "https://github.com/Theknight-1/Mangamotion" },
+  { label: "GitHub", href: "https://github.com/Theknight-1/MotionRecap" },
 ];
 
 export default function ContactPage() {

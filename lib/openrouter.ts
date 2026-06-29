@@ -50,7 +50,7 @@ export async function analyzeImageWithOpenRouter(
       "Content-Type": "application/json",
       "HTTP-Referer":
         process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-      "X-Title": "MangaMotion",
+      "X-Title": "MotionRecap",
     },
     body: JSON.stringify({
       model: primaryModel,

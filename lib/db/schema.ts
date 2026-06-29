@@ -53,7 +53,7 @@ export const verification = pgTable('verification', {
   updatedAt: timestamp('updatedAt').defaultNow(),
 })
 
-// --- App tables for MangaMotion AI -----------------------------------------
+// --- App tables for MotionRecap AI -----------------------------------------
 
 export const projects = pgTable('projects', {
   id: text('id').primaryKey(),

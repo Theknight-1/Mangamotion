@@ -111,7 +111,7 @@ const COMPARISON_ROWS = [
 ];
 
 const STATS = [
-  { value: 300, suffix: "+", label: "Creators", sub: "using MangaMotion" },
+  { value: 300, suffix: "+", label: "Creators", sub: "using MotionRecap" },
   { value: 6500, suffix: "+", label: "Videos", sub: "rendered" },
   { value: 100, suffix: "+", label: "AI voices", sub: "available" },
   { value: 5, suffix: "/5", label: "Rating", sub: "average score" },

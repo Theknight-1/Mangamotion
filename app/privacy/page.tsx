@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy — MangaMotion",
-  description: "Privacy Policy for MangaMotion",
+  title: "Privacy Policy — MotionRecap",
+  description: "Privacy Policy for MotionRecap",
 };
 
 export default function PrivacyPage() {
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         <div className="space-y-10 text-[15px] leading-7 text-[#3a3325]">
           <section>
             <p>
-              This Privacy Policy explains what information MangaMotion
+              This Privacy Policy explains what information MotionRecap
               collects, how we use it, and the choices you have. By using the
               Service, you agree to the practices described here.
             </p>

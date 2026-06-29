@@ -351,7 +351,7 @@ export default function DashboardPage() {
               <IconLogo />
             </div>
             <span className="font-semibold text-white tracking-tight text-sm">
-              MangaMotion
+              MotionRecap
             </span>
             <span className="text-white/15 text-xs ml-1">AI Studio</span>
           </div>

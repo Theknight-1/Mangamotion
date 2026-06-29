@@ -45,7 +45,7 @@ export default function MangaShowcase() {
           <polygon points="15,13.5 15,22.5 23,18" fill="#f7f3ea" />
         </svg>
         <span className="font-bold text-[15px] tracking-tight text-[#1f2e1a]">
-          MangaMotion
+          MotionRecap
         </span>
       </a>
 
@@ -135,7 +135,7 @@ export default function MangaShowcase() {
         </h2>
         <p className="mb-7 max-w-[380px] text-sm leading-relaxed text-[rgba(31,46,26,0.6)]">
           Upload your pages, pick a voice for every character, and let
-          MangaMotion handle the pacing, the pans, and the performance.
+          MotionRecap handle the pacing, the pans, and the performance.
         </p>
         <div className="flex gap-7">
           {[

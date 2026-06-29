@@ -89,7 +89,7 @@ export const Navbar = () => {
                 letterSpacing: "-0.02em",
               }}
             >
-              MangaMotion
+              MotionRecap
             </span>
           </a>
 

@@ -10,13 +10,13 @@ export const Footer = () => {
           <div className="flex items-center gap-2">
             <IconLogo />
             <span className="text-sm font-medium text-[rgba(232,213,163,0.4)]">
-              MangaMotion AI
+              MotionRecap AI
             </span>
           </div>
 
           {/* Copyright */}
           <p className="text-xs text-[rgba(232,213,163,0.75)]">
-            © 2026 MangaMotion AI. All rights reserved.
+            © 2026 MotionRecap AI. All rights reserved.
           </p>
 
           {/* Links */}

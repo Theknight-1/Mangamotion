@@ -350,7 +350,7 @@ export const PremiumLoadingPage = () => (
         transition={{ delay: 0.5, duration: 0.6 }}
       >
         <h1 className="text-[#c8e86b] text-2xl font-bold tracking-wider">
-          MangaMotion
+          MotionRecap
         </h1>
 
         {/* Animated progress dots */}
