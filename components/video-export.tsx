@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Download, Play, RotateCw } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { Button } from "./loader-button";
 
 interface VideoStatus {
   id: string
@@ -108,11 +109,15 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
       <div className="mb-4 p-3 bg-slate-900/50 rounded-lg border border-white/5 text-xs text-slate-400 space-y-1">
         <div className="flex justify-between">
           <span>Format:</span>
-          <span className="text-white font-medium">{aspectRatio || '9:16'}</span>
+          <span className="text-white font-medium">
+            {aspectRatio || "9:16"}
+          </span>
         </div>
         <div className="flex justify-between">
           <span>Subtitles:</span>
-          <span className="text-white font-medium">{subtitlesEnabled ? 'Enabled' : 'Disabled'}</span>
+          <span className="text-white font-medium">
+            {subtitlesEnabled ? "Enabled" : "Disabled"}
+          </span>
         </div>
       </div>
 
@@ -121,56 +126,69 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
           <div className="p-4 bg-slate-700 rounded-lg">
             <p className="text-sm text-slate-400 mb-2">Status</p>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-white capitalize">{status.status}</span>
-              {status.status === 'processing' && (
+              <span className="font-semibold text-white capitalize">
+                {status.status}
+              </span>
+              {status.status === "processing" && (
                 <div className="flex items-center gap-2">
-                  <RotateCw size={16} className="animate-spin text-purple-400" />
+                  <RotateCw
+                    size={16}
+                    className="animate-spin text-purple-400"
+                  />
                   <span className="text-xs text-slate-400">Processing...</span>
                 </div>
               )}
-              {status.status === 'completed' && <span className="text-xs text-green-400">Complete</span>}
-              {status.status === 'failed' && <span className="text-xs text-red-400">Failed</span>}
+              {status.status === "completed" && (
+                <span className="text-xs text-green-400">Complete</span>
+              )}
+              {status.status === "failed" && (
+                <span className="text-xs text-red-400">Failed</span>
+              )}
             </div>
           </div>
 
-          {status.status === 'completed' && status.videoUrl && (
+          {status.status === "completed" && status.videoUrl && (
             <div className="space-y-3">
               <div className="p-4 bg-green-900/20 border border-green-600/30 rounded-lg">
-                <p className="text-sm text-[#bbdf50] mb-2">Your video is ready!</p>
-                <p className="text-xs text-slate-400">Duration: {status.duration}s</p>
+                <p className="text-sm text-[#bbdf50] mb-2">
+                  Your video is ready!
+                </p>
+                <p className="text-xs text-slate-400">
+                  Duration: {status.duration}s
+                </p>
               </div>
 
-              <button
+              <Button
                 onClick={downloadVideo}
-                className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition"
+                className="w-full font-semibold py-2"
               >
                 <Download size={20} />
                 Download Video
-              </button>
+              </Button>
             </div>
           )}
 
-          {status.status === 'draft' && (
-            <button
+          {status.status === "draft" && (
+            <Button
               onClick={startRender}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-[#4a8a42] hover:bg-[#3a6a32] text-white font-semibold py-2 rounded-lg transition disabled:opacity-50"
+              className="w-full  py-2 rounded-lg  disabled:opacity-50"
             >
               <Play size={20} />
-              {loading ? 'Starting...' : 'Start Rendering'}
-            </button>
+              {loading ? "Starting..." : "Start Rendering"}
+            </Button>
           )}
         </div>
       ) : (
-        <button
+        <Button
           onClick={startRender}
           disabled={loading || scenes.length === 0}
-          className="w-full flex items-center justify-center cursor-pointer gap-2 bg-[#4a8a42] hover:bg-[#3a6a32] text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full  cursor-pointer  font-semibold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Play size={20} />
-          {loading ? 'Preparing...' : `Render Video (${scenes.length} scenes)`}
-        </button>
+          <Play size={20} className="fill-accent-foreground" />
+          {loading ? "Preparing..." : `Render Video (${scenes.length} scenes)`}
+        </Button>
       )}
     </div>
-  )
+  );
 }

@@ -15,16 +15,29 @@ export default async function LoginPage() {
   if (session?.user) redirect("/dashboard");
 
   return (
-    <div className="grid min-h-screen md:grid-cols-[1.05fr_1fr] bg-[#060e06]">
+    <div className="grid min-h-screen md:grid-cols-[1.05fr_1fr] bg-[#0c170c]">
       <MangaShowcase />
 
-      <div className="relative flex flex-col items-center justify-center px-8 py-14">
-        <div className="pointer-events-none absolute left-1/2 top-[10%] h-120 w-120 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(201,168,76,0.05)_0%,transparent_70%)]" />
+      <div className="relative flex min-h-svh flex-col items-center justify-center px-5 py-10 sm:px-6 sm:py-14 md:min-h-0 md:px-8 md:py-14">
+        {/* Ambient glow — smaller on mobile */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-[8%] h-60 w-60 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(201,168,76,0.05)_0%,transparent_70%)] sm:h-80 sm:w-80 md:h-120 md:w-120"
+          aria-hidden="true"
+        />
 
-        <div className="relative z-10 w-full max-w-95">
+        <div className="relative z-10 w-full max-w-88 sm:max-w-95">
           {/* Mobile logo */}
-          <a href="/" className="mb-8 flex items-center gap-2.5 md:hidden">
-            <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+          <a
+            href="/"
+            className="mb-6 flex items-center gap-2.5 sm:mb-8 md:hidden"
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 36 36"
+              fill="none"
+              aria-hidden="true"
+            >
               <rect
                 x="1"
                 y="1"
@@ -36,28 +49,28 @@ export default async function LoginPage() {
                 strokeWidth="1.5"
               />
               <circle cx="18" cy="18" r="9" fill="#c9a84c" />
-              <polygon points="15,13.5 15,22.5 23,18" fill="#060e06" />
+              <polygon points="15,13.5 15,22.5 23,18" fill="#0c170c" />
             </svg>
-            <span className="font-bold text-[15px] text-[#e8d5a3]">
+            <span className="text-[15px] font-bold text-[#e8d5a3]">
               MotionRecap
             </span>
           </a>
 
-          <div className="mb-7.5">
-            <h1 className="mb-2 text-[28px] font-bold tracking-tight text-[#e8d5a3]">
+          <div className="mb-6 sm:mb-7.5">
+            <h1 className="mb-1.5 text-2xl font-bold tracking-tight text-[#e8d5a3] sm:mb-2 sm:text-[28px]">
               Welcome back
             </h1>
-            <p className="text-sm text-[rgba(232,213,163,0.55)]">
+            <p className="text-sm leading-relaxed text-[#e8d5a3]/55">
               Transform manga images into animated videos.
             </p>
           </div>
 
-          <div className="my-5.5 flex items-center gap-3">
-            <span className="h-px flex-1 bg-[rgba(232,213,163,0.10)]" />
-            <span className="text-[11.5px] uppercase tracking-[0.08em] text-[rgba(232,213,163,0.30)]">
+          <div className="my-4 flex items-center gap-3 sm:my-5.5">
+            <span className="h-px flex-1 bg-[#e8d5a3]/10" />
+            <span className="text-[11px] uppercase tracking-[0.08em] text-[#e8d5a3]/30 sm:text-[11.5px]">
               Or continue with email
             </span>
-            <span className="h-px flex-1 bg-[rgba(232,213,163,0.10)]" />
+            <span className="h-px flex-1 bg-[#e8d5a3]/10" />
           </div>
 
           <AuthForm mode="sign-in" />

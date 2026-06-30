@@ -129,3 +129,49 @@
   }
 }
 
+/* Fade-in animation */
+.fade-in-wrapper {
+  opacity: 0;
+  transform: translateY(24px);
+  /* Use the custom property for the delay, fallback to 0ms */
+  transition: opacity 0.6s ease var(--fade-delay, 0ms), transform 0.6s ease var(--fade-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.fade-in-wrapper.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-wrapper {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+}
+
+/* Badge pill */
+.badge-pill {
+  padding: 6px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(90, 154, 82, 0.3);
+  background: rgba(90, 154, 82, 0.1);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7fb870;
+}
+
+/* Smooth scroll for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

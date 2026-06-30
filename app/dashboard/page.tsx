@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 import { projectsApi, videosApi, uploadApi, swrKeys, type Project, type Video } from '@/lib/api'
 import { IconLogo } from "@/components/icon-logo";
 import ProjectList from "@/components/sidebar/project-list";
+import { Button } from "@/components/loader-button";
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -37,14 +38,8 @@ function EmptyVideos({ onUpload }: { onUpload: () => void }) {
       </div>
       <p className="text-white/40 text-sm font-medium">No videos yet</p>
       <p className="text-white/20 text-xs mt-1 mb-6">
-        Upload a manga panel to create your first video
+        Upload a manga cover to create your first video
       </p>
-      <button
-        onClick={onUpload}
-        className="inline-flex items-center gap-2 bg-[#bbdf50] hover:bg-[#caea60] text-black text-sm font-semibold px-5 py-2.5 rounded-xl transition"
-      >
-        <Plus size={15} /> Upload Panel
-      </button>
     </div>
   );
 }
@@ -375,13 +370,13 @@ export default function DashboardPage() {
         {/* ── Sidebar ── */}
         <aside className="w-56 shrink-0 space-y-5">
           {/* New project button */}
-          <button
+          <Button
             onClick={() => setShowNewProject(true)}
-            className="w-full flex items-center justify-center cursor-pointer gap-2 bg-[#bbdf50] hover:bg-[#caea60] active:bg-[#b0d048] text-black text-sm font-semibold py-2.5 rounded-xl transition"
+            className="w-full py-2"
           >
             <Plus size={15} />
             New Project
-          </button>
+          </Button>
 
           {/* New project input */}
           {showNewProject && (
@@ -402,18 +397,15 @@ export default function DashboardPage() {
                 className="w-full px-3 py-1.5 bg-white/5 border border-white/8 rounded-lg text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#bbdf50]/40 transition"
               />
               <div className="flex gap-1.5">
-                <button
+                <Button
+                  className="flex-1 py-1.5"
+                  loading={creatingProject}
+                  disabled={!newProjectTitle.trim()}
+                  leftIcon={<Check size={16} />}
                   onClick={createProject}
-                  disabled={creatingProject || !newProjectTitle.trim()}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-[#bbdf50] hover:bg-[#caea60] disabled:opacity-40 text-black text-xs font-semibold py-1.5 rounded-lg transition"
                 >
-                  {creatingProject ? (
-                    <Loader2 size={11} className="animate-spin" />
-                  ) : (
-                    <Check size={11} />
-                  )}
                   Create
-                </button>
+                </Button>
                 <button
                   onClick={() => {
                     setShowNewProject(false);

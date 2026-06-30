@@ -1,231 +1,74 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
 import { useStore } from "@nanostores/react";
 import { useSession } from "@/lib/auth-client";
-import { IconLogo } from "@/components/icon-logo";
-import { Zap } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 
-/* ── tiny helpers ── */
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) setVisible(true);
-      },
-      { threshold },
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, visible };
+/* ══════════════════════════════════════════════ TYPES ══════════════════════════════════════════ */
+
+interface Feature {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
 }
 
-/* ── custom svg icons ── */
-const IconUpload = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="2" y="14" width="18" height="6" rx="2" />
-    <path d="M11 2v10M7 6l4-4 4 4" />
-    <circle cx="17" cy="17" r="1" fill="currentColor" stroke="none" />
-  </svg>
-);
-const IconVoice = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="8" y="1" width="6" height="11" rx="3" />
-    <path d="M4 10a7 7 0 0 0 14 0" />
-    <line x1="11" y1="17" x2="11" y2="21" />
-    <line x1="7" y1="21" x2="15" y2="21" />
-    <path d="M6 7h2M14 7h2M6 10h2M14 10h2" strokeWidth="1" />
-  </svg>
-);
-const IconTimeline = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="2" y1="11" x2="20" y2="11" />
-    <rect x="3" y="7" width="5" height="8" rx="1.5" />
-    <rect x="10" y="5" width="5" height="12" rx="1.5" />
-    <rect x="17" y="8" width="3" height="6" rx="1" />
-    <circle cx="5.5" cy="11" r="1" fill="currentColor" stroke="none" />
-    <circle cx="12.5" cy="11" r="1" fill="currentColor" stroke="none" />
-  </svg>
-);
-const IconRender = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="4,3 18,11 4,19" />
-    <path d="M18 3v16" strokeDasharray="2 2" />
-    <circle cx="18" cy="3" r="1.5" fill="currentColor" stroke="none" />
-    <circle cx="18" cy="19" r="1.5" fill="currentColor" stroke="none" />
-  </svg>
-);
-const IconExport = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M4 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
-    <path d="M11 2v12M7 10l4 4 4-4" />
-    <path d="M2 8h3M17 8h3" strokeDasharray="1.5 1.5" />
-  </svg>
-);
-const IconProfiles = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 22 22"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="8" cy="7" r="3" />
-    <circle cx="15" cy="9" r="2.5" strokeDasharray="2 1.5" />
-    <path d="M2 19c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-    <path d="M15 14c1.7.5 3 2.1 3 4" />
-  </svg>
-);
-const IconArrow = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 15 15"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" />
-  </svg>
-);
-const IconCheck = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 13 13"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M2 7l3.5 3.5L11 3" />
-  </svg>
-);
+interface Step {
+  n: string;
+  title: string;
+  desc: string;
+}
 
-const IconStar = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="#c9a84c" stroke="none">
-    <path d="M7 1l1.5 4h4l-3.3 2.4 1.3 4L7 9l-3.5 2.4 1.3-4L1.5 5h4z" />
-  </svg>
-);
-const IconPlay = () => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-    <path d="M3 2.5l9 4.5-9 4.5z" />
-  </svg>
-);
+interface Testimonial {
+  text: string;
+  name: string;
+  role: string;
+  avatar: string;
+  color: keyof typeof AVATAR_COLORS;
+}
 
-const IconChevron = ({ open }: { open: boolean }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{
-      transform: open ? "rotate(180deg)" : "rotate(0deg)",
-      transition: "transform 0.25s cubic-bezier(0.16,1,0.3,1)",
-    }}
-  >
-    <path d="M4 6l4 4 4-4" />
-  </svg>
-);
+interface Faq {
+  q: string;
+  a: string;
+}
 
-/* ── feature data ── */
-const FEATURES = [
-  {
-    icon: <IconUpload />,
-    title: "Drag & drop upload",
-    desc: "Upload any manga panel as JPG or PNG. Auto-optimised and stored securely.",
-  },
-  {
-    icon: <IconVoice />,
-    title: "100+ AI voices",
-    desc: "CVoice AI integration. Preview and assign character voices per scene.",
-  },
-  {
-    icon: <IconTimeline />,
-    title: "Visual timeline editor",
-    desc: "Set duration, reorder scenes, and sync audio with a drag-and-drop timeline.",
-  },
-  {
-    icon: <IconRender />,
-    title: "One-click render",
-    desc: "FFmpeg pipeline composites scenes and audio into a polished MP4 automatically.",
-  },
-  {
-    icon: <IconExport />,
-    title: "Instant MP4 download",
-    desc: "Private download link the moment rendering completes. Yours to keep.",
-  },
-  {
-    icon: <IconProfiles />,
-    title: "Voice profile library",
-    desc: "Save and reuse favourite voices across all your projects with one tap.",
-  },
-];
+/* ══════════════════════════════════════════════ CONSTANTS ══════════════════════════════════════════ */
 
-const STEPS = [
+const AVATAR_COLORS = {
+  coral: { bg: "#F5C4B3", text: "#712B13" },
+  amber: { bg: "#FAC775", text: "#633806" },
+  teal: { bg: "#9FE1CB", text: "#085041" },
+  purple: { bg: "#CECBF6", text: "#3C3489" },
+  pink: { bg: "#F4C0D1", text: "#72243E" },
+} as const;
+
+const SOCIAL_PROOF_ITEMS = [
+  "No credit card required",
+  "5 free videos on signup",
+  "100+ AI voices",
+  "Export MP4 instantly",
+  "FFmpeg-powered rendering",
+] as const;
+
+const VOICE_OPTIONS = [
+  "Naruto Uzumaki",
+  "Light Yagami",
+  "Levi Ackerman",
+  "Goku",
+  "Spike Spiegel",
+  "Edward Elric",
+] as const;
+
+const TIMELINE_SCENES = [
+  { label: "Scene 1", dur: 3, voice: true },
+  { label: "Scene 2", dur: 5, voice: true },
+  { label: "Scene 3", dur: 4, voice: false },
+  { label: "Scene 4", dur: 6, voice: true },
+] as const;
+
+const STEPS: Step[] = [
   {
     n: "01",
     title: "Upload your panel",
@@ -248,7 +91,7 @@ const STEPS = [
   },
 ];
 
-const TESTIMONIALS = [
+const TESTIMONIALS: Testimonial[] = [
   {
     text: "I went from a folder of scanned chapters to a finished short in one afternoon. The voice matching alone saved me a full day of editing.",
     name: "Haruto Sasaki",
@@ -293,7 +136,7 @@ const TESTIMONIALS = [
   },
 ];
 
-const FAQS = [
+const FAQS: Faq[] = [
   {
     q: "How does billing work?",
     a: "Paid plans are billed monthly in USD via Razorpay or PayPal. You can upgrade, downgrade, or cancel from your account settings at any time.",
@@ -320,15 +163,282 @@ const FAQS = [
   },
 ];
 
-const AVATAR_COLORS: Record<string, { bg: string; text: string }> = {
-  coral: { bg: "#F5C4B3", text: "#712B13" },
-  amber: { bg: "#FAC775", text: "#633806" },
-  teal: { bg: "#9FE1CB", text: "#085041" },
-  purple: { bg: "#CECBF6", text: "#3C3489" },
-  pink: { bg: "#F4C0D1", text: "#72243E" },
-};
+/* ══════════════════════════════════════════════ MEMOIZED ICONS ══════════════════════════════════════════ */
 
-/* ── fade-in wrapper ── */
+const IconUpload = memo(() => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="2" y="14" width="18" height="6" rx="2" />
+    <path d="M11 2v10M7 6l4-4 4 4" />
+    <circle cx="17" cy="17" r="1" fill="currentColor" stroke="none" />
+  </svg>
+));
+IconUpload.displayName = "IconUpload";
+
+const IconVoice = memo(() => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="8" y="1" width="6" height="11" rx="3" />
+    <path d="M4 10a7 7 0 0 0 14 0" />
+    <line x1="11" y1="17" x2="11" y2="21" />
+    <line x1="7" y1="21" x2="15" y2="21" />
+    <path d="M6 7h2M14 7h2M6 10h2M14 10h2" strokeWidth="1" />
+  </svg>
+));
+IconVoice.displayName = "IconVoice";
+
+const IconTimeline = memo(() => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="2" y1="11" x2="20" y2="11" />
+    <rect x="3" y="7" width="5" height="8" rx="1.5" />
+    <rect x="10" y="5" width="5" height="12" rx="1.5" />
+    <rect x="17" y="8" width="3" height="6" rx="1" />
+    <circle cx="5.5" cy="11" r="1" fill="currentColor" stroke="none" />
+    <circle cx="12.5" cy="11" r="1" fill="currentColor" stroke="none" />
+  </svg>
+));
+IconTimeline.displayName = "IconTimeline";
+
+const IconRender = memo(() => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polygon points="4,3 18,11 4,19" />
+    <path d="M18 3v16" strokeDasharray="2 2" />
+    <circle cx="18" cy="3" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="18" cy="19" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+));
+IconRender.displayName = "IconRender";
+
+const IconExport = memo(() => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+    <path d="M11 2v12M7 10l4 4 4-4" />
+    <path d="M2 8h3M17 8h3" strokeDasharray="1.5 1.5" />
+  </svg>
+));
+IconExport.displayName = "IconExport";
+
+const IconProfiles = memo(() => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 22 22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="8" cy="7" r="3" />
+    <circle cx="15" cy="9" r="2.5" strokeDasharray="2 1.5" />
+    <path d="M2 19c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+    <path d="M15 14c1.7.5 3 2.1 3 4" />
+  </svg>
+));
+IconProfiles.displayName = "IconProfiles";
+
+const IconArrow = memo(() => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 15 15"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M2.5 7.5h10M9 4l3.5 3.5L9 11" />
+  </svg>
+));
+IconArrow.displayName = "IconArrow";
+
+const IconCheck = memo(() => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 13 13"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M2 7l3.5 3.5L11 3" />
+  </svg>
+));
+IconCheck.displayName = "IconCheck";
+
+const IconStar = memo(() => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="#c9a84c"
+    stroke="none"
+    aria-hidden="true"
+  >
+    <path d="M7 1l1.5 4h4l-3.3 2.4 1.3 4L7 9l-3.5 2.4 1.3-4L1.5 5h4z" />
+  </svg>
+));
+IconStar.displayName = "IconStar";
+
+const IconPlay = memo(() => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="currentColor"
+    aria-hidden="true"
+  >
+    <path d="M3 2.5l9 4.5-9 4.5z" />
+  </svg>
+));
+IconPlay.displayName = "IconPlay";
+
+const IconChevron = memo(({ open }: { open: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`transition-transform duration-250 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? "rotate-180" : ""}`}
+    aria-hidden="true"
+  >
+    <path d="M4 6l4 4 4-4" />
+  </svg>
+));
+IconChevron.displayName = "IconChevron";
+
+const IconZap = memo(() => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="text-[#c9a84c]"
+    aria-hidden="true"
+  >
+    <path d="M8 1L2 8h4l-1 5 6-7H7L8 1z" />
+  </svg>
+));
+IconZap.displayName = "IconZap";
+
+const FEATURES: Feature[] = [
+  {
+    icon: <IconUpload />,
+    title: "Drag & drop upload",
+    desc: "Upload any manga panel as JPG or PNG. Auto-optimised and stored securely.",
+  },
+  {
+    icon: <IconVoice />,
+    title: "100+ AI voices",
+    desc: "CVoice AI integration. Preview and assign character voices per scene.",
+  },
+  {
+    icon: <IconTimeline />,
+    title: "Visual timeline editor",
+    desc: "Set duration, reorder scenes, and sync audio with a drag-and-drop timeline.",
+  },
+  {
+    icon: <IconRender />,
+    title: "One-click render",
+    desc: "FFmpeg pipeline composites scenes and audio into a polished MP4 automatically.",
+  },
+  {
+    icon: <IconExport />,
+    title: "Instant MP4 download",
+    desc: "Private download link the moment rendering completes. Yours to keep.",
+  },
+  {
+    icon: <IconProfiles />,
+    title: "Voice profile library",
+    desc: "Save and reuse favourite voices across all your projects with one tap.",
+  },
+];
+
+/* ══════════════════════════════════════════════ SHARED INTERSECTION OBSERVER ══════════════════════════════════════════ */
+
+let observer: IntersectionObserver | null = null;
+
+function getObserver(): IntersectionObserver {
+  if (!observer) {
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer?.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 },
+    );
+  }
+  return observer;
+}
+
+/* ══════════════════════════════════════════════ FADE-IN COMPONENT ══════════════════════════════════════════ */
+
 function FadeIn({
   children,
   delay = 0,
@@ -338,1398 +448,840 @@ function FadeIn({
   delay?: number;
   className?: string;
 }) {
-  const { ref, visible } = useInView();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = getObserver();
+    obs.observe(el);
+    return () => obs.unobserve(el);
+  }, []);
+
   return (
     <div
       ref={ref}
-      className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(28px)",
-        transition: `opacity 0.65s ease ${delay}ms, transform 0.65s ease ${delay}ms`,
-      }}
+      className={`fade-in-wrapper ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
     </div>
   );
 }
 
-/* ── interactive timeline demo ── */
-function TimelineDemo() {
+/* ══════════════════════════════════════════════ INTERACTIVE DEMOS ══════════════════════════════════════════ */
+
+const TimelineDemo = memo(function TimelineDemo() {
   const [active, setActive] = useState(0);
-  const scenes = [
-    { label: "Scene 1", dur: 3, voice: true, color: "#2d5a27" },
-    { label: "Scene 2", dur: 5, voice: true, color: "#3a7033" },
-    { label: "Scene 3", dur: 4, voice: false, color: "#2d5a27" },
-    { label: "Scene 4", dur: 6, voice: true, color: "#3a7033" },
-  ];
-  const total = scenes.reduce((a, s) => a + s.dur, 0);
+  const total = TIMELINE_SCENES.reduce((a, s) => a + s.dur, 0);
+  const activeScene = TIMELINE_SCENES[active];
 
   return (
     <div
-      style={{
-        background: "#0d1f0b",
-        border: "1px solid rgba(45,90,39,0.4)",
-        borderRadius: 16,
-        padding: "20px 24px",
-        fontFamily: "inherit",
-      }}
+      className="rounded-2xl border border-[#5a9a52]/40 bg-[#172617] p-5 md:p-6"
+      role="region"
+      aria-label="Interactive timeline demo"
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            letterSpacing: "0.12em",
-            color: "#6b9e62",
-            textTransform: "uppercase",
-            fontWeight: 500,
-          }}
-        >
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#7fb870]">
           Timeline editor
         </span>
-        <span style={{ fontSize: 11, color: "#4a7a42" }}>Total: {total}s</span>
+        <span className="text-[11px] text-[#7fb870]">Total: {total}s</span>
       </div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        {scenes.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            style={{
-              flex: s.dur,
-              background: active === i ? "#2d5a27" : "rgba(45,90,39,0.15)",
-              border: `1px solid ${active === i ? "#4a8a42" : "rgba(45,90,39,0.25)"}`,
-              borderRadius: 8,
-              padding: "8px 6px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 10,
-                color: active === i ? "#c8e6b8" : "#4a7a42",
-                fontWeight: 500,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
+      <div className="mb-3.5 flex gap-1.5">
+        {TIMELINE_SCENES.map((scene, index) => {
+          const isActive = active === index;
+
+          return (
+            <button
+              key={scene.label}
+              onClick={() => setActive(index)}
+              style={{ flex: scene.dur }}
+              aria-pressed={isActive}
+              aria-label={`${scene.label}, ${scene.dur} seconds${scene.voice ? ", with voice" : ""}`}
+              className={`min-h-11 min-w-0 cursor-pointer rounded-lg border p-2 transition-all duration-200 ${
+                isActive
+                  ? "border-[#5a9a52] bg-[#2d5a27]"
+                  : "border-[#5a9a52]/25 bg-[#5a9a52]/10 hover:bg-[#5a9a52]/20"
+              }`}
             >
-              {s.label}
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                color: active === i ? "#7fba6e" : "#3a6032",
-                marginTop: 2,
-              }}
-            >
-              {s.dur}s{s.voice ? " 🎙" : ""}
-            </div>
-          </button>
-        ))}
+              <div
+                className={`truncate text-[10px] font-medium ${
+                  isActive ? "text-[#d4edb8]" : "text-[#7fb870]"
+                }`}
+              >
+                {scene.label}
+              </div>
+
+              <div
+                className={`mt-0.5 text-[10px] ${
+                  isActive ? "text-[#9fd48e]" : "text-[#5a8a4f]"
+                }`}
+              >
+                {scene.dur}s{scene.voice && " 🎙"}
+              </div>
+            </button>
+          );
+        })}
       </div>
-      <div
-        style={{
-          background: "rgba(45,90,39,0.12)",
-          borderRadius: 10,
-          padding: "14px 16px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 8,
-          }}
-        >
-          <span style={{ fontSize: 12, color: "#7fb870", fontWeight: 500 }}>
-            {scenes[active].label}
+      <div className="rounded-[10px] bg-[#5a9a52]/10 p-3.5 md:p-4">
+        <div className="mb-2 flex justify-between">
+          <span className="text-xs font-medium text-[#9fd48e]">
+            {activeScene.label}
           </span>
-          <span style={{ fontSize: 11, color: "#4a7a42" }}>
-            Duration: {scenes[active].dur}s
+          <span className="text-[11px] text-[#7fb870]">
+            Duration: {activeScene.dur}s
           </span>
         </div>
-        <div
-          style={{
-            height: 4,
-            background: "rgba(45,90,39,0.2)",
-            borderRadius: 2,
-            overflow: "hidden",
-          }}
-        >
+        <div className="h-1 overflow-hidden rounded-sm bg-[#5a9a52]/20">
           <div
-            style={{
-              height: "100%",
-              width: `${(scenes[active].dur / 6) * 100}%`,
-              background: "#4a8a42",
-              borderRadius: 2,
-              transition: "width 0.4s ease",
-            }}
+            className="h-full rounded-sm bg-[#5a9a52] transition-all duration-400"
+            style={{ width: `${(activeScene.dur / 6) * 100}%` }}
           />
         </div>
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 11,
-            color: scenes[active].voice ? "#7fb870" : "#4a5a44",
-          }}
+        <p
+          className={`mt-2.5 text-[11px] ${activeScene.voice ? "text-[#9fd48e]" : "text-[#7a8a6a]"}`}
         >
-          {scenes[active].voice
+          {activeScene.voice
             ? "✓ Voice assigned"
-            : "No voice — click 'Add Voice' to assign"}
-        </div>
+            : 'No voice — click "Add Voice" to assign'}
+        </p>
       </div>
     </div>
   );
-}
+});
 
-/* ── interactive voice picker demo ── */
-function VoiceDemo() {
-  const voices = [
-    "Naruto Uzumaki",
-    "Light Yagami",
-    "Levi Ackerman",
-    "Goku",
-    "Spike Spiegel",
-    "Edward Elric",
-  ];
+const VoiceDemo = memo(function VoiceDemo() {
   const [selected, setSelected] = useState<number | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  function togglePlay(i: number) {
-    setPlaying((p) => (p === i ? null : i));
-    if (playing !== i) setTimeout(() => setPlaying(null), 2000);
-  }
+  const togglePlay = useCallback((i: number) => {
+    setPlaying((prev) => {
+      if (prev === i) return null;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setPlaying(null), 2000);
+      return i;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return (
     <div
-      style={{
-        background: "#0d1f0b",
-        border: "1px solid rgba(45,90,39,0.4)",
-        borderRadius: 16,
-        padding: "20px 24px",
-      }}
+      className="rounded-2xl border border-[#5a9a52]/40 bg-[#172617] p-5 md:p-6"
+      role="region"
+      aria-label="Interactive voice picker demo"
     >
-      <div
-        style={{
-          fontSize: 11,
-          letterSpacing: "0.12em",
-          color: "#6b9e62",
-          textTransform: "uppercase",
-          fontWeight: 500,
-          marginBottom: 14,
-        }}
-      >
+      <div className="mb-3.5 text-[11px] font-medium uppercase tracking-[0.12em] text-[#7fb870]">
         Voice picker — 20,000+ available
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-        {voices.map((v, i) => (
-          <div
-            key={i}
-            onClick={() => setSelected(i)}
-            style={{
-              background:
-                selected === i ? "rgba(45,90,39,0.35)" : "rgba(45,90,39,0.1)",
-              border: `1px solid ${selected === i ? "#4a8a42" : "rgba(45,90,39,0.2)"}`,
-              borderRadius: 8,
-              padding: "9px 12px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              transition: "all 0.18s",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 12,
-                color: selected === i ? "#c8e6b8" : "#6b9a60",
-              }}
+      <div className="grid grid-cols-2 gap-1.5">
+        {VOICE_OPTIONS.map((voice, index) => {
+          const isSelected = selected === index;
+
+          return (
+            <div
+              key={voice}
+              onClick={() => setSelected(index)}
+              onKeyDown={(e) => e.key === "Enter" && setSelected(index)}
+              tabIndex={0}
+              role="button"
+              aria-selected={isSelected}
+              className={`flex min-h-11 cursor-pointer items-center justify-between rounded-lg border p-2.5 transition-colors ${
+                isSelected
+                  ? "border-[#5a9a52] bg-[#5a9a52]/30"
+                  : "border-[#5a9a52]/20 bg-[#5a9a52]/10 hover:bg-[#5a9a52]/15"
+              }`}
             >
-              {v}
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelected(i);
-                togglePlay(i);
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: playing === i ? "#c9a84c" : "#4a7a42",
-                padding: 0,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <IconPlay />
-            </button>
-          </div>
-        ))}
+              <span
+                className={`text-xs ${
+                  isSelected ? "text-[#d4edb8]" : "text-[#8fb880]"
+                }`}
+              >
+                {voice}
+              </span>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelected(index);
+                  togglePlay(index);
+                }}
+                aria-label={`Preview ${voice}`}
+                className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[#5a9a52]/15"
+              >
+                <span
+                  className={
+                    playing === index ? "text-[#c9a84c]" : "text-[#7fb870]"
+                  }
+                >
+                  <IconPlay />
+                </span>
+              </button>
+            </div>
+          );
+        })}
       </div>
       {selected !== null && (
-        <div
-          style={{
-            marginTop: 12,
-            padding: "10px 14px",
-            background: "rgba(45,90,39,0.18)",
-            borderRadius: 8,
-            fontSize: 12,
-            color: "#7fb870",
-          }}
-        >
+        <div className="mt-3 rounded-lg bg-[#5a9a52]/14 p-2.5 text-xs text-[#9fd48e]">
           {playing === selected ? (
-            <span style={{ color: "#c9a84c" }}>
-              Playing preview for {voices[selected]}…
+            <span className="text-[#c9a84c]">
+              Playing preview for {VOICE_OPTIONS[selected]}…
             </span>
           ) : (
             <span>
               Selected:{" "}
-              <strong style={{ color: "#c8e6b8" }}>{voices[selected]}</strong> —
-              click ▶ to preview
+              <strong className="text-[#d4edb8]">
+                {VOICE_OPTIONS[selected]}
+              </strong>{" "}
+              — click ▶ to preview
             </span>
           )}
         </div>
       )}
     </div>
   );
+});
+
+/* ══════════════════════════════════════════════ FEATURE CARD ══════════════════════════════════════════ */
+
+const FeatureCard = memo(function FeatureCard({
+  feature,
+  index,
+}: {
+  feature: Feature;
+  index: number;
+}) {
+  return (
+    <FadeIn delay={index * 80}>
+      <article className="bg-[#1a2d1a] p-6 md:p-8 transition-colors hover:bg-[#1e351e]">
+        <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-[#5a9a52]/30 bg-[#fceeca] text-[#3a7033]">
+          {feature.icon}
+        </div>
+        <h3 className="mb-2 text-[15px] font-semibold text-[#e8d5a3]">
+          {feature.title}
+        </h3>
+        <p className="text-[13.5px] leading-7 text-[#e8d5a3]/65">
+          {feature.desc}
+        </p>
+      </article>
+    </FadeIn>
+  );
+});
+
+/* ══════════════════════════════════════════════ FAQ ITEM ══════════════════════════════════════════ */
+
+const FaqItem = memo(function FaqItem({
+  faq,
+  index,
+  isOpen,
+  onToggle,
+}: {
+  faq: Faq;
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const btnId = `faq-question-${index}`;
+  const answerId = `faq-answer-${index}`;
+
+  return (
+    <FadeIn delay={index * 45}>
+      <div
+        className={`overflow-hidden rounded-[14px] border transition-colors ${
+          isOpen
+            ? "border-[#5a9a52]/40 bg-[#5a9a52]/8"
+            : "border-[#5a9a52]/20 bg-[#151d15]"
+        }`}
+        itemScope
+        itemProp="mainEntity"
+        itemType="https://schema.org/Question"
+      >
+        <button
+          id={btnId}
+          onClick={onToggle}
+          className="flex w-full min-h-[52px] cursor-pointer items-center justify-between gap-4 bg-transparent border-0 px-5 py-4 md:px-6 text-left"
+          aria-expanded={isOpen}
+          aria-controls={answerId}
+        >
+          <span
+            className={`text-sm md:text-[14.5px] font-semibold leading-snug ${
+              isOpen ? "text-[#e8d5a3]" : "text-[#e8d5a3]/90"
+            }`}
+            itemProp="name"
+          >
+            {faq.q}
+          </span>
+          <div
+            className={`flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-md border transition-all ${
+              isOpen
+                ? "border-[#5a9a52]/30 bg-[#5a9a52]/15 text-[#5a9a52]"
+                : "border-[#5a9a52]/20 bg-[#5a9a52]/10 text-[#7fb870]"
+            }`}
+          >
+            <IconChevron open={isOpen} />
+          </div>
+        </button>
+        <div
+          id={answerId}
+          role="region"
+          aria-labelledby={btnId}
+          className={`grid transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          }`}
+          itemScope
+          itemProp="acceptedAnswer"
+          itemType="https://schema.org/Answer"
+        >
+          <div className="overflow-hidden">
+            <p
+              className="px-5 pb-5 md:px-6 text-sm md:text-[14px] leading-relaxed text-[#e8d5a3]/70"
+              itemProp="text"
+            >
+              {faq.a}
+            </p>
+          </div>
+        </div>
+      </div>
+    </FadeIn>
+  );
+});
+
+/* ══════════════════════════════════════════════ TESTIMONIAL CARD ══════════════════════════════════════════ */
+
+const TestimonialCard = memo(function TestimonialCard({
+  testimonial,
+  index,
+}: {
+  testimonial: Testimonial;
+  index: number;
+}) {
+  const colors = AVATAR_COLORS[testimonial.color];
+  return (
+    <FadeIn delay={index * 90}>
+      <article className="rounded-2xl border border-[#e6dcc0] bg-white p-5 md:p-6 transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(45,90,39,0.12)]">
+        <div className="mb-4 flex gap-0.5" aria-label="5 out of 5 stars">
+          {Array.from({ length: 5 }).map((_, j) => (
+            <IconStar key={j} />
+          ))}
+        </div>
+        <blockquote className="mb-5 text-sm md:text-[14.5px] leading-relaxed text-[#3a3325]">
+          {testimonial.text}
+        </blockquote>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+            style={{ background: colors.bg, color: colors.text }}
+            aria-hidden="true"
+          >
+            {testimonial.avatar}
+          </div>
+          <div>
+            <p className="text-[13.5px] font-semibold text-[#1f2e1a]">
+              {testimonial.name}
+            </p>
+            <p className="text-xs text-[#5a6650]">{testimonial.role}</p>
+          </div>
+        </div>
+      </article>
+    </FadeIn>
+  );
+});
+
+/* ══════════════════════════════════════════════ JSON-LD SCHEMAS ══════════════════════════════════════════ */
+
+function StructuredData() {
+  const faqSchema = useMemo(
+    () => ({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: FAQS.map((faq) => ({
+        "@type": "Question",
+        name: faq.q,
+        acceptedAnswer: { "@type": "Answer", text: faq.a },
+      })),
+    }),
+    [],
+  );
+
+  const softwareSchema = useMemo(
+    () => ({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "MangaMotion",
+      applicationCategory: "MultimediaApplication",
+      operatingSystem: "Web",
+      description:
+        "Upload manga panels and let AI generate narration, character voices, and a cinematic 9:16 video in minutes. Built for YouTube Shorts and TikTok manga recap creators.",
+      offers: {
+        "@type": "AggregateOffer",
+        lowPrice: "0",
+        highPrice: "29",
+        priceCurrency: "USD",
+        offerCount: "3",
+      },
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: "4.8",
+        ratingCount: "2400",
+        bestRating: "5",
+        worstRating: "1",
+      },
+    }),
+    [],
+  );
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
+    </>
+  );
 }
 
 /* ══════════════════════════════════════════════ MAIN PAGE ══════════════════════════════════════════ */
+
 export default function Page() {
   const router = useRouter();
   const session = useStore(useSession);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  
   useEffect(() => {
     if (session.data) router.push("/dashboard");
   }, [session, router]);
 
-
-
-
+  const handleFaqToggle = useCallback((index: number) => {
+    setOpenFaq((prev) => (prev === index ? null : index));
+  }, []);
 
   return (
-    <main
-      style={{
-        background: "#060e06",
-        color: "#e8d5a3",
-        fontFamily: "inherit",
-        overflowX: "hidden",
-      }}
-    >
-      <Navbar />
-
-      {/* ── hero ── */}
-      <section
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "120px 16px 80px",
-          textAlign: "center",
-          position: "relative",
-        }}
+    <>
+      <StructuredData />
+      {/* 
+        NOTE: Lighthouse flags robots.txt with 13 errors.
+        Fix: Add a valid /public/robots.txt file:
+        
+        User-agent: *
+        Allow: /
+        Sitemap: https://yourdomain.com/sitemap.xml
+      */}
+      <main
+        className="min-h-screen overflow-x-hidden bg-[#0c170c] text-[#e8d5a3]"
+        id="main-content"
       >
-        <div
-          style={{
-            position: "absolute",
-            top: "20%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 600,
-            height: 600,
-            background:
-              "radial-gradient(circle, rgba(45,90,39,0.18) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: "10%",
-            left: "15%",
-            width: 300,
-            height: 300,
-            background:
-              "radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
+        <Navbar />
 
-        <div style={{ position: "relative" }} className="w-4xl">
-          <FadeIn delay={80}>
-            <h1
-              style={{
-                fontSize: "clamp(40px,6.5vw,76px)",
-                fontWeight: 700,
-                lineHeight: 1.05,
-                letterSpacing: "-0.03em",
-                margin: "60px 0 40px 0",
-                color: "#e8d5a3",
-              }}
-            >
-              Bring your manga
-              <br />
-              <span style={{ color: "#4a8a42" }}>panels to life</span>
-            </h1>
-          </FadeIn>
+        {/* ── Hero Section ── */}
+        <section
+          className="relative flex min-h-screen items-center justify-center px-4 pb-20 pt-[120px] text-center"
+          aria-labelledby="hero-heading"
+        >
+          <div
+            className="pointer-events-none absolute left-1/2 top-[20%] h-[600px] w-[600px] -translate-x-1/2 bg-[radial-gradient(circle,rgba(74,138,66,0.15)_0%,transparent_70%)]"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute bottom-[10%] left-[15%] h-[300px] w-[300px] bg-[radial-gradient(circle,rgba(201,168,76,0.06)_0%,transparent_70%)]"
+            aria-hidden="true"
+          />
 
-          <FadeIn delay={160}>
-            <p
-              style={{
-                fontSize: "clamp(16px,2vw,20px)",
-                color: "rgba(232,213,163,0.45)",
-                lineHeight: 1.4,
-                maxWidth: 560,
-                margin: "0 auto 40px",
-              }}
-            >
-              Upload manga images, assign 100+ AI character voices, compose a
-              multi-scene timeline, and export a cinematic MP4 — in minutes.
-            </p>
-          </FadeIn>
-
-          <FadeIn delay={240}>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <a
-                href="/signup"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "#2d5a27",
-                  color: "#e8d5a3",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  padding: "14px 28px",
-                  borderRadius: 12,
-                  textDecoration: "none",
-                  border: "1px solid rgba(74,138,66,0.5)",
-                  transition: "all 0.2s",
-                  letterSpacing: "0.01em",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#3a7033";
-                  e.currentTarget.style.borderColor = "rgba(74,138,66,0.8)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#2d5a27";
-                  e.currentTarget.style.borderColor = "rgba(74,138,66,0.5)";
-                }}
+          <div className="relative mx-auto w-full max-w-4xl">
+            <FadeIn delay={80}>
+              <h1
+                id="hero-heading"
+                className="mb-10 font-bold leading-[1.05] tracking-[-0.03em] text-[#e8d5a3] md:mt-15"
+                style={{ fontSize: "clamp(40px, 6.5vw, 76px)" }}
               >
-                Start creating free <IconArrow />
-              </a>
-              <a
-                href="#how-it-works"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  color: "rgba(232,213,163,0.5)",
-                  fontSize: 15,
-                  fontWeight: 500,
-                  padding: "14px 28px",
-                  borderRadius: 12,
-                  textDecoration: "none",
-                  border: "1px solid rgba(45,90,39,0.3)",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#e8d5a3";
-                  e.currentTarget.style.borderColor = "rgba(45,90,39,0.55)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "rgba(232,213,163,0.5)";
-                  e.currentTarget.style.borderColor = "rgba(45,90,39,0.3)";
-                }}
-              >
-                See how it works
-              </a>
-            </div>
-          </FadeIn>
+                Bring your manga
+                <br />
+                <span className="text-[#5a9a52]">panels to life</span>
+              </h1>
+            </FadeIn>
 
-          {/* stars */}
-          <FadeIn delay={320}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                marginTop: 40,
-                color: "rgba(232,213,163,0.3)",
-                fontSize: 13,
-              }}
-            >
-              {Array(5)
-                .fill(0)
-                .map((_, i) => (
+            <FadeIn delay={160}>
+              <p
+                className="mx-auto mb-10 max-w-[560px] leading-snug text-[#e8d5a3]/70"
+                style={{ fontSize: "clamp(16px, 2vw, 20px)" }}
+              >
+                Upload manga images, assign 100+ AI character voices, compose a
+                multi-scene timeline, and export a cinematic MP4 — in minutes.
+              </p>
+            </FadeIn>
+
+            <FadeIn delay={240}>
+              <div className="flex flex-wrap justify-center gap-3">
+                <a
+                  href="/signup"
+                  className="inline-flex min-h-[48px] items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80"
+                >
+                  Start creating free <IconArrow />
+                </a>
+                <a
+                  href="#how-it-works"
+                  className="inline-flex min-h-[48px] items-center gap-2 rounded-xl border border-[#5a9a52]/30 px-7 py-3.5 text-[15px] font-medium text-[#e8d5a3]/65 no-underline transition-all hover:border-[#5a9a52]/55 hover:text-[#e8d5a3]"
+                >
+                  See how it works
+                </a>
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={320}>
+              <div className="mt-10 flex items-center justify-center gap-1.5 text-[13px] text-[#e8d5a3]/60">
+                {Array.from({ length: 5 }).map((_, i) => (
                   <IconStar key={i} />
                 ))}
-              <span style={{ marginLeft: 4 }}>
-                Loved by 2,400+ manga creators
-              </span>
-            </div>
-          </FadeIn>
+                <span className="ml-1">Loved by 2,400+ manga creators</span>
+              </div>
+            </FadeIn>
 
-          {/* editor mockup */}
-          <FadeIn delay={400}>
-            <div className="" style={{ marginTop: 64, position: "relative" }}>
-              <div
-                style={{
-                  position: "absolute",
-                  inset: -1,
-                  borderRadius: 20,
-                  background:
-                    "linear-gradient(to bottom, rgba(45,90,39,0.4), transparent)",
-                  pointerEvents: "none",
-                  zIndex: 1,
-                }}
-              />
-              <div
-                style={{
-                  background: "#0a180a",
-                  border: "1px solid rgba(45,90,39,0.35)",
-                  borderRadius: 18,
-                  overflow: "hidden",
-                }}
-              >
+            {/* Editor mockup */}
+            <FadeIn delay={400}>
+              <div className="relative mt-16">
                 <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "12px 18px",
-                    borderBottom: "1px solid rgba(45,90,39,0.2)",
-                  }}
-                >
-                  {[
-                    "rgba(232,100,100,0.75)",
-                    "rgba(232,180,60,0.75)",
-                    "rgba(60,180,60,0.75)",
-                  ].map((c, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        background: c,
-                      }}
-                    />
-                  ))}
-                  <div style={{ flex: 1, textAlign: "center" }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: "rgba(232,213,163,0.75)",
-                        background: "rgba(45,90,39,0.15)",
-                        padding: "3px 16px",
-                        borderRadius: 6,
-                      }}
-                    >
-                      Fight Scene — Editor
-                    </span>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    minHeight: 220,
-                  }}
-                  className="grid grid-row-1 md:grid-cols-2`"
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRight: "1px solid rgba(45,90,39,0.15)",
-                    }}
-                    className="p-4 md:p-5"
-                  >
-                    <div
-                      style={{
-                        width: "100%",
-                        aspectRatio: "16/9",
-                        background: "#060e06",
-                        borderRadius: 10,
-                        border: "1px solid rgba(45,90,39,0.2)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          background:
-                            "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(45,90,39,0.08), transparent)",
-                        }}
-                      />
-                      <div style={{ textAlign: "center" }}>
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 10,
-                            background: "rgba(45,90,39,0.25)",
-                            border: "1px solid rgba(74,138,66,0.3)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            margin: "0 auto 8px",
-                            color: "#4a8a42",
-                          }}
-                        >
-                          <IconPlay />
-                        </div>
-                        <p
-                          style={{
-                            fontSize: 11,
-                            color: "rgba(232,213,163,0.2)",
-                          }}
-                        >
-                          Preview panel
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ padding: 14 }}>
-                    <p
-                      style={{
-                        fontSize: 9,
-                        letterSpacing: "0.15em",
-                        color: "rgba(232,213,163,0.2)",
-                        textTransform: "uppercase",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Timeline
-                    </p>
+                  className="pointer-events-none absolute -inset-px rounded-[20px] bg-gradient-to-b from-[#5a9a52]/35 to-transparent z-10"
+                  aria-hidden="true"
+                />
+                <div className="overflow-hidden rounded-[18px] border border-[#5a9a52]/30 bg-[#142114]">
+                  <div className="flex items-center gap-1.5 border-b border-[#5a9a52]/18 px-[18px] py-3">
                     {[
-                      ["Scene 1", "3s", true],
-                      ["Scene 2", "5s", true],
-                      ["Scene 3", "4s", false],
-                    ].map(([l, d, v], i) => (
+                      "rgba(232,100,100,0.75)",
+                      "rgba(232,180,60,0.75)",
+                      "rgba(60,180,60,0.75)",
+                    ].map((c, i) => (
                       <div
                         key={i}
-                        style={{
-                          padding: "8px 10px",
-                          borderRadius: 7,
-                          border: `1px solid ${i === 0 ? "rgba(74,138,66,0.4)" : "rgba(45,90,39,0.15)"}`,
-                          background:
-                            i === 0
-                              ? "rgba(45,90,39,0.22)"
-                              : "rgba(45,90,39,0.06)",
-                          marginBottom: 5,
-                        }}
-                      >
-                        <p
-                          style={{
-                            fontSize: 11,
-                            color:
-                              i === 0 ? "#c8e6b8" : "rgba(232,213,163,0.3)",
-                            fontWeight: 500,
-                            margin: 0,
-                          }}
-                        >
-                          {l} — {d}
-                        </p>
-                        {v && (
-                          <p
-                            style={{
-                              fontSize: 9,
-                              color: "#4a7a42",
-                              margin: "3px 0 0",
-                            }}
-                          >
-                            Voice active
-                          </p>
-                        )}
-                      </div>
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ background: c }}
+                        aria-hidden="true"
+                      />
                     ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ── social proof strip ── */}
-      <div
-        style={{
-          borderTop: "1px solid rgba(45,90,39,0.18)",
-          borderBottom: "1px solid rgba(45,90,39,0.18)",
-          padding: "18px 20px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1080,
-            margin: "0 auto",
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 32,
-            fontSize: 13,
-            color: "rgba(232,213,163,0.3)",
-          }}
-        >
-          {[
-            "No credit card required",
-            "5 free videos on signup",
-            "100+ AI voices",
-            "Export MP4 instantly",
-            "FFmpeg-powered rendering",
-          ].map((t, i) => (
-            <span
-              key={i}
-              style={{ display: "flex", alignItems: "center", gap: 6 }}
-            >
-              <span style={{ color: "#3a6032" }}>
-                <IconCheck />
-              </span>
-              {t}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* ── features ── */}
-      <section
-        className="bg-[#fceeca] px-4 md:px-6 py-20 md:py-32"
-        id="features"
-      >
-        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-          <FadeIn>
-            <p
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.14em",
-                color: "#6b9e62",
-                textTransform: "uppercase",
-                fontWeight: 700,
-                marginBottom: 12,
-              }}
-            >
-              Features
-            </p>
-            <h2
-              style={{
-                fontSize: "clamp(28px,4vw,46px)",
-                fontWeight: 600,
-                color: "#4a8a42",
-                lineHeight: 1.15,
-                margin: "0 0 14px",
-                maxWidth: 520,
-              }}
-            >
-              Everything you need to animate manga
-            </h2>
-            <p
-              style={{
-                color: "#4a8a42",
-                fontSize: 17,
-                maxWidth: 480,
-                marginBottom: 64,
-                lineHeight: 1.4,
-              }}
-            >
-              A complete end-to-end pipeline — from static panels to polished
-              video.
-            </p>
-          </FadeIn>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-              gap: 1,
-              background: "rgba(45,90,39,0.15)",
-              borderRadius: 18,
-              overflow: "hidden",
-              border: "1px solid rgba(45,90,39,0.18)",
-            }}
-          >
-            {FEATURES.map((f, i) => (
-              <FadeIn key={i} delay={i * 60}>
-                <div
-                  style={{
-                    background: "#060e06",
-                    padding: "32px 28px",
-                    cursor: "default",
-                    transition: "background 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#0a180a")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "#060e06")
-                  }
-                >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 11,
-                      background: "rgba(45,90,39,0.18)",
-                      border: "1px solid rgba(45,90,39,0.3)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#4a8a42",
-                      marginBottom: 18,
-                    }}
-                  >
-                    {f.icon}
-                  </div>
-                  <h3
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: "#e8d5a3",
-                      margin: "0 0 8px",
-                    }}
-                  >
-                    {f.title}
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: 13.5,
-                      color: "rgba(232,213,163,0.38)",
-                      lineHeight: 1.65,
-                      margin: 0,
-                    }}
-                  >
-                    {f.desc}
-                  </p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── interactive demos ── */}
-      <section
-        style={{
-          padding: "0 24px 120px",
-          borderTop: "1px solid rgba(45,90,39,0.12)",
-        }}
-      >
-        <div style={{ maxWidth: 1080, margin: "0 auto", paddingTop: 80 }}>
-          <FadeIn>
-            <p
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.14em",
-                color: "#6b9e62",
-                textTransform: "uppercase",
-                fontWeight: 500,
-                marginBottom: 12,
-              }}
-            >
-              Try it live
-            </p>
-            <h2
-              style={{
-                fontSize: "clamp(26px,3.5vw,42px)",
-                fontWeight: 600,
-                color: "#e8d5a3",
-                lineHeight: 1.15,
-                margin: "0 0 56px",
-                maxWidth: 500,
-              }}
-            >
-              See the editor in action
-            </h2>
-          </FadeIn>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))",
-              gap: 20,
-            }}
-          >
-            <FadeIn>
-              <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "rgba(232,213,163,0.35)",
-                    marginBottom: 14,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  Click scenes to explore the timeline →
-                </p>
-                <TimelineDemo />
-              </div>
-            </FadeIn>
-            <FadeIn delay={120}>
-              <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "rgba(232,213,163,0.35)",
-                    marginBottom: 14,
-                    letterSpacing: "0.03em",
-                  }}
-                >
-                  Click ▶ to preview any voice →
-                </p>
-                <VoiceDemo />
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-      {/* ── how it works ── */}
-      <section
-        id="how-it-works"
-        style={{
-          padding: "120px 24px",
-          borderTop: "1px solid rgba(45,90,39,0.18)",
-          background: "#060e06",
-        }}
-      >
-        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-          <FadeIn>
-            <p
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.14em",
-                color: "#6b9e62",
-                textTransform: "uppercase",
-                fontWeight: 500,
-                marginBottom: 12,
-              }}
-            >
-              How it works
-            </p>
-            <h2
-              style={{
-                fontSize: "clamp(28px,4vw,46px)",
-                fontWeight: 600,
-                color: "#e8d5a3",
-                lineHeight: 1.15,
-                margin: "0 0 64px",
-                maxWidth: 440,
-              }}
-            >
-              From panel to video in four steps
-            </h2>
-          </FadeIn>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))",
-              gap: 0,
-              position: "relative",
-            }}
-          >
-            {STEPS.map((s, i) => (
-              <FadeIn key={i} delay={i * 100}>
-                <div style={{ padding: "0 28px 0 0", position: "relative" }}>
-                  {i < STEPS.length - 1 && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 22,
-                        left: "calc(100% - 14px)",
-                        width: 28,
-                        height: 1,
-                        background: "rgba(45,90,39,0.3)",
-                        zIndex: 1,
-                        display: "none",
-                      }}
-                      className="step-connector"
-                    />
-                  )}
-                  <div
-                    style={{
-                      fontSize: 36,
-                      fontWeight: 700,
-                      color: "rgba(45,90,39,0.25)",
-                      lineHeight: 1,
-                      marginBottom: 20,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {s.n}
-                  </div>
-                  <div
-                    style={{
-                      width: 2,
-                      height: 32,
-                      background: "rgba(45,90,39,0.35)",
-                      marginBottom: 20,
-                      borderRadius: 1,
-                    }}
-                  />
-                  <h3
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: "#e8d5a3",
-                      margin: "0 0 10px",
-                    }}
-                  >
-                    {s.title}
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: 14,
-                      color: "rgba(232,213,163,0.38)",
-                      lineHeight: 1.65,
-                      margin: 0,
-                    }}
-                  >
-                    {s.desc}
-                  </p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── testimonials ── */}
-      <section
-        style={{
-          padding: "120px 24px",
-          borderTop: "1px solid rgba(45,90,39,0.18)",
-        }}
-        className="bg-[#fceeca]"
-      >
-        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-          <FadeIn>
-            <p
-              style={{
-                fontSize: 11,
-                letterSpacing: "0.14em",
-                color: "#4a8a42",
-                textTransform: "uppercase",
-                fontWeight: 700,
-                marginBottom: 12,
-              }}
-            >
-              Creators love it
-            </p>
-            <h2
-              style={{
-                fontSize: "clamp(26px,3.5vw,42px)",
-                fontWeight: 600,
-                color: "#1f2e1a",
-                lineHeight: 1.15,
-                margin: "0 0 16px",
-                maxWidth: 480,
-              }}
-            >
-              Trusted by manga creators
-            </h2>
-            <p
-              style={{
-                fontSize: 15,
-                color: "rgba(31,46,26,0.6)",
-                maxWidth: 460,
-                margin: "0 0 56px",
-                lineHeight: 1.6,
-              }}
-            >
-              From solo webcomic artists to studio teams, here's who's already
-              turning panels into video.
-            </p>
-          </FadeIn>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 16,
-              gridAutoRows: "min-content",
-            }}
-            className="testimonial-grid"
-          >
-            {TESTIMONIALS.map((t, i) => (
-              <FadeIn key={i} delay={i * 90}>
-                <div
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e6dcc0",
-                    borderRadius: 16,
-                    padding: "26px 24px",
-                    gridRow: i % 3 === 1 ? "span 1" : "auto",
-                    transition: "transform 0.25s ease, box-shadow 0.25s ease",
-                    cursor: "default",
-                  }}
-                  className="testimonial-card"
-                >
-                  <div style={{ display: "flex", gap: 3, marginBottom: 16 }}>
-                    {Array(5)
-                      .fill(0)
-                      .map((_, j) => (
-                        <IconStar key={j} />
-                      ))}
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 14.5,
-                      color: "#3a3325",
-                      lineHeight: 1.65,
-                      margin: "0 0 22px",
-                    }}
-                  >
-                    {t.text}
-                  </p>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 12 }}
-                  >
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: "50%",
-                        background: AVATAR_COLORS[t.color].bg,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        color: AVATAR_COLORS[t.color].text,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {t.avatar}
-                    </div>
-                    <div>
-                      <p
-                        style={{
-                          fontSize: 13.5,
-                          fontWeight: 600,
-                          color: "#1f2e1a",
-                          margin: 0,
-                        }}
-                      >
-                        {t.name}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: 12,
-                          color: "rgba(31,46,26,0.5)",
-                          margin: 0,
-                        }}
-                      >
-                        {t.role}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-
-        <style jsx>{`
-          .testimonial-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 28px rgba(45, 90, 39, 0.12);
-          }
-          @media (max-width: 880px) {
-            .testimonial-grid {
-              grid-template-columns: repeat(2, 1fr) !important;
-            }
-          }
-          @media (max-width: 600px) {
-            .testimonial-grid {
-              grid-template-columns: 1fr !important;
-            }
-          }
-        `}</style>
-      </section>
-
-      {/* ── faq ── */}
-      <section
-        style={{
-          padding: "0 24px 128px",
-          borderTop: "1px solid rgba(45,90,39,0.15)",
-        }}
-      >
-        <div style={{ maxWidth: 680, margin: "0 auto", paddingTop: 112 }}>
-          <FadeIn>
-            <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <span
-                className="badge-pill"
-                style={{ marginBottom: 16, display: "inline-flex" }}
-              >
-                FAQ
-              </span>
-              <h2
-                style={{
-                  fontSize: "clamp(26px,3.5vw,42px)",
-                  fontWeight: 700,
-                  color: "#e8d5a3",
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.025em",
-                  margin: 0,
-                }}
-              >
-                Frequently asked questions
-              </h2>
-            </div>
-          </FadeIn>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {FAQS.map((f, i) => {
-              const open = openFaq === i;
-              return (
-                <FadeIn key={i} delay={i * 45}>
-                  <div
-                    className="faq-item"
-                    style={{
-                      background: open ? "rgba(45,90,39,0.08)" : "#09120a",
-                      border: `1px solid ${open ? "rgba(74,138,66,0.4)" : "rgba(45,90,39,0.2)"}`,
-                      borderRadius: 14,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <button
-                      onClick={() => setOpenFaq(open ? null : i)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 16,
-                        padding: "19px 22px",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        textAlign: "left",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 14.5,
-                          fontWeight: 600,
-                          color: open ? "#e8d5a3" : "rgba(232,213,163,0.8)",
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {f.q}
+                    <div className="flex-1 text-center">
+                      <span className="rounded-md bg-[#5a9a52]/12 px-4 py-0.5 text-[11px] text-[#e8d5a3]/75">
+                        Fight Scene — Editor
                       </span>
-                      <div
-                        style={{
-                          width: 26,
-                          height: 26,
-                          borderRadius: 7,
-                          background: open
-                            ? "rgba(74,138,66,0.15)"
-                            : "rgba(45,90,39,0.12)",
-                          border: `1px solid ${open ? "rgba(74,138,66,0.3)" : "rgba(45,90,39,0.2)"}`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: open ? "#4a8a42" : "rgba(107,158,98,0.6)",
-                          flexShrink: 0,
-                          transition: "background 0.2s, border-color 0.2s",
-                        }}
-                      >
-                        <IconChevron open={open} />
-                      </div>
-                    </button>
-                    <div
-                      style={{
-                        maxHeight: open ? 240 : 0,
-                        opacity: open ? 1 : 0,
-                        transition:
-                          "max-height 0.35s cubic-bezier(0.16,1,0.3,1), opacity 0.25s ease",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <p
-                        style={{
-                          padding: "0 22px 22px",
-                          fontSize: 14,
-                          color: "rgba(232,213,163,0.5)",
-                          lineHeight: 1.7,
-                          margin: 0,
-                        }}
-                      >
-                        {f.a}
-                      </p>
                     </div>
                   </div>
-                </FadeIn>
-              );
-            })}
+
+                  <div className="grid min-h-[220px] grid-cols-1 md:grid-cols-2">
+                    <div className="flex items-center justify-center border-r border-[#5a9a52]/12 p-4 md:p-5">
+                      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[10px] border border-[#5a9a52]/18 bg-[#0c170c]">
+                        <div
+                          className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(74,138,66,0.06),transparent)]"
+                          aria-hidden="true"
+                        />
+                        <div className="text-center">
+                          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#5a9a52]/25 bg-[#5a9a52]/20 text-[#5a9a52]">
+                            <IconPlay />
+                          </div>
+                          <p className="text-[11px] text-[#e8d5a3]/40">
+                            Preview panel
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3.5">
+                      <p className="mb-2.5 text-[9px] uppercase tracking-[0.15em] text-[#e8d5a3]/40">
+                        Timeline
+                      </p>
+                      {TIMELINE_SCENES.slice(0, 3).map(
+                        ({ label, dur, voice }, i) => (
+                          <div
+                            key={label}
+                            className={`mb-1.5 rounded-md border p-2 ${
+                              i === 0
+                                ? "border-[#5a9a52]/35 bg-[#5a9a52]/18"
+                                : "border-[#5a9a52]/15 bg-[#5a9a52]/6"
+                            }`}
+                          >
+                            <p
+                              className={`text-[11px] font-medium ${i === 0 ? "text-[#d4edb8]" : "text-[#e8d5a3]/50"}`}
+                            >
+                              {label} — {dur}s
+                            </p>
+                            {voice && (
+                              <p className="mt-0.5 text-[9px] text-[#7fb870]">
+                                Voice active
+                              </p>
+                            )}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── final cta ── */}
-      <section
-        style={{
-          padding: "0 24px 120px",
-          borderTop: "1px solid rgba(45,90,39,0.15)",
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+        {/* ── Social Proof Strip ── */}
         <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 800,
-            height: 500,
-            background:
-              "radial-gradient(ellipse, rgba(45,90,39,0.1) 0%, transparent 65%)",
-            pointerEvents: "none",
-          }}
-        />
+          className="border-y border-[#5a9a52]/18 px-5 py-4"
+          aria-label="Key benefits"
+        >
+          <ul className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-center gap-6 md:gap-8 text-[13px] text-[#e8d5a3]/60">
+            {SOCIAL_PROOF_ITEMS.map((text) => (
+              <li key={text} className="flex items-center gap-1.5">
+                <span className="text-[#5a9a52]" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <FadeIn>
-          <div style={{ paddingTop: 112, position: "relative" }}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 18px",
-                borderRadius: 100,
-                background: "rgba(45,90,39,0.1)",
-                border: "1px solid rgba(74,138,66,0.25)",
-                marginBottom: 28,
-              }}
-            >
-              <div
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "#4a8a42",
-                  boxShadow: "0 0 8px rgba(74,138,66,0.6)",
-                }}
-              />
-              <span style={{ fontSize: 12, color: "#6b9e62", fontWeight: 600 }}>
-                Free tier always available
-              </span>
+        {/* ── Features Section ── */}
+        <section
+          id="features"
+          className="bg-[#fceeca] px-4 py-16 md:px-6 md:py-32"
+          aria-labelledby="features-heading"
+        >
+          <div className="mx-auto max-w-6xl">
+            <FadeIn>
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#5a8a4f]">
+                Features
+              </p>
+              <h2
+                id="features-heading"
+                className="mb-4 max-w-xl text-3xl font-semibold leading-tight text-[#3a7033] md:text-5xl"
+              >
+                Everything you need to animate manga
+              </h2>
+              <p className="mb-12 md:mb-16 max-w-md text-lg leading-relaxed text-[#4a7a42]">
+                A complete end-to-end pipeline — from static panels to polished
+                video.
+              </p>
+            </FadeIn>
+
+            <div className="grid overflow-hidden rounded-2xl border border-[#2d5a27]/20 bg-[#2d5a27]/15 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map((feature, index) => (
+                <FeatureCard
+                  key={feature.title}
+                  feature={feature}
+                  index={index}
+                />
+              ))}
             </div>
+          </div>
+        </section>
 
-            <h2
-              style={{
-                fontSize: "clamp(30px,5vw,54px)",
-                fontWeight: 800,
-                color: "#e8d5a3",
-                lineHeight: 1.05,
-                letterSpacing: "-0.03em",
-                margin: "0 0 16px",
-              }}
-            >
-              Start free. Upgrade when ready.
-            </h2>
-            <p
-              style={{
-                fontSize: 17,
-                color: "rgba(232,213,163,0.4)",
-                marginBottom: 40,
-                lineHeight: 1.5,
-              }}
-            >
-              1 free video, up to 10 minutes. No credit card. Cancel anytime.
-            </p>
+        {/* ── Interactive Demos ── */}
+        <section
+          className="border-t border-[#5a9a52]/12 px-4 md:px-6 pb-24 md:pb-32"
+          aria-labelledby="demo-heading"
+        >
+          <div className="mx-auto max-w-[1080px] pt-16 md:pt-20">
+            <FadeIn>
+              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[#7fb870]">
+                Try it live
+              </p>
+              <h2
+                id="demo-heading"
+                className="mb-14 max-w-[500px] font-semibold leading-tight text-[#e8d5a3]"
+                style={{ fontSize: "clamp(26px, 3.5vw, 42px)" }}
+              >
+                See the editor in action
+              </h2>
+            </FadeIn>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <FadeIn>
+                <div>
+                  <p className="mb-3.5 text-xs tracking-wide text-[#e8d5a3]/55">
+                    Click scenes to explore the timeline →
+                  </p>
+                  <TimelineDemo />
+                </div>
+              </FadeIn>
+              <FadeIn delay={120}>
+                <div>
+                  <p className="mb-3.5 text-xs tracking-wide text-[#e8d5a3]/55">
+                    Click ▶ to preview any voice →
+                  </p>
+                  <VoiceDemo />
+                </div>
+              </FadeIn>
+            </div>
+          </div>
+        </section>
+
+        {/* ── How It Works ── */}
+        <section
+          id="how-it-works"
+          className="border-t border-[#5a9a52]/18 bg-[#0c170c] px-4 md:px-6 py-20 md:py-32"
+          aria-labelledby="how-heading"
+        >
+          <div className="mx-auto max-w-[1080px]">
+            <FadeIn>
+              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[#7fb870]">
+                How it works
+              </p>
+              <h2
+                id="how-heading"
+                className="mb-16 max-w-[440px] font-semibold leading-tight text-[#e8d5a3]"
+                style={{ fontSize: "clamp(28px, 4vw, 46px)" }}
+              >
+                From panel to video in four steps
+              </h2>
+            </FadeIn>
+
+            <ol className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-4">
+              {STEPS.map((step, i) => (
+                <FadeIn key={step.n} delay={i * 100}>
+                  <li className="relative pr-7">
+                    <div className="mb-5 text-[36px] font-bold leading-none tabular-nums text-[#5a9a52]/30">
+                      {step.n}
+                    </div>
+                    <div
+                      className="mb-5 h-8 w-0.5 rounded-full bg-[#5a9a52]/30"
+                      aria-hidden="true"
+                    />
+                    <h3 className="mb-2.5 text-base font-semibold text-[#e8d5a3]">
+                      {step.title}
+                    </h3>
+                    <p className="m-0 text-sm leading-relaxed text-[#e8d5a3]/65">
+                      {step.desc}
+                    </p>
+                  </li>
+                </FadeIn>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ── Testimonials ── */}
+        <section
+          className="border-t border-[#5a9a52]/18 bg-[#fceeca] px-4 md:px-6 py-20 md:py-32"
+          aria-labelledby="testimonials-heading"
+        >
+          <div className="mx-auto max-w-[1080px]">
+            <FadeIn>
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4a7a42]">
+                Creators love it
+              </p>
+              <h2
+                id="testimonials-heading"
+                className="mb-4 max-w-[480px] font-semibold leading-tight text-[#1f2e1a]"
+                style={{ fontSize: "clamp(26px, 3.5vw, 42px)" }}
+              >
+                Trusted by manga creators
+              </h2>
+              <p className="mb-14 max-w-[460px] text-[15px] leading-relaxed text-[#5a6650]">
+                From solo webcomic artists to studio teams, here's who's already
+                turning panels into video.
+              </p>
+            </FadeIn>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {TESTIMONIALS.map((testimonial, index) => (
+                <TestimonialCard
+                  key={testimonial.name}
+                  testimonial={testimonial}
+                  index={index}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FAQ Section ── */}
+        <section
+          className="border-t border-[#5a9a52]/15 px-4 md:px-6 pb-28 md:pb-32"
+          aria-labelledby="faq-heading"
+        >
+          <div className="mx-auto max-w-[680px] pt-24 md:pt-28">
+            <FadeIn>
+              <div className="mb-12 text-center">
+                <span className="badge-pill mb-4 inline-flex">FAQ</span>
+                <h2
+                  id="faq-heading"
+                  className="m-0 font-bold leading-tight tracking-tight text-[#e8d5a3]"
+                  style={{
+                    fontSize: "clamp(26px, 3.5vw, 42px)",
+                    letterSpacing: "-0.025em",
+                  }}
+                >
+                  Frequently asked questions
+                </h2>
+              </div>
+            </FadeIn>
+
+            <div className="flex flex-col gap-2">
+              {FAQS.map((faq, i) => (
+                <FaqItem
+                  key={faq.q}
+                  faq={faq}
+                  index={i}
+                  isOpen={openFaq === i}
+                  onToggle={() => handleFaqToggle(i)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Final CTA ── */}
+        <section
+          className="relative overflow-hidden border-t border-[#5a9a52]/15 px-4 md:px-6 pb-20 md:pb-32 text-center"
+          aria-labelledby="cta-heading"
+        >
+          <div
+            className="pointer-events-none absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 bg-[radial-gradient(ellipse,rgba(74,138,66,0.08)_0%,transparent_65%)]"
+            aria-hidden="true"
+          />
+
+          <FadeIn>
+            <div className="relative pt-24 md:pt-28">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#5a9a52]/25 bg-[#5a9a52]/10 px-5 py-2">
+                <IconZap />
+                <span className="text-xs font-medium text-[#9fd48e]">
+                  Free to start — no credit card
+                </span>
+              </div>
+
+              <h2
+                id="cta-heading"
+                className="mx-auto mb-6 max-w-[500px] font-bold leading-tight text-[#e8d5a3]"
+                style={{
+                  fontSize: "clamp(28px, 4.5vw, 48px)",
+                  letterSpacing: "-0.025em",
+                }}
+              >
+                Ready to animate
+                <br />
+                your manga?
+              </h2>
+
+              <p className="mx-auto mb-10 max-w-[400px] text-[15px] leading-relaxed text-[#e8d5a3]/65">
+                Join 2,400+ creators already using MangaMotion to turn panels
+                into scroll-stopping videos.
+              </p>
+
               <a
                 href="/signup"
-                className="cta-btn"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background:
-                    "linear-gradient(135deg, #c9a84c 0%, #e0cc8a 100%)",
-                  color: "#1a0e00",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  padding: "15px 32px",
-                  borderRadius: 12,
-                  textDecoration: "none",
-                  letterSpacing: "-0.01em",
-                }}
+                className="inline-flex min-h-[52px] items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-8 py-4 text-base font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80 hover:shadow-[0_8px_30px_rgba(45,90,39,0.3)]"
               >
-                <Zap size={16} />
-                Create your first video
-              </a>
-              <a
-                href="/pricing"
-                className="cta-btn"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "rgba(45,90,39,0.1)",
-                  color: "rgba(232,213,163,0.6)",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  padding: "15px 28px",
-                  borderRadius: 12,
-                  textDecoration: "none",
-                  border: "1px solid rgba(45,90,39,0.28)",
-                }}
-              >
-                Upgrade now
+                Get started for free <IconArrow />
               </a>
             </div>
-          </div>
-        </FadeIn>
-      </section>
+          </FadeIn>
+        </section>
 
-      <Footer />
-
-      <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        * { box-sizing: border-box; }
-        @media (max-width: 640px) { .hide-mobile { display: none !important; } }
-      `}</style>
-    </main>
+        <Footer />
+      </main>
+    </>
   );
 }

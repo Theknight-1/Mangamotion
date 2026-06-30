@@ -141,7 +141,7 @@ export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] py-3 text-sm font-bold tracking-wide text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.30)] transition-all hover:-translate-y-px hover:shadow-[0_8px_26px_rgba(201,168,76,0.40)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+        className="w-full rounded-xl bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] py-3 text-sm font-bold tracking-wide text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.30)] transition-all hover:-translate-y-px hover:shadow-[0_8px_26px_rgba(201,168,76,0.40)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
       >
         {loading ? "Please wait..." : isSignUp ? "Create account" : "Sign in"}
       </button>
