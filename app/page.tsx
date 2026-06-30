@@ -462,7 +462,7 @@ function FadeIn({
     <div
       ref={ref}
       className={`fade-in-wrapper ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
+      style={{ "--fade-delay": `${delay}ms` } as React.CSSProperties}
     >
       {children}
     </div>
