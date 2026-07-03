@@ -819,7 +819,7 @@ async function runRenderPipeline(
 
         // Removed intermediate Vercel Blob uploads. Just return local paths.
         return { path: finalPath, duration, updatedScene: { ...scene } };
-      };),
+      }),
     );
 
     // Extract paths, durations, and updated scenes
