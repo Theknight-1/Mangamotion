@@ -120,7 +120,6 @@ function probeDuration(filePath: string): Promise<number> {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
 function normToPixels(
   kf: Keyframe,
   img: ImageSize,
@@ -142,8 +141,12 @@ function normToPixels(
     maxH = Math.floor(maxW / targetAspect);
   }
 
-  // Clamp normalized width/height to be at most the maximum allowed crop size
-  // Convert normalized to pixels first
+  // ENFORCE SAFE ZONE: The crop can never be smaller than 90% of the max possible crop.
+  // This prevents the AI from zooming in too far and cropping out the art.
+  const minW = maxW * 0.9;
+  const minH = maxH * 0.9;
+
+  // Convert normalized keyframe to pixels
   let cw = kf.w * img.w;
   let ch = kf.h * img.h;
 
@@ -154,15 +157,15 @@ function normToPixels(
     ch = cw / targetAspect;
   }
 
-  // Hard clamp to the max possible bounds
-  cw = Math.min(cw, maxW);
-  ch = Math.min(ch, maxH);
+  // Hard clamp to the safe zone bounds (between 90% and 100% of max)
+  cw = Math.max(minW, Math.min(cw, maxW));
+  ch = Math.max(minH, Math.min(ch, maxH));
 
   // Ensure even dimensions for codec compatibility
   cw = Math.max(2, Math.floor(cw / 2) * 2);
   ch = Math.max(2, Math.floor(ch / 2) * 2);
 
-  // Calculate center position
+  // Calculate center position based on the AI's requested center point
   const centerX = (kf.x + kf.w / 2) * img.w;
   const centerY = (kf.y + kf.h / 2) * img.h;
 

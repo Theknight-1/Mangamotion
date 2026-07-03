@@ -256,10 +256,10 @@ DO NOT write: "In this panel..." / "The image shows..." / "Here we see..."
 ═══ KEYFRAME RULES ═══
 Output is ${aspectDesc}. x=0 left, y=0 top, w/h are 0-1 fractions.
 - First t=0.0, last t=6-9 (scaled to audio length later)
-- x+w ≤ 1.0, y+h ≤ 1.0, min w≥0.6, h≥0.6  
-- 3-5 keyframes, smooth motion (max 0.15 change in x/y between adjacent keyframes)
-- Prefer tall crops for portrait output
-- CRITICAL: Keep the ENTIRE panel readable. Do NOT zoom so far that speech bubbles or faces are cropped out.
+- x+w ≤ 1.0, y+h ≤ 1.0
+- CRITICAL SAFE ZONE: min w MUST be ≥ 0.9, min h MUST be ≥ 0.9. NEVER zoom in closer than 90% of the image. The entire panel must always remain visible.
+- 3-5 keyframes, smooth motion (max 0.05 change in x/y between adjacent keyframes)
+- This is a subtle pan/scan, NOT a deep zoom. Keep the full context of the art visible at all times.
 
 Return ONLY the JSON object — no markdown fences, no commentary before or after.`;
 

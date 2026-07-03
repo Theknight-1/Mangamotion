@@ -139,46 +139,56 @@ export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceG
   }
 
   return (
-    <div className="bg-[#0d0d16] border border-white/[0.06] rounded-xl p-4 space-y-4">
+    <div className="bg-[#0d0d16] border border-white/6 rounded-xl p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">
           <Mic size={11} className="text-violet-400" />
         </div>
-        <span className="text-xs font-medium text-white/60 uppercase tracking-wide">Voice Generator</span>
+        <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
+          Voice Generator
+        </span>
       </div>
 
       {/* Narration text */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
           <label className="text-xs text-white/40">Narration text</label>
-          <span className={`text-xs ${textTooShort || textTooLong ? 'text-red-400' : 'text-white/20'}`}>
-            {text.length}/500 {textTooShort && '(min 50)'}
+          <span
+            className={`text-xs ${textTooShort || textTooLong ? "text-red-400" : "text-white/20"}`}
+          >
+            {text.length}/500 {textTooShort && "(min 50)"}
           </span>
         </div>
         <textarea
           value={text}
-          onChange={e => setText(e.target.value)}
+          onChange={(e) => setText(e.target.value)}
           disabled={generating}
           rows={3}
           placeholder="Narration for this scene…"
-          className="w-full px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500/40 resize-none transition disabled:opacity-50"
+          className="w-full px-3 py-2 bg-white/3 border border-white/6 rounded-lg text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500/40 resize-none transition disabled:opacity-50"
         />
       </div>
 
       {/* Voice search + list */}
       <div className="space-y-2">
         <div className="relative">
-          <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+          <Search
+            size={12}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none"
+          />
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search character voices…"
-            className="w-full pl-8 pr-7 py-1.5 bg-white/[0.03] border border-white/[0.06] rounded-lg text-xs text-white placeholder-white/20 focus:outline-none focus:border-violet-500/40 transition"
+            className="w-full pl-8 pr-7 py-1.5 bg-white/3 border border-white/6 rounded-lg text-xs text-white placeholder-white/20 focus:outline-none focus:border-violet-500/40 transition"
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition">
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition"
+            >
               <X size={11} />
             </button>
           )}
@@ -192,62 +202,82 @@ export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceG
             </div>
           ) : flatVoices.length === 0 ? (
             <p className="text-center py-6 text-xs text-white/25">
-              {search ? `No characters found for "${search}"` : 'No characters found'}
+              {search
+                ? `No characters found for "${search}"`
+                : "No characters found"}
             </p>
           ) : (
-            flatVoices.map(voice => {
-              const isSelected = selectedVoice === voice.voice_id
-              const isPreviewing = previewingId === voice.voice_id
+            flatVoices.map((voice) => {
+              const isSelected = selectedVoice === voice.voice_id;
+              const isPreviewing = previewingId === voice.voice_id;
               return (
                 <div
                   key={voice.uniqueKey} // Use uniqueKey instead of voice_id
                   onClick={() => {
-                    console.log('Clicked voice:', voice.voice_id, 'Currently selected:', selectedVoice)
-                    setSelectedVoice(voice.voice_id)
+                    console.log(
+                      "Clicked voice:",
+                      voice.voice_id,
+                      "Currently selected:",
+                      selectedVoice,
+                    );
+                    setSelectedVoice(voice.voice_id);
                   }}
                   className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg cursor-pointer transition group ${
-                    isSelected 
-                      ? 'bg-violet-600/15 border border-violet-500/30' 
-                      : 'hover:bg-white/[0.04] border border-transparent'
+                    isSelected
+                      ? "bg-violet-600/15 border border-violet-500/30"
+                      : "hover:bg-white/4 border border-transparent"
                   }`}
                 >
-                  <img 
-                    src={voice.image_url} 
+                  <img
+                    src={voice.image_url}
                     alt={voice.character}
-                    className="w-7 h-7 rounded-md object-cover shrink-0 bg-white/5" 
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} 
+                    className="w-7 h-7 rounded-md object-cover shrink-0 bg-white/5"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
                   />
-                  <span className="flex-1 text-xs text-white/70 truncate">{voice.label}</span>
-                  
+                  <span className="flex-1 text-xs text-white/70 truncate">
+                    {voice.label}
+                  </span>
+
                   {voice.preview_url && (
                     <button
-                      onClick={e => { e.stopPropagation(); togglePreview(voice) }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePreview(voice);
+                      }}
                       className={`shrink-0 w-5 h-5 rounded flex items-center justify-center transition ${
-                        isPreviewing 
-                          ? 'bg-violet-500/30 text-violet-300' 
-                          : 'opacity-0 group-hover:opacity-100 bg-white/10 text-white/40 hover:text-white'
+                        isPreviewing
+                          ? "bg-violet-500/30 text-violet-300"
+                          : "opacity-0 group-hover:opacity-100 bg-white/10 text-white/40 hover:text-white"
                       }`}
                     >
                       {isPreviewing ? <Pause size={9} /> : <Play size={9} />}
                     </button>
                   )}
-                  
-                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
+
+                  {isSelected && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                  )}
                 </div>
-              )
+              );
             })
           )}
         </div>
 
         {selectedMeta && (
           <div className="flex items-center gap-2 px-2.5 py-1.5 bg-violet-600/10 border border-violet-500/20 rounded-lg">
-            <img 
-              src={selectedMeta.image_url} 
-              alt="" 
-              className="w-4 h-4 rounded object-cover" 
-              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+            <img
+              src={selectedMeta.image_url}
+              alt=""
+              className="w-4 h-4 rounded object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
             />
-            <span className="text-xs text-violet-300 truncate">{selectedMeta.label}</span>
+            <span className="text-xs text-violet-300 truncate">
+              {selectedMeta.label}
+            </span>
           </div>
         )}
       </div>
@@ -258,11 +288,15 @@ export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceG
         className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium py-2 rounded-lg transition"
       >
         {generating ? (
-          <><Loader2 size={12} className="animate-spin" /> Generating…</>
+          <>
+            <Loader2 size={12} className="animate-spin" /> Generating…
+          </>
         ) : (
-          <><Volume2 size={12} /> Generate Voice</>
+          <>
+            <Volume2 size={12} /> Generate Voice
+          </>
         )}
       </button>
     </div>
-  )
+  );
 }
