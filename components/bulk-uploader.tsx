@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Loader2, ImageIcon, X } from "lucide-react";
+import {
+  Upload,
+  Loader2,
+  ImageIcon,
+  X,
+  GripVertical,
+  Trash2,
+  Plus,
+  Wand2,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import type { Scene } from "@/types/scene";
 
@@ -17,21 +26,76 @@ export function BulkUploader({
   onScenesCreated,
 }: BulkUploaderProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"local" | "created">("local");
+
+  // Queue state (before upload)
+  const [pendingFiles, setPendingFiles] = useState<
+    Array<{ id: string; file: File }>
+  >([]);
+
+  // Drag and drop state for queue
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  // Processing state
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function handleFiles(files: FileList) {
-    if (!files || files.length === 0) return;
+  function addFiles(files: FileList) {
+    const newFiles = Array.from(files).map((file) => ({
+      id: `pending-${Math.random().toString(36).slice(2, 9)}`,
+      file,
+    }));
+    setPendingFiles((prev) => [...prev, ...newFiles]);
+  }
+
+  function removePendingFile(id: string) {
+    setPendingFiles((prev) => prev.filter((f) => f.id !== id));
+  }
+
+  // Queue Reordering Handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggingId(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (draggingId !== id) setDragOverId(id);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggingId || draggingId === targetId) return;
+
+    const draggedIndex = pendingFiles.findIndex((f) => f.id === draggingId);
+    const targetIndex = pendingFiles.findIndex((f) => f.id === targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const updated = [...pendingFiles];
+    const [removed] = updated.splice(draggedIndex, 1);
+    updated.splice(targetIndex, 0, removed);
+
+    setPendingFiles(updated);
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  async function handleUploadAndAnalyze() {
+    if (pendingFiles.length === 0) {
+      toast.error("Please add at least one image.");
+      return;
+    }
 
     setIsUploading(true);
-    setIsAnalyzing(false);
-    setProgress({ current: 0, total: 0 });
-
     try {
+      // 1. Upload all files in the exact order of the queue
       const fd = new FormData();
-      Array.from(files).forEach((file) => fd.append("files", file));
+      pendingFiles.forEach((pf) => fd.append("files", pf.file));
 
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -42,12 +106,12 @@ export function BulkUploader({
       if (!res.ok) throw new Error();
       const { files: uploadedFiles } = await res.json();
 
+      // 2. Create Scene objects
       const startingIndex =
         allScenes.length > 0
           ? Math.max(...allScenes.map((s) => s.index)) + 1
           : 0;
 
-      // Create a mutable array to track the state of newly uploaded scenes
       let currentNewScenes: Scene[] = uploadedFiles.map(
         (file: any, i: number) => ({
           id: `scene-${Date.now()}-${i}`,
@@ -62,13 +126,14 @@ export function BulkUploader({
         }),
       );
 
-      // Immediately add empty scenes to UI
+      // 3. Immediately add empty scenes to UI
       onScenesCreated(currentNewScenes);
+      setPendingFiles([]); // Clear queue
       setIsUploading(false);
       setIsAnalyzing(true);
       setProgress({ current: 0, total: currentNewScenes.length });
 
-      // Analyze sequentially
+      // 4. Analyze sequentially
       for (let i = 0; i < currentNewScenes.length; i++) {
         const scene = currentNewScenes[i];
         try {
@@ -86,7 +151,6 @@ export function BulkUploader({
           if (!analyzeRes.ok) throw new Error();
           const data = await analyzeRes.json();
 
-          // Update our local array with the new data
           currentNewScenes = currentNewScenes.map((s) =>
             s.id === scene.id
               ? {
@@ -99,7 +163,6 @@ export function BulkUploader({
               : s,
           );
         } catch (err) {
-          // Update local array with error state
           currentNewScenes = currentNewScenes.map((s) =>
             s.id === scene.id
               ? { ...s, status: "ready", narration: "Manual edit required." }
@@ -107,13 +170,12 @@ export function BulkUploader({
           );
         }
 
-        // Send the fully accumulated array back to the parent
         onScenesCreated(currentNewScenes);
         setProgress({ current: i + 1, total: currentNewScenes.length });
       }
 
-      toast.success(`${currentNewScenes.length} scenes uploaded and analyzed!`);
-      setIsOpen(false); // Close dialog only when loop is fully done
+      toast.success(`${currentNewScenes.length} scenes created!`);
+      setIsOpen(false);
     } catch (error) {
       toast.error("Bulk upload failed");
     } finally {
@@ -135,11 +197,10 @@ export function BulkUploader({
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-white/[0.07] bg-[#0d0d18] p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white/80">
-                Upload Manga Panels
-              </h2>
+          <div className="w-full max-w-2xl rounded-2xl border border-white/[0.07] bg-[#0d0d18] shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/5 p-5">
+              <h2 className="text-base font-bold text-white/90">Add Scenes</h2>
               {!isUploading && !isAnalyzing && (
                 <button
                   onClick={() => setIsOpen(false)}
@@ -150,64 +211,155 @@ export function BulkUploader({
               )}
             </div>
 
-            {isUploading ? (
-              <div className="flex flex-col items-center py-12 text-white/50">
-                <Loader2
-                  className="mb-3 animate-spin text-[#c9a84c]"
-                  size={32}
-                />
-                Uploading images...
-              </div>
-            ) : isAnalyzing ? (
-              <div className="flex flex-col items-center py-12 text-white/50">
-                <Loader2
-                  className="mb-3 animate-spin text-[#c9a84c]"
-                  size={32}
-                />
-                Analyzing panels... ({progress.current} / {progress.total})
-                <p className="mt-2 text-xs text-white/30">
-                  You can continue using the editor while this runs.
-                </p>
-              </div>
-            ) : (
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (e.dataTransfer.files.length > 0)
-                    handleFiles(e.dataTransfer.files);
-                }}
-                onClick={() => fileRef.current?.click()}
-                className="flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] p-12 text-center transition-colors hover:border-[#4a8a42]/40 hover:bg-[#4a8a42]/5"
+            {/* Tabs */}
+            <div className="flex gap-4 px-5 pt-4">
+              <button
+                onClick={() => setActiveTab("local")}
+                className={`flex items-center gap-2 pb-3 text-xs font-semibold transition-colors ${
+                  activeTab === "local"
+                    ? "border-b-2 border-[#c9a84c] text-[#c9a84c]"
+                    : "text-white/40 hover:text-white/70"
+                }`}
               >
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    if (
-                      e.currentTarget.files &&
-                      e.currentTarget.files.length > 0
-                    ) {
-                      handleFiles(e.currentTarget.files);
-                    }
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.04] text-white/30">
-                  <ImageIcon size={24} />
+                <Upload size={14} /> Upload from Device
+              </button>
+              <button
+                disabled // Placeholder for future feature
+                className="flex cursor-not-allowed items-center gap-2 pb-3 text-xs font-semibold text-white/15"
+              >
+                <Wand2 size={14} /> Create with AI
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5">
+              {isUploading || isAnalyzing ? (
+                <div className="flex h-64 flex-col items-center justify-center text-white/50">
+                  <Loader2
+                    className="mb-3 animate-spin text-[#c9a84c]"
+                    size={32}
+                  />
+                  {isUploading
+                    ? "Uploading images..."
+                    : `Analyzing panels... (${progress.current} / ${progress.total})`}
+                  <p className="mt-2 text-xs text-white/30">
+                    You can close this dialog while it processes in the
+                    background.
+                  </p>
                 </div>
-                <p className="mb-1 text-sm font-semibold text-white/60">
-                  Drop multiple panels here
-                </p>
-                <p className="text-xs text-white/30">
-                  or click to browse · Bulk upload will create scenes
-                  automatically
-                </p>
-              </div>
-            )}
+              ) : activeTab === "local" ? (
+                <>
+                  {/* Drop Zone */}
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (e.dataTransfer.files.length > 0)
+                        addFiles(e.dataTransfer.files);
+                    }}
+                    onClick={() => fileRef.current?.click()}
+                    className="mb-4 flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-white/8 bg-white/1 p-8 text-center transition-colors hover:border-[#4a8a42]/40 hover:bg-[#4a8a42]/5"
+                  >
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        if (
+                          e.currentTarget.files &&
+                          e.currentTarget.files.length > 0
+                        ) {
+                          addFiles(e.currentTarget.files);
+                        }
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/4 text-white/30">
+                      <ImageIcon size={24} />
+                    </div>
+                    <p className="mb-1 text-sm font-semibold text-white/60">
+                      Drag & drop files here
+                    </p>
+                    <p className="text-xs text-white/30">
+                      or click to browse · You can reorder after adding
+                    </p>
+                  </div>
+
+                  {/* Queue List */}
+                  {pendingFiles.length > 0 && (
+                    <div className="mb-4 max-h-48 space-y-2 overflow-y-auto pr-2">
+                      {pendingFiles.map((pf, i) => (
+                        <div
+                          key={pf.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, pf.id)}
+                          onDragOver={(e) => handleDragOver(e, pf.id)}
+                          onDrop={(e) => handleDrop(e, pf.id)}
+                          className={`flex items-center gap-3 rounded-lg border bg-white/2 p-2.5 transition-all ${
+                            draggingId === pf.id
+                              ? "opacity-40"
+                              : dragOverId === pf.id
+                                ? "border-[#c9a84c] ring-1 ring-[#c9a84c]"
+                                : "border-white/7"
+                          }`}
+                        >
+                          <div className="cursor-grab text-white/30 hover:text-white/60">
+                            <GripVertical size={14} />
+                          </div>
+                          <div className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/50">
+                            <img
+                              src={URL.createObjectURL(pf.file)}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <span className="flex-1 truncate text-xs text-white/70">
+                            {pf.file.name}
+                          </span>
+                          <button
+                            onClick={() => removePendingFile(pf.id)}
+                            className="p-1 text-white/20 hover:text-red-400"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Footer Actions */}
+                  <div className="flex justify-end gap-3 border-t border-white/5 pt-4">
+                    <button
+                      onClick={() => setIsOpen(false)}
+                      className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-white/50 transition-colors hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUploadAndAnalyze}
+                      disabled={pendingFiles.length === 0}
+                      className={`flex items-center cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                        pendingFiles.length === 0
+                          ? "cursor-not-allowed bg-white/5 text-white/20"
+                          : "border border-[#5a9a52]/50 bg-[#2d5a27] text-[#e8d5a3] hover:bg-[#4e8347]"
+                      }`}
+                    >
+                      <Upload size={12} />
+                      Upload{" "}
+                      {pendingFiles.length > 0
+                        ? `(${pendingFiles.length})`
+                        : ""}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex h-64 items-center justify-center text-sm text-white/30">
+                  AI Generation coming soon...
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

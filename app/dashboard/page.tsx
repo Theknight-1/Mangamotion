@@ -289,29 +289,57 @@ export default function DashboardPage() {
     }
   }, [newProjectTitle])
 
-  const handleUpload = useCallback(async (file: File) => {
-    if (!selectedProjectId) { toast.error('Select a project first'); return }
-    if (!file.type.startsWith('image/')) { toast.error('Images only'); return }
-    if (file.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return }
+    const handleUpload = useCallback(
+      async (file: File) => {
+        if (!selectedProjectId) {
+          toast.error("Select a project first");
+          return;
+        }
+        if (!file.type.startsWith("image/")) {
+          toast.error("Images only");
+          return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+          toast.error("Max 2MB");
+          return;
+        }
 
-    setUploading(true)
-    try {
-      const { url } = await uploadApi.image(file)
-      const { video } = await videosApi.create({
-        projectId: selectedProjectId,
-        title: file.name.replace(/\.[^/.]+$/, ''),
-        sourceImage: url,
-      })
-      // Revalidate video list
-      await globalMutate(swrKeys.videos(selectedProjectId))
-      toast.success('Opening editor…')
-      setTimeout(() => router.push(`/editor/${video.id}`), 300)
-    } catch (e: any) {
-      toast.error(e.message ?? 'Upload failed')
-    } finally {
-      setUploading(false)
-    }
-  }, [selectedProjectId, router])
+        setUploading(true);
+        try {
+          // Updated to use 'files' to match the new bulk upload API
+          const fd = new FormData();
+          fd.append("files", file);
+
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            credentials: "include",
+            body: fd,
+          });
+
+          if (!res.ok) throw new Error("Upload failed");
+          const data = await res.json();
+
+          // Extract the first (and only) file from the response array
+          const url = data.files[0].url;
+
+          const { video } = await videosApi.create({
+            projectId: selectedProjectId,
+            title: file.name.replace(/\.[^/.]+$/, ""),
+            sourceImage: url,
+          });
+
+          // Revalidate video list
+          await globalMutate(swrKeys.videos(selectedProjectId));
+          toast.success("Opening editor…");
+          setTimeout(() => router.push(`/editor/${video.id}`), 300);
+        } catch (e: any) {
+          toast.error(e.message ?? "Upload failed");
+        } finally {
+          setUploading(false);
+        }
+      },
+      [selectedProjectId, router],
+    );
 
   const deleteVideo = useCallback(async (videoId: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -452,7 +480,8 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-sm font-semibold text-white">New Video</h2>
                 <p className="text-xs text-white/30 mt-0.5">
-                  Upload a manga panel — Gemini will analyze it automatically
+                  Upload a cover image — This will be used as the cover panel
+                  for your video.
                 </p>
               </div>
               {!selectedProjectId && (

@@ -53,14 +53,12 @@ export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceG
         preview_url: p.preview_url || '',
         uniqueKey: `${p.voice_id}-${p.character}-${index}`, // Ensure uniqueness
       }))
-      
-      console.log('Loaded voices:', flat.map(v => ({ id: v.voice_id, key: v.uniqueKey, label: v.label })))
+    
       
       setFlatVoices(flat)
       
       // Only auto-select first voice on initial load
       if (!hasAutoSelected.current && flat.length > 0) {
-        console.log('Auto-selecting first voice:', flat[0].voice_id)
         setSelectedVoice(flat[0].voice_id)
         hasAutoSelected.current = true
       }

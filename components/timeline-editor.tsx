@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useCallback, useState } from "react";
 import {
@@ -8,25 +8,34 @@ import {
   Loader2,
   MoreVertical,
   Trash2,
+  GripVertical,
 } from "lucide-react";
 import { createId } from "@paralleldrive/cuid2";
-import type { Scene } from '@/types/scene'
+import type { Scene } from "@/types/scene";
 import { Button } from "./loader-button";
 import { SceneCard } from "./scene-card";
 import { BulkUploader } from "@/components/bulk-uploader";
 
-export type TimelineScene = Scene
-export type { Scene }
+export type TimelineScene = Scene;
+export type { Scene };
 
 interface TimelineEditorProps {
-  videoId: string
-  scenes: Scene[]
-  onScenesChange: (scenes: Scene[]) => void
+  videoId: string;
+  scenes: Scene[];
+  onScenesChange: (scenes: Scene[]) => void;
 }
 
-export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEditorProps) {
+export function TimelineEditor({
+  videoId,
+  scenes,
+  onScenesChange,
+}: TimelineEditorProps) {
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Drag and drop state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) || null;
 
@@ -34,15 +43,15 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
     const newScene: Scene = {
       id: createId(),
       index: scenes.length,
-      imageUrl: '',
-      narration: '',
+      imageUrl: "",
+      narration: "",
       keyframes: [],
-      voiceId: '',
-      status: 'idle',
-    }
-    onScenesChange([...scenes, newScene])
+      voiceId: "",
+      status: "idle",
+    };
+    onScenesChange([...scenes, newScene]);
     setActiveSceneId(newScene.id);
-  }, [scenes, onScenesChange])
+  }, [scenes, onScenesChange]);
 
   const handleScenesCreated = useCallback(
     (newScenes: Scene[]) => {
@@ -66,9 +75,12 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
     [scenes, onScenesChange, activeSceneId],
   );
 
-  const updateScene = useCallback((updated: Scene) => {
-    onScenesChange(scenes.map(s => s.id === updated.id ? updated : s))
-  }, [scenes, onScenesChange])
+  const updateScene = useCallback(
+    (updated: Scene) => {
+      onScenesChange(scenes.map((s) => (s.id === updated.id ? updated : s)));
+    },
+    [scenes, onScenesChange],
+  );
 
   const deleteScene = useCallback(
     (sceneId: string) => {
@@ -81,6 +93,45 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
     },
     [scenes, onScenesChange, activeSceneId],
   );
+
+  // ── Drag Handlers ──────────────────────────────────────────────────────
+  const handleDragStart = (e: React.DragEvent, sceneId: string) => {
+    setDraggingId(sceneId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, sceneId: string) => {
+    e.preventDefault();
+    if (draggingId !== sceneId) {
+      setDragOverId(sceneId);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggingId || draggingId === targetId) return;
+
+    const draggedIndex = scenes.findIndex((s) => s.id === draggingId);
+    const targetIndex = scenes.findIndex((s) => s.id === targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const updatedScenes = [...scenes];
+    const [removed] = updatedScenes.splice(draggedIndex, 1);
+    updatedScenes.splice(targetIndex, 0, removed);
+
+    // Re-index and save
+    const reindexed = updatedScenes.map((s, i) => ({ ...s, index: i }));
+    onScenesChange(reindexed);
+
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
+  };
 
   const totalDur = scenes.reduce((sum, s) => sum + (s.voice?.duration ?? 0), 0);
 
@@ -95,8 +146,8 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
             </h2>
             <p className="mt-0.5 text-[11px] text-white/30">
               {scenes.length === 0
-                ? "Add scenes"
-                : `Total: ${totalDur > 0 ? `~${totalDur}s` : "0s"}`}
+                ? "Add scenes — each is one manga panel"
+                : `Total: ${totalDur > 0 ? `~${totalDur}s` : "0s"} · Drag to reorder`}
             </p>
           </div>
           <BulkUploader
@@ -126,17 +177,29 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
                 const isActive = activeSceneId === scene.id;
                 const isDone = scene.status === "done";
                 const hasVoice = !!scene.voice?.audioUrl;
+                const isDragging = draggingId === scene.id;
+                const isDragOver = dragOverId === scene.id;
 
                 return (
                   <div
                     key={scene.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, scene.id)}
+                    onDragOver={(e) => handleDragOver(e, scene.id)}
+                    onDrop={(e) => handleDrop(e, scene.id)}
+                    onDragEnd={handleDragEnd}
                     onClick={() => setActiveSceneId(scene.id)}
-                    className={`group relative flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                    className={`group relative flex w-full items-center gap-2 rounded-xl border p-3 text-left transition-all cursor-pointer ${
                       isActive
                         ? "border-[#4a8a42]/50 bg-[#4a8a42]/15"
                         : "border-white/[0.07] bg-white/2 hover:border-white/15 hover:bg-white/4"
-                    }`}
+                    } ${isDragging ? "opacity-40" : ""} ${isDragOver ? "ring-2 ring-[#c9a84c]" : ""}`}
                   >
+                    {/* Drag Handle */}
+                    <div className="cursor-grab text-white/15 group-hover:text-white/40 transition-colors">
+                      <GripVertical size={14} />
+                    </div>
+
                     <div
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold transition-colors ${
                         isDone
