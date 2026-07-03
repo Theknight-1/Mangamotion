@@ -198,9 +198,13 @@ export function SceneCard({
   }
 
   return (
-    <div className={`flex h-full flex-col overflow-hidden rounded-2xl border transition-colors ${
-      isDone ? 'border-[#4a8a42]/30 bg-[#0c170c]/80' : 'border-white/[0.07] bg-[#0d0d18]'
-    }`}>
+    <div
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border transition-colors ${
+        isDone
+          ? "border-[#4a8a42]/30 bg-[#0c170c]/80"
+          : "border-white/[0.07] bg-[#0d0d18]"
+      }`}
+    >
       {/* HEADER */}
       {!isExpandedInPanel && (
         <div
@@ -211,23 +215,34 @@ export function SceneCard({
           onKeyDown={(e) => e.key === "Enter" && setCollapsed((c) => !c)}
           className="flex cursor-pointer items-center gap-3 p-3 select-none"
         >
-          <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold ${
-            isDone ? 'border-[#4a8a42]/35 bg-[#4a8a42]/20 text-[#4a8a42]' : 'border-white/[0.08] bg-white/[0.05] text-white/30'
-          }`}>
+          <div
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold ${
+              isDone
+                ? "border-[#4a8a42]/35 bg-[#4a8a42]/20 text-[#4a8a42]"
+                : "border-white/8 bg-white/5 text-white/30"
+            }`}
+          >
             {isDone ? <CheckCircle2 size={13} /> : number}
           </div>
           <div className="flex flex-1 items-center gap-2 overflow-hidden">
-            <span className="text-[13px] font-semibold text-white/75">Scene {number}</span>
-            {isAnalyzing && <Loader2 size={11} className="animate-spin text-[#c9a84c]" />}
+            <span className="text-[13px] font-semibold text-white/75">
+              Scene {number}
+            </span>
+            {isAnalyzing && (
+              <Loader2 size={11} className="animate-spin text-[#c9a84c]" />
+            )}
           </div>
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             aria-label="Delete scene"
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-white/15 transition-colors hover:bg-red-500/10 hover:text-red-400"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-white/15 transition-colors hover:bg-red-500/10 hover:text-red-400"
           >
             <Trash2 size={12} />
           </button>
-          <div className="text-white/15 flex-shrink-0">
+          <div className="text-white/15 shrink-0">
             {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           </div>
         </div>
@@ -235,36 +250,59 @@ export function SceneCard({
 
       {/* BODY (Always visible if in panel, otherwise toggleable) */}
       {!isCollapsed && (
-        <div className="flex-1 overflow-y-auto border-t border-white/[0.05]">
+        <div className="flex-1 overflow-y-auto border-t border-white/5">
           {/* Step Indicators (Visible mostly in panel mode) */}
           {isExpandedInPanel && (
-            <div className="flex items-center gap-0 border-b border-white/[0.05] p-4 pb-3">
-              {(["Upload panel", "Write narration", "Add voice"] as const).map((label, idx) => {
-                const s = (idx + 1) as Step;
-                const isPast = isDone || s < step;
-                const isActive = s === step && !isDone;
-                return (
-                  <div key={s} className={`flex items-center ${s < 3 ? 'flex-1' : ''}`}>
-                    <div className="flex items-center gap-2">
-                      <div className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border transition-colors ${
-                        isPast ? 'border-[#4a8a42]/45 bg-[#4a8a42]/20 text-[#4a8a42]' 
-                        : isActive ? 'border-[#4a8a42]/30 bg-[#4a8a42]/12 text-[#7fb870]'
-                        : 'border-white/[0.07] bg-white/[0.05] text-white/20'
-                      }`}>
-                        {isPast && s < step ? <CheckCircle2 size={10} /> : <span className="text-[9px] font-bold">{s}</span>}
+            <div className="flex items-center gap-0 border-b border-white/5 p-4 pb-3">
+              {(["Upload panel", "Write narration", "Add voice"] as const).map(
+                (label, idx) => {
+                  const s = (idx + 1) as Step;
+                  const isPast = isDone || s < step;
+                  const isActive = s === step && !isDone;
+                  return (
+                    <div
+                      key={s}
+                      className={`flex items-center ${s < 3 ? "flex-1" : ""}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                            isPast
+                              ? "border-[#4a8a42]/45 bg-[#4a8a42]/20 text-[#4a8a42]"
+                              : isActive
+                                ? "border-[#4a8a42]/30 bg-[#4a8a42]/12 text-[#7fb870]"
+                                : "border-white/[0.07] bg-white/5 text-white/20"
+                          }`}
+                        >
+                          {isPast && s < step ? (
+                            <CheckCircle2 size={10} />
+                          ) : (
+                            <span className="text-[9px] font-bold">{s}</span>
+                          )}
+                        </div>
+                        <span
+                          className={`whitespace-nowrap text-[11px] font-medium ${
+                            isPast
+                              ? "text-[#4a8a42]"
+                              : isActive
+                                ? "text-white/65"
+                                : "text-white/20"
+                          }`}
+                        >
+                          {label}
+                        </span>
                       </div>
-                      <span className={`whitespace-nowrap text-[11px] font-medium ${
-                        isPast ? 'text-[#4a8a42]' : isActive ? 'text-white/65' : 'text-white/20'
-                      }`}>
-                        {label}
-                      </span>
+                      {s < 3 && (
+                        <div
+                          className={`mx-3 h-px flex-1 min-w-3 transition-colors ${
+                            isPast ? "bg-[#4a8a42]/35" : "bg-white/5"
+                          }`}
+                        />
+                      )}
                     </div>
-                    {s < 3 && <div className={`mx-3 h-px flex-1 min-w-[12px] transition-colors ${
-                      isPast ? 'bg-[#4a8a42]/35' : 'bg-white/[0.05]'
-                    }`} />}
-                  </div>
-                )
-              })}
+                  );
+                },
+              )}
             </div>
           )}
 
@@ -275,7 +313,7 @@ export function SceneCard({
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={onDrop}
                 onClick={() => !uploading && fileRef.current?.click()}
-                className="flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] p-10 text-center transition-colors hover:border-[#4a8a42]/40 hover:bg-[#4a8a42]/5"
+                className="flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-white/8 bg-white/5 p-10 text-center transition-colors hover:border-[#4a8a42]/40 hover:bg-[#4a8a42]/5"
               >
                 <input
                   ref={fileRef}
@@ -289,14 +327,25 @@ export function SceneCard({
                     e.currentTarget.value = "";
                   }}
                 />
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.04] text-white/20">
-                  {uploading ? <Loader2 size={20} className="animate-spin text-[#c9a84c]" /> : <ImageIcon size={20} />}
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/8 bg-white/5 text-white/20">
+                  {uploading ? (
+                    <Loader2
+                      size={20}
+                      className="animate-spin text-[#c9a84c]"
+                    />
+                  ) : (
+                    <ImageIcon size={20} />
+                  )}
                 </div>
                 <p className="mb-1 text-sm font-semibold text-white/50">
                   {uploading ? "Uploading…" : "Drop your manga panel here"}
                 </p>
                 <p className="text-xs leading-relaxed text-white/20">
-                  or <span className="font-medium text-[#4a8a42]">click to browse</span> · JPG, PNG, WebP · max 10 MB
+                  or{" "}
+                  <span className="font-medium text-[#4a8a42]">
+                    click to browse
+                  </span>{" "}
+                  · JPG, PNG, WebP · max 10 MB
                 </p>
               </div>
             )}
@@ -304,12 +353,22 @@ export function SceneCard({
             {/* STEP 1 done — panel + STEP 2 narration */}
             {hasImage && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-[120px_1fr] items-start">
-                <div className="group/img relative aspect-[3/4] w-full overflow-hidden rounded-lg border border-white/[0.07] bg-[#0c170c] sm:w-[120px]">
-                  <img src={scene.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                <div className="group/img relative aspect-3/4 w-full overflow-hidden rounded-lg border border-white/8 bg-white/5 sm:w-30">
+                  <img
+                    src={scene.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
                   {isAnalyzing && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/70">
-                      <Loader2 size={16} className="animate-spin text-[#c9a84c]" />
-                      <span className="text-[10px] text-white/50">AI analyzing…</span>
+                      <Loader2
+                        size={16}
+                        className="animate-spin text-[#c9a84c]"
+                      />
+                      <span className="text-[10px] text-white/50">
+                        AI analyzing…
+                      </span>
                     </div>
                   )}
                   <button
@@ -332,12 +391,18 @@ export function SceneCard({
                   />
                 </div>
 
-                {(scene.status === "ready" || scene.status === "done" || scene.status === "generating_voice") && (
+                {(scene.status === "ready" ||
+                  scene.status === "done" ||
+                  scene.status === "generating_voice") && (
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">Narration</label>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">
+                        Narration
+                      </label>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-white/15">{scene.narration.length}/500</span>
+                        <span className="text-[10px] text-white/15">
+                          {scene.narration.length}/500
+                        </span>
                         <Button
                           onClick={reAnalyze}
                           title="Re-run AI analysis"
@@ -350,11 +415,17 @@ export function SceneCard({
 
                     <textarea
                       value={scene.narration}
-                      onChange={(e) => onUpdate({ ...scene, narration: e.target.value, clipUrl: undefined })}
+                      onChange={(e) =>
+                        onUpdate({
+                          ...scene,
+                          narration: e.target.value,
+                          clipUrl: undefined,
+                        })
+                      }
                       rows={5}
                       maxLength={500}
                       placeholder="AI will generate narration after upload. You can edit it here before generating voice…"
-                      className="w-full resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] p-3 text-[13px] leading-relaxed text-white outline-none transition-colors focus:border-[#4a8a42]/40 font-[inherit]"
+                      className="w-full resize-none rounded-xl border border-white/8 bg-white/5 p-3 text-[13px] leading-relaxed text-white outline-none transition-colors focus:border-[#4a8a42]/40 font-[inherit]"
                     />
 
                     {(scene.keyframes?.length ?? 0) > 0 && (
@@ -369,29 +440,38 @@ export function SceneCard({
             )}
 
             {/* STEP 3 — Voice */}
-            {(scene.status === "ready" || scene.status === "done" || scene.status === "generating_voice") && (
-              <div className="border-t border-white/[0.05] pt-4">
+            {(scene.status === "ready" ||
+              scene.status === "done" ||
+              scene.status === "generating_voice") && (
+              <div className="border-t border-white/5 pt-4">
                 {hasVoice ? (
                   <div className="flex items-center gap-3 rounded-xl border border-[#4a8a42]/22 p-3">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#4a8a42]/20">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#4a8a42]/20">
                       <Volume2 size={14} className="text-[#4a8a42]" />
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <p className="m-0 text-sm font-semibold text-[#7fb870]">Voice generated</p>
+                      <p className="m-0 text-sm font-semibold text-[#7fb870]">
+                        Voice generated
+                      </p>
                       <p className="m-0 mt-0.5 truncate text-[11px] text-white/25">
-                        {scene.voice!.text.slice(0, 55)}{scene.voice!.text.length > 55 ? "…" : ""}
+                        {scene.voice!.text.slice(0, 55)}
+                        {scene.voice!.text.length > 55 ? "…" : ""}
                       </p>
                     </div>
                     <button
                       onClick={toggleAudio}
                       aria-label={playingAudio ? "Pause" : "Play preview"}
-                      className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-[#4a8a42]/20 text-[#7fb870] transition-colors hover:bg-[#4a8a42]/30"
+                      className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-[#4a8a42]/20 text-[#7fb870] transition-colors hover:bg-[#4a8a42]/30"
                     >
-                      {playingAudio ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
+                      {playingAudio ? (
+                        <Pause size={12} />
+                      ) : (
+                        <Play size={12} className="ml-0.5" />
+                      )}
                     </button>
                     <button
                       onClick={() => setShowVoice((v) => !v)}
-                      className="flex-shrink-0 cursor-pointer rounded-lg border border-white/[0.08] bg-transparent px-3 py-1.5 text-[11px] font-medium text-white/30 transition-colors hover:border-white/[0.18] hover:text-white/60"
+                      className="shrink-0 cursor-pointer rounded-lg border border-white/8 bg-transparent px-3 py-1.5 text-[11px] font-medium text-white/30 transition-colors hover:border-white/18 hover:text-white/60"
                     >
                       {showVoice ? "Cancel" : "Regenerate"}
                     </button>
@@ -401,9 +481,9 @@ export function SceneCard({
                     onClick={() => setShowVoice((v) => !v)}
                     disabled={!hasNarration}
                     className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border p-3 text-[13px] font-semibold transition-colors ${
-                      hasNarration 
-                        ? 'border-[#4a8a42]/30 bg-[#4a8a42]/10 text-[#7fb870] hover:border-[#4a8a42]/50 hover:bg-[#4a8a42]/18'
-                        : 'border-white/[0.05] bg-white/[0.02] text-white/20 cursor-not-allowed'
+                      hasNarration
+                        ? "border-[#4a8a42]/30 bg-[#4a8a42]/10 text-[#7fb870] hover:border-[#4a8a42]/50 hover:bg-[#4a8a42]/18"
+                        : "border-white/5 bg-white/2 text-white/20 cursor-not-allowed"
                     }`}
                   >
                     <Mic size={14} />
@@ -422,7 +502,12 @@ export function SceneCard({
                       sceneIndex={scene.index}
                       prefillText={scene.narration}
                       onVoiceGenerated={(audioUrl, duration) => {
-                        onUpdate({ ...scene, voice: { audioUrl, duration, text: scene.narration }, status: "done", clipUrl: undefined });
+                        onUpdate({
+                          ...scene,
+                          voice: { audioUrl, duration, text: scene.narration },
+                          status: "done",
+                          clipUrl: undefined,
+                        });
                         setShowVoice(false);
                         toast.success(`Scene ${number} voice ready!`);
                       }}
@@ -435,5 +520,5 @@ export function SceneCard({
         </div>
       )}
     </div>
-  )
+  );
 }

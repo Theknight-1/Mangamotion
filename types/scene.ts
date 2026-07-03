@@ -37,6 +37,8 @@
     id: string;
     index: number;
     imageUrl: string;
+    imageWidth?: number;
+    imageHeight?: number;
     narration: string;
     keyframes: Keyframe[];
     voiceId: string;

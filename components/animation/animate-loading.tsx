@@ -339,7 +339,7 @@ export const PremiumLoadingPage = () => (
           repeat: Infinity,
         }}
       >
-        <PremiumAnimatedLogo size={140} />
+        <PremiumAnimatedLogo size={120} />
       </motion.div>
 
       {/* Loading text with elegant animation */}

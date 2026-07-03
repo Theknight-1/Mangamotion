@@ -119,39 +119,61 @@ function probeDuration(filePath: string): Promise<number> {
   });
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+
 function normToPixels(
   kf: Keyframe,
   img: ImageSize,
   outW: number,
   outH: number,
 ): CropRect {
-  const aspect = outW / outH;
+  const targetAspect = outW / outH;
+  const imageAspect = img.w / img.h;
 
-  let cw = Math.round(kf.w * img.w);
-  let ch = Math.round(cw / aspect);
-
-  if (ch > img.h) {
-    ch = Math.round(kf.h * img.h);
-    cw = Math.round(ch * aspect);
+  // Calculate the largest possible crop size that matches the output aspect ratio
+  let maxW: number, maxH: number;
+  if (imageAspect > targetAspect) {
+    // Image is wider than target. Max height is full image height.
+    maxH = img.h;
+    maxW = Math.floor(maxH * targetAspect);
+  } else {
+    // Image is taller than target. Max width is full image width.
+    maxW = img.w;
+    maxH = Math.floor(maxW / targetAspect);
   }
 
-  cw = Math.min(cw, img.w);
-  ch = Math.min(ch, img.h);
+  // Clamp normalized width/height to be at most the maximum allowed crop size
+  // Convert normalized to pixels first
+  let cw = kf.w * img.w;
+  let ch = kf.h * img.h;
 
-  cw = Math.max(2, cw);
-  ch = Math.max(2, ch);
-  if (cw % 2 !== 0) cw -= 1;
-  if (ch % 2 !== 0) ch -= 1;
+  // Enforce aspect ratio of the output on the crop size
+  if (cw / ch > targetAspect) {
+    cw = ch * targetAspect;
+  } else {
+    ch = cw / targetAspect;
+  }
 
+  // Hard clamp to the max possible bounds
+  cw = Math.min(cw, maxW);
+  ch = Math.min(ch, maxH);
+
+  // Ensure even dimensions for codec compatibility
+  cw = Math.max(2, Math.floor(cw / 2) * 2);
+  ch = Math.max(2, Math.floor(ch / 2) * 2);
+
+  // Calculate center position
   const centerX = (kf.x + kf.w / 2) * img.w;
   const centerY = (kf.y + kf.h / 2) * img.h;
 
   let cx = Math.round(centerX - cw / 2);
   let cy = Math.round(centerY - ch / 2);
 
+  // Clamp position so crop stays within image bounds
   cx = Math.max(0, Math.min(cx, img.w - cw));
   cy = Math.max(0, Math.min(cy, img.h - ch));
 
+  // Ensure even positions
   if (cx % 2 !== 0) cx -= 1;
   if (cy % 2 !== 0) cy -= 1;
 
@@ -712,8 +734,11 @@ async function runRenderPipeline(
 
         await downloadToFile(scene.imageUrl, imagePath);
 
-        // OPTIMIZATION: Probe image size exactly once per scene
-        const img = await probeSize(imagePath);
+        // OPTIMIZATION: Use precomputed dimensions if available
+        const img =
+          scene.imageWidth && scene.imageHeight
+            ? { w: scene.imageWidth, h: scene.imageHeight }
+            : await probeSize(imagePath);
 
         let duration = 6;
         let audioPath: string | null = null;
@@ -794,7 +819,7 @@ async function runRenderPipeline(
 
         // Removed intermediate Vercel Blob uploads. Just return local paths.
         return { path: finalPath, duration, updatedScene: { ...scene } };
-      }),
+      };),
     );
 
     // Extract paths, durations, and updated scenes

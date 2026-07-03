@@ -4,27 +4,17 @@ import { useCallback, useState } from "react";
 import {
   Plus,
   Film,
-  Mic,
   CheckCircle2,
   Loader2,
-  Play,
-  Pause,
-  Volume2,
+  MoreVertical,
   Trash2,
-  ChevronDown,
-  ChevronUp,
-  ImageIcon,
-  Upload,
-  RotateCcw,
-  Sparkles,
 } from "lucide-react";
-import { createId } from '@paralleldrive/cuid2'
-import { VoiceGenerator } from "./voice-generator";
+import { createId } from "@paralleldrive/cuid2";
 import type { Scene } from '@/types/scene'
 import { Button } from "./loader-button";
 import { SceneCard } from "./scene-card";
+import { BulkUploader } from "@/components/bulk-uploader";
 
-// Re-export Scene so existing imports of TimelineScene still work during migration
 export type TimelineScene = Scene
 export type { Scene }
 
@@ -36,6 +26,7 @@ interface TimelineEditorProps {
 
 export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEditorProps) {
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) || null;
 
@@ -53,6 +44,28 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
     setActiveSceneId(newScene.id);
   }, [scenes, onScenesChange])
 
+  const handleScenesCreated = useCallback(
+    (newScenes: Scene[]) => {
+      const updated = [...scenes];
+      newScenes.forEach((ns) => {
+        const idx = updated.findIndex((s) => s.id === ns.id);
+        if (idx >= 0) updated[idx] = ns;
+        else updated.push(ns);
+      });
+
+      const reindexed = updated
+        .sort((a, b) => a.index - b.index)
+        .map((s, i) => ({ ...s, index: i }));
+
+      onScenesChange(reindexed);
+
+      if (newScenes.length > 0 && !activeSceneId) {
+        setActiveSceneId(newScenes[0].id);
+      }
+    },
+    [scenes, onScenesChange, activeSceneId],
+  );
+
   const updateScene = useCallback((updated: Scene) => {
     onScenesChange(scenes.map(s => s.id === updated.id ? updated : s))
   }, [scenes, onScenesChange])
@@ -64,18 +77,17 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
       if (activeSceneId === sceneId) {
         setActiveSceneId(filtered.length > 0 ? filtered[0].id : null);
       }
+      setOpenMenuId(null);
     },
     [scenes, onScenesChange, activeSceneId],
   );
 
-  const doneCount = scenes.filter((s) => s.status === "done").length;
   const totalDur = scenes.reduce((sum, s) => sum + (s.voice?.duration ?? 0), 0);
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-hidden md:flex-row">
       {/* LEFT COLUMN: Scene List */}
-      <div className="flex w-full flex-shrink-0 flex-col border-r border-white/[0.07] md:w-72 lg:w-80">
-        {/* Section header */}
+      <div className="flex w-full shrink-0 flex-col border-r border-white/[0.07] md:w-72 lg:w-80">
         <div className="flex items-center justify-between p-4 pb-3">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-white/80">
@@ -83,30 +95,30 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
             </h2>
             <p className="mt-0.5 text-[11px] text-white/30">
               {scenes.length === 0
-                ? "Add scenes — each is one manga panel"
+                ? "Add scenes"
                 : `Total: ${totalDur > 0 ? `~${totalDur}s` : "0s"}`}
             </p>
           </div>
-          <Button
-            onClick={addScene}
-            className="cursor-pointer px-3 py-1.5 text-xs font-medium rounded-lg"
-          >
-            <Plus size={14} />
-          </Button>
+          <BulkUploader
+            videoId={videoId}
+            allScenes={scenes}
+            onScenesCreated={handleScenesCreated}
+          />
         </div>
 
-        {/* Scene Cards Strip */}
         <div className="flex-1 overflow-y-auto p-4 pt-0">
           {scenes.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.07] text-center">
               <Film size={24} className="mb-2 text-white/15" />
               <p className="text-xs text-white/30">No scenes yet</p>
-              <Button
-                onClick={addScene}
-                className="mt-3 cursor-pointer text-xs px-4 py-1.5 rounded-lg"
-              >
-                <Plus size={12} /> Add First Scene
-              </Button>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  onClick={addScene}
+                  className="cursor-pointer text-xs px-4 py-1.5 rounded-lg"
+                >
+                  <Plus size={12} /> Add Manually
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -116,22 +128,22 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
                 const hasVoice = !!scene.voice?.audioUrl;
 
                 return (
-                  <button
+                  <div
                     key={scene.id}
                     onClick={() => setActiveSceneId(scene.id)}
-                    className={`group flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all ${
+                    className={`group relative flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all cursor-pointer ${
                       isActive
                         ? "border-[#4a8a42]/50 bg-[#4a8a42]/15"
-                        : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]"
+                        : "border-white/[0.07] bg-white/2 hover:border-white/15 hover:bg-white/4"
                     }`}
                   >
                     <div
-                      className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border text-[11px] font-bold transition-colors ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold transition-colors ${
                         isDone
                           ? "border-[#4a8a42]/40 bg-[#4a8a42]/20 text-[#4a8a42]"
                           : isActive
                             ? "border-[#4a8a42]/30 bg-[#4a8a42]/10 text-[#7fb870]"
-                            : "border-white/[0.08] bg-white/[0.04] text-white/30"
+                            : "border-white/8 bg-white/4 text-white/30"
                       }`}
                     >
                       {isDone ? <CheckCircle2 size={15} /> : i + 1}
@@ -150,20 +162,46 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
                       </span>
                     </div>
 
-                    {scene.status === "analyzing" && (
+                    {scene.status === "analyzing" ? (
                       <Loader2
                         size={12}
                         className="animate-spin text-[#c9a84c]"
                       />
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(
+                            openMenuId === scene.id ? null : scene.id,
+                          );
+                        }}
+                        className="p-1 text-white/40 hover:text-white"
+                      >
+                        <MoreVertical size={14} />
+                      </button>
                     )}
-                  </button>
+
+                    {/* Dropdown Menu */}
+                    {openMenuId === scene.id && (
+                      <div
+                        className="absolute right-0 top-12 z-50 w-36 rounded-lg border border-white/10 bg-[#1a1a24] py-1 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => deleteScene(scene.id)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 size={12} /> Delete Scene
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
 
-              {/* Add more button */}
               <Button
                 onClick={addScene}
-                className=" w-full cursor-pointer rounded-xl border border-dashed border-white/[0.07] py-2 text-sm transition-colors "
+                className="w-full cursor-pointer rounded-xl border border-dashed border-white/[0.07] py-2 text-sm transition-colors"
               >
                 <Plus size={14} /> Add Scene
               </Button>
@@ -173,7 +211,10 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
       </div>
 
       {/* RIGHT COLUMN: Scene Details & Actions */}
-      <div className="flex-1 overflow-y-auto bg-[#0d0d18] p-6">
+      <div
+        className="flex-1 overflow-y-auto bg-[#0d0d18] p-6"
+        onClick={() => setOpenMenuId(null)}
+      >
         {!activeScene ? (
           <div className="flex h-full items-center justify-center text-center">
             <div>
@@ -193,7 +234,6 @@ export function TimelineEditor({ videoId, scenes, onScenesChange }: TimelineEdit
             allScenes={scenes}
             onUpdate={updateScene}
             onDelete={() => deleteScene(activeScene.id)}
-            // Always expanded in this view, so we hide the collapse logic by forcing expanded state
             isExpandedInPanel={true}
           />
         )}

@@ -3,54 +3,67 @@ import { NextRequest, NextResponse } from 'next/server'
 import { put } from '@vercel/blob'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import sharp from "sharp";
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ Validate session server-side instead of trusting a header
     const session = await auth.api.getSession({
       headers: await headers(),
-    })
+    });
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id
+    const userId = session.user.id;
+    const formData = await request.formData();
+    const files = formData.getAll("files") as File[];
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    if (!files || files.length === 0) {
+      return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 })
+    const uploadedFiles = [];
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) continue;
+
+      const MAX_SIZE = 10 * 1024 * 1024;
+      if (file.size > MAX_SIZE) continue;
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      // Use sharp to get metadata and optimize the image
+      const metadata = await sharp(buffer).metadata();
+      const optimizedBuffer = await sharp(buffer)
+        .resize(2160, 2160, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const blobPath = `uploads/${userId}/${safeName}`;
+
+      const blob = await put(blobPath, optimizedBuffer, {
+        access: "public",
+        contentType: "image/jpeg",
+        addRandomSuffix: false,
+      });
+
+      uploadedFiles.push({
+        url: blob.url,
+        name: file.name,
+        size: optimizedBuffer.length,
+        width: metadata.width,
+        height: metadata.height,
+      });
     }
-
-    const MAX_SIZE = 10 * 1024 * 1024
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File size must be under 10MB' }, { status: 400 })
-    }
-
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-    const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-    const blobPath = `uploads/${userId}/${safeName}`
-
-    const blob = await put(blobPath, file, {
-      access: 'public',
-      contentType: file.type,
-      addRandomSuffix: false,
-    })
 
     return NextResponse.json({
       success: true,
-      url: blob.url,
-      name: file.name,
-      size: file.size,
-    })
+      files: uploadedFiles,
+    });
   } catch (error) {
-    console.error('[upload] Error:', error)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    console.error("[upload] Error:", error);
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }
