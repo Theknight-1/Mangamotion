@@ -11,7 +11,6 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  console.log("Dashboard layout start");
 
   const session = await auth.api.getSession({
     headers: await headers(),

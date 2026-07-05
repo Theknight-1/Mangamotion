@@ -16,14 +16,14 @@ export const auth = betterAuth({
   emailVerification: {
     sendVerificationEmail: async ({ user, url = "/login" }) => {
       try {
-        await resend.emails.send({
+        const response = await resend.emails.send({
           // Change this to your verified domain in Resend
           from: process.env.RESEND_EMAIL!,
           to: user.email,
           subject: "Verify your email address",
           html: verifyEmailTemplate(url),
         });
-        console.log(`Verification email sent to ${user.email}`);
+        console.log("Resend response:", response);
       } catch (error) {
         console.error("Error sending verification email:", error);
         throw new Error("Failed to send verification email");
