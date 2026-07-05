@@ -18,7 +18,7 @@ export const auth = betterAuth({
       try {
         await resend.emails.send({
           // Change this to your verified domain in Resend
-          from: "MotionRecap <noreply@contact.motionrecap.com>",
+          from: "MotionRecap <contact@motionrecap.com>",
           to: user.email,
           subject: "Verify your email address",
           html: verifyEmailTemplate(url),
