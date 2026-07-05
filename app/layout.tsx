@@ -15,8 +15,8 @@ export const metadata: Metadata = {
     ? new URL(process.env.SITE_URL)
     : undefined,
   title: {
-    default: "MangaMotion — Turn manga panels into narrated videos",
-    template: "%s — MangaMotion",
+    default: "MotionRecap — Turn manga panels into narrated videos",
+    template: "%s — MotionRecap",
   },
   description:
     "Upload manga panels and let AI generate narration, character voices, and a cinematic 9:16 video in minutes. Built for YouTube Shorts and TikTok manga recap creators.",
@@ -29,9 +29,9 @@ export const metadata: Metadata = {
     "manga panel to video",
     "youtube shorts manga tool",
   ],
-  authors: [{ name: "MangaMotion" }],
-  creator: "MangaMotion",
-  publisher: "MangaMotion",
+  authors: [{ name: "MotionRecap" }],
+  creator: "MotionRecap",
+  publisher: "MotionRecap",
   formatDetection: { email: false, address: false, telephone: false },
   alternates: {
     canonical: "/",
@@ -40,24 +40,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: process.env.SITE_URL,
-    siteName: "MangaMotion",
-    title: "MangaMotion — Turn manga panels into narrated videos",
+    siteName: "MotionRecap",
+    title: "MotionRecap — Turn manga panels into narrated videos",
     description:
-      "Upload manga panels and let AI generate narration, character voices, and a cinematic 9:16 video in minutes.",
+      "Upload manga panels and let AI generate narration, character voices, and a cinematic video in minutes.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "MangaMotion — manga panels to animated video",
+        alt: "MotionRecap — manga panels to animated video",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MangaMotion — Turn manga panels into narrated videos",
+    title: "MotionRecap — Turn manga panels into narrated videos",
     description:
-      "Upload manga panels and let AI generate narration, character voices, and a cinematic 9:16 video in minutes.",
+      "Upload manga panels and let AI generate narration, character voices, and a cinematic video in minutes.",
     images: ["/og-image.png"],
     creator: "@yourhandle",
   },

@@ -18,7 +18,7 @@ export const auth = betterAuth({
       try {
         await resend.emails.send({
           // Change this to your verified domain in Resend
-          from: "onboarding@resend.dev",
+          from: process.env.RESEND_EMAIL!,
           to: user.email,
           subject: "Verify your email address",
           html: verifyEmailTemplate(url),

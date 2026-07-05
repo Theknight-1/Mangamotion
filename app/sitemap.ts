@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.SITE_URL || "https://mangamotion.com";
+  const base = process.env.SITE_URL || "https://MotionRecap.com";
   const routes = ["", "/pricing", "/terms", "/privacy", "/contact"];
 
   return routes.map((route) => ({

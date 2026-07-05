@@ -201,7 +201,7 @@ export default function OnboardingPage() {
         <div className="mb-6 flex items-center justify-center gap-2.5">
           <IconLogo />
           <span className="text-lg font-bold tracking-tight text-[#e8d5a3]">
-            MangaMotion
+            MotionRecap
           </span>
         </div>
 
@@ -255,7 +255,7 @@ export default function OnboardingPage() {
                 What's your profession?
               </h2>
               <p className="mb-5 text-sm text-[rgba(232,213,163,0.5)]">
-                Helps us tailor MangaMotion to your workflow.
+                Helps us tailor MotionRecap to your workflow.
               </p>
 
               <div className="mb-5 grid grid-cols-2 gap-2.5">

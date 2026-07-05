@@ -814,7 +814,7 @@ function StructuredData() {
     () => ({
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      name: "MangaMotion",
+      name: "MotionRecap",
       applicationCategory: "MultimediaApplication",
       operatingSystem: "Web",
       description:
@@ -1266,7 +1266,7 @@ export default function Page() {
               </h2>
 
               <p className="mx-auto mb-10 max-w-[400px] text-[15px] leading-relaxed text-[#e8d5a3]/65">
-                Join 2,400+ creators already using MangaMotion to turn panels
+                Join 2,400+ creators already using MotionRecap to turn panels
                 into scroll-stopping videos.
               </p>
 
