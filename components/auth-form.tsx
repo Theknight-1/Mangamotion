@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import toast from "react-hot-toast";
+import { registerUser } from "@/app/actions/auth";
+import { getAuthError } from "@/utils/helpers";
 
 export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const router = useRouter();
@@ -23,19 +25,46 @@ export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     setLoading(true);
 
     try {
-      const result = isSignUp
-        ? await authClient.signUp.email({ email, password, name })
-        : await authClient.signIn.email({ email, password });
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = name.trim();
+      if (isSignUp) {
+        const response = await registerUser({
+          name: cleanName,
+          email: cleanEmail,
+          password,
+        });
 
-      if (result.error) {
-        setError(result.error.message ?? "Something went wrong");
-        toast.error(result.error.message ?? "Authentication failed");
+        if (!response.success) {
+          toast.error(response.message ?? "An error occurred");
+
+          if (response.redirect) {
+            router.push(response.redirect);
+          }
+
+          return;
+        }
+
+        toast.success("Account created! Check your email.");
+
+        router.push("/verify-email");
         return;
-      }
+      } else {
+        const result = await authClient.signIn.email({
+          email: cleanEmail,
+          password,
+        });
 
-      toast.success(isSignUp ? "Account created!" : "Welcome back!");
-      router.push("/dashboard");
-      router.refresh();
+        if (result.error) {
+          const message = getAuthError(result.error.message);
+
+          setError(message);
+          toast.error(message);
+          return;
+        }
+
+        toast.success("Welcome back!");
+        router.push("/dashboard");
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "An error occurred";
       setError(errorMsg);
@@ -49,7 +78,7 @@ export default function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {isSignUp && (
         <div>
-          <label className="mb-[7px] block text-[12.5px] font-medium text-[rgba(232,213,163,0.55)]">
+          <label className="mb-1.75 block text-[12.5px] font-medium text-[rgba(232,213,163,0.55)]">
             Name
           </label>
           <input

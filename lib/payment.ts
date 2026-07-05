@@ -149,7 +149,7 @@ export async function createPayPalSubscription(
           email_address: email,
         },
         application_context: {
-          brand_name: "MotionRecap AI",
+          brand_name: "MotionRecap",
           locale: "en-US",
           return_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
           cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,

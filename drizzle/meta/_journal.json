@@ -15,6 +15,13 @@
       "when": 1782722605123,
       "tag": "0001_careful_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783136282062,
+      "tag": "0002_productive_the_phantom",
+      "breakpoints": true
     }
   ]
 }

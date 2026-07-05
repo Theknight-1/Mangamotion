@@ -232,10 +232,6 @@ export default function DashboardPage() {
   const [uploading, setUploading]                 = useState(false)
   const [viewMode, setViewMode]                   = useState<'grid' | 'list'>('grid')
 
-  // ── Auth guard ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (session?.data === null) router.push('/login')
-  }, [session?.data, router])
 
   // ── Data fetching with SWR ─────────────────────────────────────────────────
   // SWR deduplicates — multiple components can call the same key without extra requests

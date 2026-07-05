@@ -3,15 +3,21 @@ import { pgTable, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'
 // --- Better Auth required tables -------------------------------------------
 // Column names are camelCase to match Better Auth's defaults. Do not rename.
 
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('emailVerified').notNull().default(false),
-  image: text('image'),
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
-})
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("emailVerified").notNull().default(false),
+  image: text("image"),
+
+  // NEW FIELDS FOR ONBOARDING
+  onboardingCompleted: boolean("onboardingCompleted").notNull().default(false),
+  profession: text("profession"),
+  referralSource: text("referralSource"),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
 
 export const session = pgTable('session', {
   id: text('id').primaryKey(),

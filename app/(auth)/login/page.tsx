@@ -6,11 +6,11 @@ import MangaShowcase from "@/components/auth/manga-showcase";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign up",
+  title: "Sign in",
   robots: { index: false, follow: false },
 };
 
-export default async function SignupPage() {
+export default async function LoginPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (session?.user) redirect("/dashboard");
 
@@ -57,23 +57,23 @@ export default async function SignupPage() {
           </a>
 
           <div className="mb-6 sm:mb-7.5">
-            <h1 className="mb-1.5 text-2xl font-bold tracking-tight text-[#e8d5a3] sm:mb-2 sm:text-[28px]">
-              Create your account
+            <h1 className="mb-1.5 text-3xl font-bold tracking-tight text-[#e8d5a3] sm:mb-2 sm:text-[28px]">
+              Welcome back
             </h1>
             <p className="text-sm leading-relaxed text-[#e8d5a3]/55">
-              Start turning manga panels into animated videos.
+              Transform manga images into animated videos.
             </p>
           </div>
 
-          <div className="my-4 flex items-center gap-3 sm:my-5.5">
+          {/* <div className="my-4 flex items-center gap-3 sm:my-5.5">
             <span className="h-px flex-1 bg-[#e8d5a3]/10" />
             <span className="text-[11px] uppercase tracking-[0.08em] text-[#e8d5a3]/30 sm:text-[11.5px]">
               Or continue with email
             </span>
             <span className="h-px flex-1 bg-[#e8d5a3]/10" />
-          </div>
+          </div> */}
 
-          <AuthForm mode="sign-up" />
+          <AuthForm mode="sign-in" />
 
           <p className="mt-5 text-center text-[11px] leading-relaxed text-[#e8d5a3]/30 sm:mt-6 sm:text-[11.5px]">
             By signing up, you agree to our{" "}
