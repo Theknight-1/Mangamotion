@@ -1,182 +1,344 @@
-import axios from 'axios'
-import crypto from 'crypto'
+import axios from "axios";
+import crypto from "crypto";
 
+export type TierKey = "free" | "creator" | "pro";
+export type LimitKey = keyof typeof TIERS.free.limits;
 
 export const TIERS = {
   free: {
     name: "Free",
     price: 0,
+    description: "Try it out and make your first recap.",
+    cta: "Get started free",
+    razorpayPlanId: null,
+    paypalPlanId: null,
+    limits: {
+      renderMinutes: 10,
+      maxResolution: "1080p",
+      voiceCharacters: 1,
+      bgmTracks: true,
+      sfxLibrary: false,
+      priorityRendering: false,
+      customBranding: false,
+      api: false,
+      watermark: true,
+    },
     features: [
-      "1 video / month",
-      "Up to 10 minutes",
-      "1080p export",
-      "9:16 export only",
-      "1 AI voice",
+      "10 minutes of renders / month",
+      "All aspect ratios (9:16, 16:9, 1:1)",
+      "1080p Export",
+      "Basic Ken Burns effects",
+      "1 AI Voice",
+      "Background Music library",
+      "✨ Includes MangaMotion watermark",
     ],
   },
-  starter: {
-    name: "Starter",
-    price: 10,
+  creator: {
+    name: "Creator",
+    price: 19,
+    description: "For YouTubers and TikTokers growing their channels.",
+    cta: "Remove Watermark",
+    razorpayPlanId: process.env.RAZORPAY_PLAN_CREATOR ?? "",
+    paypalPlanId: process.env.PAYPAL_PLAN_CREATOR ?? "",
+    limits: {
+      renderMinutes: 120,
+      maxResolution: "1080p",
+      voiceCharacters: 5,
+      bgmTracks: true,
+      sfxLibrary: true,
+      priorityRendering: false,
+      customBranding: false,
+      api: false,
+      watermark: false,
+    },
     features: [
-      "20 videos / month",
-      "Up to 120 minutes",
-      "1080p export",
-      "9:16 & 1:1 export",
-      "3 AI voices",
-      "Background music",
+      "120 minutes of renders / month",
+      "NO Watermark",
+      "1080p Export",
+      "Advanced effects (Speed lines, Flash)",
+      "5 AI Voices",
+      "Full SFX & Music library",
+      "Subtitle bubble tracking",
     ],
   },
   pro: {
     name: "Pro",
-    price: 29,
+    price: 49,
+    description: "For agencies and power users pushing limits.",
+    cta: "Go Pro",
+    razorpayPlanId: process.env.RAZORPAY_PLAN_PRO ?? "",
+    paypalPlanId: process.env.PAYPAL_PLAN_PRO ?? "",
+    limits: {
+      renderMinutes: 500,
+      maxResolution: "4K",
+      voiceCharacters: "∞",
+      bgmTracks: true,
+      sfxLibrary: true,
+      priorityRendering: true,
+      customBranding: true,
+      api: true,
+      watermark: false,
+    },
     features: [
-      "50 videos / month",
-      "Up to 300 minutes",
-      "4K export",
-      "All aspect ratios",
-      "5 AI voices",
-      "SFX library",
-      "Priority rendering",
-      "Custom branding",
-    ],
-  },
-  premium: {
-    name: "Premium",
-    price: 59.99,
-    features: [
-      "200 videos / month",
-      "Up to 1200 minutes",
-      "4K export",
-      "All aspect ratios",
-      "20 AI voices",
-      "SFX library",
-      "Priority rendering",
-      "Custom branding",
-      "API access",
+      "500 minutes of renders / month",
+      "4K Export",
+      "Everything in Creator",
+      "Unlimited AI Voices",
+      "Priority rendering queue",
+      "API Access",
+      "Custom brand outro/watermark",
     ],
   },
 } as const;
 
-// Razorpay integration
+export function isPaidTier(tier: TierKey): tier is "creator" | "pro" {
+  return tier === "creator" || tier === "pro";
+}
+
+// ── Razorpay ─────────────────────────────────────────────────────────────
+
+function razorpayAuthHeader() {
+  const key = process.env.RAZORPAY_KEY_ID;
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!key || !secret) throw new Error("Razorpay credentials not configured");
+  return { username: key, password: secret };
+}
+
+/**
+ * Creates a Razorpay Subscription (not a one-off order). The frontend opens
+ * Razorpay Checkout with the returned subscription_id.
+ */
 export async function createRazorpaySubscription(
-  customerId: string,
-  email: string,
-  tier: 'pro' | 'premium'
+  tier: "creator" | "pro",
+  userId: string,
 ) {
-  const key = process.env.RAZORPAY_KEY_ID
-  const secret = process.env.RAZORPAY_KEY_SECRET
+  const planId = TIERS[tier].razorpayPlanId;
+  if (!planId)
+    throw new Error(`No Razorpay plan configured for tier "${tier}"`);
 
-  if (!key || !secret) {
-    throw new Error('Razorpay credentials not configured')
-  }
+  const response = await axios.post(
+    "https://api.razorpay.com/v1/subscriptions",
+    {
+      plan_id: planId,
+      customer_notify: 1,
+      quantity: 1,
+      // 120 monthly cycles ~ 10 years; Razorpay requires a total_count for
+      // fixed subscriptions, this effectively behaves as "until cancelled".
+      total_count: 120,
+      // Lets the webhook map events back to a user without a lookup table.
+      notes: { userId, tier },
+    },
+    { auth: razorpayAuthHeader() },
+  );
 
-  try {
-    const response = await axios.post(
-      'https://api.razorpay.com/v1/subscriptions',
-      {
-        plan_id: tier === 'pro' ? 'plan_pro' : 'plan_premium',
-        customer_notify: 1,
-        quantity: 1,
-        total_count: 12,
-      },
-      {
-        auth: {
-          username: key,
-          password: secret,
-        },
-      }
-    )
-
-    return response.data
-  } catch (error) {
-    console.error('[v0] Razorpay error:', error)
-    throw new Error('Failed to create subscription')
-  }
+  return response.data as { id: string; status: string; short_url?: string };
 }
 
-export function verifyRazorpaySignature(body: any, signature: string): boolean {
-  const secret = process.env.RAZORPAY_KEY_SECRET
-  if (!secret) return false
-
-  const generatedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(JSON.stringify(body))
-    .digest('hex')
-
-  return generatedSignature === signature
+export async function cancelRazorpaySubscription(
+  razorpaySubscriptionId: string,
+  cancelAtCycleEnd: boolean,
+) {
+  const response = await axios.post(
+    `https://api.razorpay.com/v1/subscriptions/${razorpaySubscriptionId}/cancel`,
+    { cancel_at_cycle_end: cancelAtCycleEnd ? 1 : 0 },
+    { auth: razorpayAuthHeader() },
+  );
+  return response.data;
 }
 
-// PayPal integration
+/**
+ * Verifies the signature Razorpay Checkout returns to the client after a
+ * successful subscription payment.
+ * See: https://razorpay.com/docs/payments/subscriptions/verify/
+ */
+export function verifyRazorpayCheckoutSignature(params: {
+  razorpayPaymentId: string;
+  razorpaySubscriptionId: string;
+  razorpaySignature: string;
+}): boolean {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) return false;
+
+  const payload = `${params.razorpayPaymentId}|${params.razorpaySubscriptionId}`;
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+
+  return timingSafeEqualHex(expected, params.razorpaySignature);
+}
+
+/**
+ * Verifies an incoming Razorpay WEBHOOK request. This uses a *different*
+ * secret than the API key — the one you set when registering the webhook
+ * in the Razorpay dashboard (RAZORPAY_WEBHOOK_SECRET).
+ *
+ * IMPORTANT: `rawBody` must be the exact, unparsed request body string.
+ * Re-serializing a parsed JSON object with JSON.stringify() will NOT
+ * reliably match the signature because key ordering / whitespace can differ.
+ */
+export function verifyRazorpayWebhookSignature(
+  rawBody: string,
+  signatureHeader: string | null,
+): boolean {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret || !signatureHeader) return false;
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody)
+    .digest("hex");
+
+  return timingSafeEqualHex(expected, signatureHeader);
+}
+
+// ── PayPal ───────────────────────────────────────────────────────────────
+
+function paypalBaseUrl() {
+  return process.env.PAYPAL_ENV === "live"
+    ? "https://api-m.paypal.com"
+    : "https://api-m.sandbox.paypal.com";
+}
+
 export async function getPayPalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!clientId || !clientSecret)
+    throw new Error("PayPal credentials not configured");
 
-  if (!clientId || !clientSecret) {
-    throw new Error('PayPal credentials not configured')
-  }
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const response = await axios.post(
+    `${paypalBaseUrl()}/v1/oauth2/token`,
+    "grant_type=client_credentials",
+    {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    },
+  );
 
-  try {
-    const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-    const response = await axios.post(
-      'https://api-m.sandbox.paypal.com/v1/oauth2/token',
-      'grant_type=client_credentials',
-      {
-        headers: {
-          Authorization: `Basic ${auth}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    )
-
-    return response.data.access_token
-  } catch (error) {
-    console.error('[v0] PayPal auth error:', error)
-    throw new Error('Failed to get PayPal access token')
-  }
+  return response.data.access_token as string;
 }
 
 export async function createPayPalSubscription(
   accessToken: string,
-  planId: string,
-  email: string
+  tier: "creator" | "pro",
+  email: string,
+  userId: string,
 ) {
+  const planId = TIERS[tier].paypalPlanId;
+  if (!planId) throw new Error(`No PayPal plan configured for tier "${tier}"`);
+
+try {
+  const response = await axios.post(
+    `${paypalBaseUrl()}/v1/billing/subscriptions`,
+    {
+      plan_id: planId,
+      // Lets the webhook map events back to a user without a lookup table.
+      custom_id: userId,
+      subscriber: { email_address: email },
+      application_context: {
+        brand_name: "MotionRecap",
+        locale: "en-US",
+        user_action: "SUBSCRIBE_NOW",
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
+      },
+    },
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+
+  return response.data as {
+    id: string;
+    status: string;
+    links: { href: string; rel: string; method: string }[];
+  };
+} catch (err:any) {
+  console.error(
+    JSON.stringify(err.response?.data, null, 2)
+  );
+  throw err;
+}
+
+
+  
+}
+
+export async function getPayPalSubscription(
+  accessToken: string,
+  paypalSubscriptionId: string,
+) {
+  const response = await axios.get(
+    `${paypalBaseUrl()}/v1/billing/subscriptions/${paypalSubscriptionId}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  return response.data as { id: string; status: string; plan_id: string };
+}
+
+export async function cancelPayPalSubscription(
+  accessToken: string,
+  paypalSubscriptionId: string,
+  reason = "User requested cancellation",
+) {
+  // PayPal has no "cancel at period end" — cancellation is immediate.
+  await axios.post(
+    `${paypalBaseUrl()}/v1/billing/subscriptions/${paypalSubscriptionId}/cancel`,
+    { reason },
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+}
+
+/**
+ * Verifies a PayPal webhook using PayPal's own verification endpoint.
+ * HMAC-with-client-secret (the old approach) is NOT how PayPal signs
+ * webhooks — they use a certificate-based signature, so verification
+ * has to be an API call.
+ */
+export async function verifyPayPalWebhookSignature(params: {
+  accessToken: string;
+  headers: {
+    transmissionId: string;
+    transmissionTime: string;
+    certUrl: string;
+    authAlgo: string;
+    transmissionSig: string;
+  };
+  webhookEvent: unknown;
+}): Promise<boolean> {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  if (!webhookId) return false;
+
   try {
     const response = await axios.post(
-      "https://api-m.sandbox.paypal.com/v1/billing/subscriptions",
+      `${paypalBaseUrl()}/v1/notifications/verify-webhook-signature`,
       {
-        plan_id: planId,
-        subscriber: {
-          email_address: email,
-        },
-        application_context: {
-          brand_name: "MotionRecap",
-          locale: "en-US",
-          return_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
-          cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
-        },
+        transmission_id: params.headers.transmissionId,
+        transmission_time: params.headers.transmissionTime,
+        cert_url: params.headers.certUrl,
+        auth_algo: params.headers.authAlgo,
+        transmission_sig: params.headers.transmissionSig,
+        webhook_id: webhookId,
+        webhook_event: params.webhookEvent,
       },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
+      { headers: { Authorization: `Bearer ${params.accessToken}` } },
     );
-
-    return response.data
-  } catch (error) {
-    console.error('[v0] PayPal subscription error:', error)
-    throw new Error('Failed to create PayPal subscription')
+    return response.data?.verification_status === "SUCCESS";
+  } catch (err) {
+    console.error("[paypal] webhook verification request failed:", err);
+    return false;
   }
 }
 
-export function verifyPayPalSignature(webhookBody: string, signature: string): boolean {
-  const secret = process.env.PAYPAL_CLIENT_SECRET
-  if (!secret) return false
+// ── shared ────────────────────────────────────────────────────────────────
 
-  const generatedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(webhookBody)
-    .digest('hex')
-
-  return generatedSignature === signature
+function timingSafeEqualHex(expectedHex: string, actualHex: string): boolean {
+  try {
+    const a = Buffer.from(expectedHex, "hex");
+    const b = Buffer.from(actualHex, "hex");
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }

@@ -20,6 +20,10 @@ import {
 import { autoSelectTransition } from "@/lib/effects/transitions";
 import { autoSelectSoundEffects } from "@/lib/audio/sound-effects";
 import { selectBackgroundMusic } from "@/lib/audio/background-music";
+import {
+  checkRenderQuota,
+  recordRenderUsage,
+} from "@/app/actions/subscription/usages";
 
 // ── FFmpeg binary resolution ────────────────────────────────────────────────
 
@@ -129,54 +133,42 @@ function normToPixels(
   const targetAspect = outW / outH;
   const imageAspect = img.w / img.h;
 
-  // Calculate the largest possible crop size that matches the output aspect ratio
   let maxW: number, maxH: number;
   if (imageAspect > targetAspect) {
-    // Image is wider than target. Max height is full image height.
     maxH = img.h;
     maxW = Math.floor(maxH * targetAspect);
   } else {
-    // Image is taller than target. Max width is full image width.
     maxW = img.w;
     maxH = Math.floor(maxW / targetAspect);
   }
 
-  // ENFORCE SAFE ZONE: The crop can never be smaller than 90% of the max possible crop.
-  // This prevents the AI from zooming in too far and cropping out the art.
   const minW = maxW * 0.9;
   const minH = maxH * 0.9;
 
-  // Convert normalized keyframe to pixels
   let cw = kf.w * img.w;
   let ch = kf.h * img.h;
 
-  // Enforce aspect ratio of the output on the crop size
   if (cw / ch > targetAspect) {
     cw = ch * targetAspect;
   } else {
     ch = cw / targetAspect;
   }
 
-  // Hard clamp to the safe zone bounds (between 90% and 100% of max)
   cw = Math.max(minW, Math.min(cw, maxW));
   ch = Math.max(minH, Math.min(ch, maxH));
 
-  // Ensure even dimensions for codec compatibility
   cw = Math.max(2, Math.floor(cw / 2) * 2);
   ch = Math.max(2, Math.floor(ch / 2) * 2);
 
-  // Calculate center position based on the AI's requested center point
   const centerX = (kf.x + kf.w / 2) * img.w;
   const centerY = (kf.y + kf.h / 2) * img.h;
 
   let cx = Math.round(centerX - cw / 2);
   let cy = Math.round(centerY - ch / 2);
 
-  // Clamp position so crop stays within image bounds
   cx = Math.max(0, Math.min(cx, img.w - cw));
   cy = Math.max(0, Math.min(cy, img.h - ch));
 
-  // Ensure even positions
   if (cx % 2 !== 0) cx -= 1;
   if (cy % 2 !== 0) cy -= 1;
 
@@ -187,7 +179,7 @@ function normToPixels(
 
 async function renderSegment(
   imagePath: string,
-  img: ImageSize, // Passed down to prevent re-probing
+  img: ImageSize,
   startCrop: CropRect,
   endCrop: CropRect,
   duration: number,
@@ -204,7 +196,6 @@ async function renderSegment(
     return `${s}+(${e}-${s})*(0.5-0.5*cos(PI*n/${N}))`;
   };
 
-  // Calculate scale factor
   const maxCropW = Math.max(startCrop.w, endCrop.w);
   const maxCropH = Math.max(startCrop.h, endCrop.h);
   const needScaleW = (outW * 1.2) / maxCropW;
@@ -293,12 +284,11 @@ async function renderSegment(
   });
 }
 
-
 // ─── Scene clip renderer ──────────────────────────────────────────────────
 
 async function renderSceneClip(
   imagePath: string,
-  img: ImageSize, // Passed down
+  img: ImageSize,
   keyframes: Keyframe[],
   audioDuration: number,
   outPath: string,
@@ -367,7 +357,6 @@ async function renderSceneClip(
     return;
   }
 
-  // OPTIMIZATION: Render all segments of a scene in parallel
   const subClipPromises = segments.map((seg, i) => {
     const segPath = path.join(tmpDir, `s${sceneIdx}-seg${i}.mp4`);
     const startCrop = normToPixels(seg.from, img, outW, outH);
@@ -473,7 +462,7 @@ function muxVideoAudio(
       .outputOptions([
         "-map 0:v",
         "-map [a]",
-        "-c:v copy", // Intermediate: just copy video stream
+        "-c:v copy",
         "-c:a aac",
         "-b:a 192k",
         `-t ${duration}`,
@@ -522,7 +511,6 @@ function assembleFinalVideo(
     if (sceneClips.length === 0)
       return reject(new Error("No scenes to assemble"));
     if (sceneClips.length === 1) {
-      // Just copy the single scene
       fs.copyFile(sceneClips[0].path, outPath)
         .then(() => resolve(sceneClips[0].duration))
         .catch(reject);
@@ -556,14 +544,13 @@ function assembleFinalVideo(
       totalDuration = offset + sceneClips[i].duration;
     }
 
-    filter = filter.slice(0, -1); // Remove trailing semicolon
+    filter = filter.slice(0, -1);
 
     cmd
       .complexFilter(filter)
       .outputOptions([
         "-map [vout]",
         "-map [aout]",
-        // FINAL ENCODE: High quality
         "-c:v libx264",
         "-preset fast",
         "-crf 18",
@@ -716,7 +703,6 @@ function getDefaultKeyframes(): Keyframe[] {
   ];
 }
 
-// Renamed and refactored to prepare scenes in parallel
 async function runRenderPipeline(
   videoId: string,
   userId: string,
@@ -728,7 +714,6 @@ async function runRenderPipeline(
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), `mm-${videoId}-`));
 
   try {
-    // OPTIMIZATION: Process all scenes entirely in parallel
     const sceneResults = await Promise.all(
       scenes.map(async (scene) => {
         const prefix = path.join(tmpDir, `s${scene.index}`);
@@ -737,7 +722,6 @@ async function runRenderPipeline(
 
         await downloadToFile(scene.imageUrl, imagePath);
 
-        // OPTIMIZATION: Use precomputed dimensions if available
         const img =
           scene.imageWidth && scene.imageHeight
             ? { w: scene.imageWidth, h: scene.imageHeight }
@@ -793,7 +777,6 @@ async function runRenderPipeline(
         );
 
         const sfxPaths: string[] = [];
-        // Download SFX in parallel
         await Promise.all(
           selectedSFX.map(async (sfx) => {
             const sfxDest = path.join(tmpDir, `s${scene.index}-${sfx.id}.mp3`);
@@ -820,19 +803,16 @@ async function runRenderPipeline(
           await addSilentAudio(silentPath, duration, finalPath);
         }
 
-        // Removed intermediate Vercel Blob uploads. Just return local paths.
         return { path: finalPath, duration, updatedScene: { ...scene } };
       }),
     );
 
-    // Extract paths, durations, and updated scenes
     const sceneClips = sceneResults.map((r) => ({
       path: r.path,
       duration: r.duration,
     }));
     const updatedScenes = sceneResults.map((r) => r.updatedScene);
 
-    // OPTIMIZATION: Assemble the entire video in a single FFmpeg pass
     const assembledVideoPath = path.join(tmpDir, "assembled.mp4");
     const finalVideoDuration = await assembleFinalVideo(
       sceneClips,
@@ -841,7 +821,6 @@ async function runRenderPipeline(
 
     let videoForUpload = assembledVideoPath;
 
-    // ── Optional BGM pass ──
     const bgmTrack = selectBackgroundMusic(
       updatedScenes.map((s) => ({ emotion: s.emotion, effects: s.effects })),
       finalVideoDuration,
@@ -867,7 +846,6 @@ async function runRenderPipeline(
       }
     }
 
-    // Upload final video
     const blobKey = `renders/${userId}/${videoId}/output-${Date.now()}.mp4`;
     const blob = await put(blobKey, await fs.readFile(videoForUpload), {
       access: "public",
@@ -875,7 +853,6 @@ async function runRenderPipeline(
       addRandomSuffix: false,
     });
 
-    // Handle subtitles
     let subtitleUrl = null;
     if (subtitlesEnabled && updatedScenes.some((s) => s.dialogue?.trim())) {
       const transitionDurations: number[] = [];
@@ -923,6 +900,10 @@ async function runRenderPipeline(
         timeline: JSON.stringify(updatedScenes),
       })
       .where(and(eq(videos.id, videoId), eq(videos.userId, userId)));
+
+    // Usage is only counted once the render actually succeeds — a failed
+    // or aborted render shouldn't burn the user's quota.
+    await recordRenderUsage(userId, finalVideoDuration);
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[render:${videoId}] ❌ Failed:`, errorMsg);
@@ -951,6 +932,20 @@ export async function POST(request: NextRequest) {
     } = await request.json();
     if (!videoId)
       return NextResponse.json({ error: "videoId required" }, { status: 400 });
+
+    // ── Quota check BEFORE we spend any FFmpeg time ──
+    const quota = await checkRenderQuota(session.user.id);
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: "Render quota exceeded for your current plan",
+          tier: quota.tier,
+          limitMinutes: quota.limitMinutes,
+          usedMinutes: quota.usedMinutes,
+        },
+        { status: 402 }, // Payment Required
+      );
+    }
 
     const [video] = await db
       .select()

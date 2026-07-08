@@ -3,7 +3,6 @@ import { betterAuth } from "better-auth";
 import { pool } from "@/lib/db";
 import { resend } from "@/lib/resend";
 import { verifyEmailTemplate } from "@/lib/email-templates/verify-email";
-import { emailExists } from "@/app/actions/user";
 
 export const auth = betterAuth({
   database: pool,

@@ -1,194 +1,215 @@
+"use client";
+
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useSession, signOut } from "@/lib/auth-client";
+import { useStore } from "@nanostores/react";
 import { IconLogo } from "./icon-logo";
+import { Menu, X } from "lucide-react";
+
+const NAV_LINKS = [
+  { label: "Features", href: "/#features" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Pricing", href: "/pricing" },
+];
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Correct NanoStore implementation for Better Auth
+  const { data: session, isPending } = useStore(useSession);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
   }, []);
-  const NAV_LINKS = [
-    { label: "Features", href: "/#features" },
-    { label: "How it works", href: "/#how-it-works" },
-    { label: "Pricing", href: "/coming-soon" },
-  ];
+
   return (
-    <>
-      <nav
-        style={{
-          position: "fixed",
-          top: 16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 100,
+    <nav
+      className={`
+        fixed top-4 left-1/2 -translate-x-1/2 z-50 
+        w-[calc(100%-20px)] max-w-287.5
+        backdrop-blur-[20px] backdrop-saturate-180
+        border border-[#c9a84c]/15 rounded-2xl 
+        transition-all duration-300 ease-in-out
+        overflow-hidden
+        ${
+          scrolled
+            ? "bg-[#080e06]/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+            : "bg-[#080e06]/60 shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
+        }
+      `}
+    >
+      {/* Subtle Top Glow Effect */}
+      <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top_center,rgba(201,168,76,0.1),transparent_70%)] pointer-events-none z-0" />
 
-          width: "calc(100% - 20px)",
-          maxWidth: 1150,
+      <div className="relative z-10 h-17 max-w-270 mx-auto px-4 md:px-6 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2.5 no-underline">
+          <IconLogo />
+          <span className="text-[15px] font-bold text-[#e8d5a3] tracking-tight">
+            MotionRecap
+          </span>
+        </Link>
 
-          background: scrolled ? "rgba(8,16,8,0.82)" : "rgba(8,16,8,0.58)",
-
-          backdropFilter: "blur(20px) saturate(180%)",
-          WebkitBackdropFilter: "blur(20px) saturate(180%)",
-
-          border: "1px solid rgba(201,168,76,0.15)",
-          borderRadius: 18,
-
-          boxShadow: scrolled
-            ? "0 12px 40px rgba(0,0,0,0.35)"
-            : "0 8px 30px rgba(0,0,0,0.25)",
-
-          transition: "all 0.35s ease",
-          overflow: "hidden",
-        }}
-      >
-        {/* Glow Effect */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: 18,
-            background:
-              "radial-gradient(circle at top center, rgba(201,168,76,0.12), transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-
-        <div
-          style={{
-            height: 68,
-            maxWidth: 1080,
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            position: "relative",
-            zIndex: 2,
-          }}
-          className="px-3 md:px-6"
-        >
-          {/* Logo */}
-          <a
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              textDecoration: "none",
-            }}
-          >
-            <IconLogo />
-
-            <span
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: "#e8d5a3",
-                letterSpacing: "-0.02em",
-              }}
+        {/* Desktop Navigation Links */}
+        <div className="hidden md:flex items-center gap-2">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm text-[#e8d5a3]/65 no-underline px-3.5 py-2 rounded-[10px] 
+                         transition-all duration-200 ease-in-out
+                         hover:bg-[#c9a84c]/8 hover:text-[#e8d5a3]"
             >
-              MotionRecap
-            </span>
-          </a>
-
-          {/* Desktop Nav */}
-          <div
-            className="hide-mobile"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                style={{
-                  fontSize: 14,
-                  color: "rgba(232,213,163,0.65)",
-                  textDecoration: "none",
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  transition: "all 0.25s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(201,168,76,0.08)";
-                  e.currentTarget.style.color = "#e8d5a3";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "rgba(232,213,163,0.65)";
-                }}
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <a
-              href="/login"
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: "rgba(232,213,163,0.65)",
-                textDecoration: "none",
-                borderRadius: 10,
-                transition: "all 0.25s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#e8d5a3";
-                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(232,213,163,0.65)";
-                e.currentTarget.style.background = "transparent";
-              }}
-              className="px-2 md:px-4 py-2"
-            >
-              Sign In
-            </a>
-
-            <a
-              href="/signup"
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "#060e06",
-                background: "linear-gradient(135deg,#c9a84c 0%,#e8d5a3 100%)",
-                borderRadius: 12,
-                textDecoration: "none",
-                letterSpacing: "0.01em",
-                boxShadow: "0 4px 20px rgba(201,168,76,0.35)",
-                transition: "all 0.25s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow =
-                  "0 8px 30px rgba(201,168,76,0.45)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px rgba(201,168,76,0.35)";
-              }}
-              className="px-2 md:px-4 py-2"
-            >
-              Get Started
-            </a>
-          </div>
+              {l.label}
+            </Link>
+          ))}
         </div>
-      </nav>
-    </>
+
+        {/* Desktop Actions */}
+        <div className="hidden md:flex items-center gap-3">
+          {isPending ? (
+            // Loading skeleton to prevent layout shift
+            <div className="w-20 h-9 rounded-xl bg-white/5 animate-pulse" />
+          ) : session ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="text-sm font-bold text-[#060e06] no-underline px-5 py-2 rounded-xl
+                           bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] 
+                           shadow-[0_4px_20px_rgba(201,168,76,0.35)]
+                           transition-all duration-200 ease-in-out
+                           hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(201,168,76,0.45)]"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={() =>
+                  signOut({
+                    fetchOptions: {
+                      onSuccess: () => {
+                        window.location.href = "/login";
+                      },
+                    },
+                  })
+                }
+                className="text-[13px] font-medium text-[#e8d5a3]/50 bg-transparent border-none cursor-pointer px-3 py-2 rounded-[10px]
+                           transition-all duration-200 ease-in-out
+                           hover:text-[#e8d5a3] hover:bg-white/5"
+              >
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-[13px] font-medium text-[#e8d5a3]/65 no-underline px-3.5 py-2 rounded-[10px]
+                           transition-all duration-200 ease-in-out
+                           hover:text-[#e8d5a3] hover:bg-white/5"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="text-[13px] font-bold text-[#060e06] no-underline px-5 py-2 rounded-xl
+                           bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] 
+                           shadow-[0_4px_20px_rgba(201,168,76,0.35)]
+                           transition-all duration-200 ease-in-out
+                           hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(201,168,76,0.45)]"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="md:hidden text-[#e8d5a3]/70 bg-transparent border-none cursor-pointer p-2"
+        >
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Dropdown */}
+      <div
+        className={`
+        md:hidden absolute top-17 left-0 right-0 
+        bg-[#080e06]/98 backdrop-blur-xl border-t border-[#c9a84c]/10
+        transition-all duration-300 ease-in-out overflow-hidden
+        ${mobileOpen ? "max-h-24 opacity-100 py-1 px-6" : "max-h-0 opacity-0 py-0 px-6"}
+      `}
+      >
+        <div className="flex flex-col gap-2">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setMobileOpen(false)}
+              className="text-sm text-[#e8d5a3]/65 no-underline px-3 py-3 rounded-lg
+                         transition-colors duration-200
+                         hover:bg-[#c9a84c]/8 hover:text-[#e8d5a3]"
+            >
+              {l.label}
+            </Link>
+          ))}
+
+          <div className="h-px bg-[#2d5a27]/20 my-2" />
+
+          {!isPending &&
+            (session ? (
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm font-bold text-[#060e06] no-underline text-center px-5 py-3 rounded-xl
+                           bg-linear-to-br from-[#c9a84c] to-[#e8d5a3]"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() =>
+                    signOut({
+                      fetchOptions: {
+                        onSuccess: () => {
+                          window.location.href = "/login";
+                        },
+                      },
+                    })
+                  }
+                  className="text-sm font-medium text-[#e8d5a3]/50 bg-transparent border-none cursor-pointer px-3 py-3 rounded-lg text-left
+                           hover:bg-white/5 hover:text-[#e8d5a3]"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm font-medium text-[#e8d5a3]/65 no-underline text-center px-5 py-3 rounded-xl border border-[#2d5a27]/30
+                           hover:bg-white/5 hover:text-[#e8d5a3]"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm font-bold text-[#060e06] no-underline text-center px-5 py-3 rounded-xl
+                           bg-linear-to-br from-[#c9a84c] to-[#e8d5a3]"
+                >
+                  Get Started
+                </Link>
+              </div>
+            ))}
+        </div>
+      </div>
+    </nav>
   );
 };
