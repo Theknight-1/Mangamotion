@@ -75,7 +75,7 @@ export function BillingHistory() {
   const isPaid = subscription.tier !== "free";
 
   return (
-    <div className="rounded-2xl border border-[#2d5a27]/20 bg-[#0a180a] p-6">
+    <div className="rounded-2xl border border-[#2d5a27]/20 bg-[#1a2d1a] p-6">
       <div className="flex items-center gap-2 mb-5 text-[#e8d5a3]/70 font-semibold text-sm">
         <BadgeDollarSign size={15} className="opacity-60" />
         Plan & billing

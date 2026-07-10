@@ -20,14 +20,18 @@ async function getSub(userId: string) {
 }
 
 /**
- * Cancel at the end of the current billing period. User keeps access
- * (and their current usage quota) until currentPeriodEnd, then rolls
- * over to Free automatically.
+ * Cancel at the end of the current billing period. This is the ONLY
+ * self-serve cancellation path that should be exposed by default — the
+ * user already paid for the current period, so their tier, quota, and
+ * renderMinutesUsed are left completely untouched here. Access rolls over
+ * to Free automatically once currentPeriodEnd passes (see rolloverIfNeeded).
  *
- * Razorpay supports this natively (cancel_at_cycle_end). PayPal does not —
- * for PayPal we just flag it locally; a scheduled job (or the next visit
- * to /dashboard/billing) should call DELETE once currentPeriodEnd passes.
- * We surface that limitation to the user in the response.
+ * Razorpay supports "stop future billing but keep this cycle" natively via
+ * cancel_at_cycle_end. PayPal has no equivalent flag — cancelling a PayPal
+ * subscription is always immediate on PayPal's side (no more charges will
+ * ever happen), but that only stops FUTURE billing. It does not mean we
+ * have to revoke the user's already-paid-for access locally, so we still
+ * leave tier/quota alone and let the period run out naturally.
  */
 export async function PATCH() {
   try {
@@ -44,6 +48,9 @@ export async function PATCH() {
 
     if (sub.provider === "razorpay" && sub.razorpaySubscriptionId) {
       await cancelRazorpaySubscription(sub.razorpaySubscriptionId, true);
+    } else if (sub.provider === "paypal" && sub.paypalSubscriptionId) {
+      const accessToken = await getPayPalAccessToken();
+      await cancelPayPalSubscription(accessToken, sub.paypalSubscriptionId);
     }
 
     await db
@@ -58,10 +65,10 @@ export async function PATCH() {
     return NextResponse.json({
       success: true,
       cancelAtPeriodEnd: true,
-      note:
-        sub.provider === "paypal"
-          ? "PayPal doesn't support scheduled cancellation — this subscription will be fully cancelled now, but you can keep using your current plan's minutes until the period ends."
-          : "Your plan will switch to Free at the end of the current billing period.",
+      currentPeriodEnd: sub.currentPeriodEnd,
+      note: `Billing stopped. You'll keep your ${sub.tier} plan and render minutes until ${new Date(
+        sub.currentPeriodEnd,
+      ).toLocaleDateString()}, then you'll move to Free.`,
     });
   } catch (error) {
     console.error("[cancel] PATCH error:", error);
@@ -72,7 +79,13 @@ export async function PATCH() {
   }
 }
 
-/** Cancel immediately and downgrade to Free right away. */
+/**
+ * Immediately revokes access and downgrades to Free — no refund, no grace
+ * period. This should NOT be the default/primary cancel action in the UI.
+ * It only makes sense for: a support agent processing a refund alongside
+ * it, fraud/abuse handling, or a user who explicitly understands they're
+ * giving up time they already paid for. Keep this out of the main flow.
+ */
 export async function DELETE() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });

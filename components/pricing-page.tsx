@@ -75,7 +75,7 @@ function FadeIn({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"} ${className}`}
+      className={`transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
@@ -309,7 +309,7 @@ export default function PricingPage({
 
       {/* ── Hero ── */}
       <section className="py-24 px-6 text-center relative overflow-hidden">
-        <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-[radial-gradient(ellipse,rgba(201,168,76,0.08)_0%,transparent_65%)] pointer-events-none" />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-175 h-125 bg-[radial-gradient(ellipse,rgba(201,168,76,0.08)_0%,transparent_65%)] pointer-events-none" />
 
         <FadeIn>
           <div className="relative">
@@ -355,24 +355,24 @@ export default function PricingPage({
               <FadeIn key={key} delay={i * 100}>
                 <div
                   className={`
-                  relative h-full flex flex-col p-8 rounded-3xl transition-all duration-300 hover:-translate-y-1.5
-                  ${
-                    isPopular
-                      ? "bg-gradient-to-br from-[rgba(201,168,76,0.08)] to-[rgba(30,60,26,0.12)] border-2 border-[#c9a84c]/50 shadow-[0_0_60px_rgba(201,168,76,0.15),0_8px_40px_rgba(0,0,0,0.5)] pt-10"
-                      : isCurrent
-                        ? "bg-[#0a180a] border-2 border-[#c9a84c]/30"
-                        : "bg-[#0a180a] border border-[#2d5a27]/20"
-                  }
-                `}
+            relative h-full flex flex-col p-8 rounded-3xl transition-all duration-300 hover:-translate-y-1.5
+            ${
+              isPopular
+                ? "bg-gradient-to-br from-[#152015] to-[#1a2a1a] border-2 border-[#c9a84c]/60 shadow-[0_0_50px_rgba(201,168,76,0.15),0_10px_40px_rgba(0,0,0,0.5)] pt-10"
+                : isCurrent
+                  ? "bg-[#132013] border-2 border-[#c9a84c]/40 shadow-[0_0_20px_rgba(201,168,76,0.08),0_8px_30px_rgba(0,0,0,0.4)]"
+                  : "bg-[#101a10] border border-[#2d5a27]/50 shadow-[0_8px_30px_rgba(0,0,0,0.3)]"
+            }
+          `}
                 >
                   {isPopular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#c9a84c] via-[#e8d5a3] to-[#c9a84c] bg-[length:200%_auto] animate-[shimmer_3s_linear_infinite] text-[#1a0e00] text-[10px] font-extrabold tracking-[0.12em] uppercase py-1.5 px-5 rounded-full whitespace-nowrap shadow-[0_4px_12px_rgba(201,168,76,0.3)]">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-linear-to-r from-[#c9a84c] via-[#e8d5a3] to-[#c9a84c] bg-bg-size-[200%_auto] animate-[shimmer_3s_linear_infinite] text-[#1a0e00] text-[10px] font-extrabold tracking-[0.12em] uppercase py-1.5 px-5 rounded-full whitespace-nowrap shadow-[0_4px_12px_rgba(201,168,76,0.4)]">
                       Best Value
                     </div>
                   )}
 
                   {isCurrent && !isPopular && (
-                    <div className="absolute -top-3 right-5 bg-[#c9a84c]/10 border border-[#c9a84c]/30 text-[#c9a84c] text-[10px] font-bold tracking-[0.1em] uppercase px-3 py-1 rounded-full">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0c170c] border border-[#c9a84c]/40 text-[#c9a84c] text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full">
                       Current
                     </div>
                   )}
@@ -381,12 +381,12 @@ export default function PricingPage({
                   <div className="flex items-center gap-2.5 mb-6">
                     <div
                       className={`w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 border
-                      ${isPopular ? "bg-[#c9a84c]/15 border-[#c9a84c]/30 text-[#c9a84c]" : "bg-[#2d5a27]/15 border-[#2d5a27]/20 text-[#4a8a42]/60"}`}
+              ${isPopular ? "bg-[#c9a84c]/15 border-[#c9a84c]/30 text-[#c9a84c]" : "bg-[#2d5a27]/15 border-[#2d5a27]/30 text-[#4a8a42]"}`}
                     >
                       {TIER_ICONS[key]}
                     </div>
                     <span
-                      className={`text-base font-bold tracking-tight ${isPopular ? "text-[#e8d5a3]" : "text-[#e8d5a3]/70"}`}
+                      className={`text-base font-bold tracking-tight ${isPopular ? "text-[#e8d5a3]" : "text-[#e8d5a3]/80"}`}
                     >
                       {tier.name}
                     </span>
@@ -397,43 +397,43 @@ export default function PricingPage({
                     <div className="flex items-baseline gap-1">
                       {tier.price > 0 && (
                         <span className="text-xl text-[#e8d5a3]/40 font-medium mt-2">
-                          $
+                          ${" "}
                         </span>
                       )}
                       <span
-                        className={`font-extrabold tracking-tighter leading-none ${tier.price === 0 ? "text-[40px]" : "text-5xl"}`}
+                        className={`font-extrabold tracking-tighter leading-none text-[#e8d5a3] ${tier.price === 0 ? "text-[40px]" : "text-5xl"}`}
                       >
                         {tier.price === 0 ? "Free" : tier.price}
                       </span>
                       {tier.price > 0 && (
-                        <span className="text-sm text-[#e8d5a3]/30 mb-0.5">
+                        <span className="text-sm text-[#e8d5a3]/40 mb-0.5">
                           /mo
                         </span>
                       )}
                     </div>
-                    <p className="text-[13px] text-[#e8d5a3]/35 mt-2 leading-relaxed">
+                    <p className="text-[13px] text-[#e8d5a3]/40 mt-2 leading-relaxed">
                       {tier.description}
                     </p>
                   </div>
 
                   {/* Usage Pill */}
-                  <div className="inline-flex items-center gap-1.5 mt-3 mb-6 text-xs text-[#e8d5a3]/50 bg-[#2d5a27]/10 border border-[#2d5a27]/20 rounded-lg px-3 py-1.5 w-fit">
-                    <Video size={13} className="opacity-60" />
+                  <div className="inline-flex items-center gap-1.5 mt-3 mb-6 text-xs text-[#e8d5a3]/70 bg-[#c9a84c]/5 border border-[#c9a84c]/15 rounded-lg px-3 py-1.5 w-fit">
+                    <Video size={13} className="opacity-80" />
                     {tier.limits.renderMinutes} render minutes
                   </div>
 
-                  <div className="h-px bg-[#2d5a27]/20 mb-6" />
+                  <div className="h-px bg-[#e8d5a3]/10 mb-6" />
 
                   {/* Features */}
                   <ul className="list-none p-0 m-0 mb-8 flex-1 flex flex-col gap-3">
                     {tier.features.map((f: string) => (
                       <li
                         key={f}
-                        className={`flex items-start gap-2.5 text-sm leading-relaxed ${f.includes("✨") ? "text-[#e8d5a3]/40" : "text-[#e8d5a3]/70"}`}
+                        className={`flex items-start gap-2.5 text-sm leading-relaxed ${f.includes("✨") ? "text-[#e8d5a3]/50" : "text-[#e8d5a3]/80"}`}
                       >
                         <div
-                          className={`w-[18px] h-[18px] rounded-md flex items-center justify-center flex-shrink-0 mt-0.5
-                          ${f.includes("NO Watermark") ? "bg-[#c9a84c]/15" : "bg-[#4a8a42]/12"}`}
+                          className={`w-[18px] h-[18px] rounded-md flex items-center justify-center shrink-0 mt-0.5
+                  ${f.includes("NO Watermark") ? "bg-[#c9a84c]/20" : "bg-[#4a8a42]/20"}`}
                         >
                           <Check
                             size={11}
@@ -454,19 +454,19 @@ export default function PricingPage({
                     onClick={() => handleSubscribe(key)}
                     disabled={isProcessing || isCurrent}
                     className={`
-                      w-full text-center text-sm font-bold py-3.5 rounded-[14px] border-none transition-all duration-200
-                      hover:not-disabled:-translate-y-0.5 active:not-disabled:translate-y-0
-                      disabled:cursor-not-allowed disabled:opacity-60
-                      ${
-                        isCurrent
-                          ? "bg-[#c9a84c]/5 border border-[#c9a84c]/20 text-[#e8d5a3]/30"
-                          : isPopular
-                            ? "bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] text-[#1a0e00] shadow-[0_4px_20px_rgba(201,168,76,0.4)] hover:shadow-[0_8px_24px_rgba(201,168,76,0.5)]"
-                            : key === "free"
-                              ? "bg-[#2d5a27]/10 border border-[#2d5a27]/30 text-[#e8d5a3]/60 hover:bg-[#2d5a27]/20"
-                              : "bg-[#2d5a27]/15 border border-[#2d5a27]/30 text-[#e8d5a3] hover:bg-[#2d5a27]/25"
-                      }
-                    `}
+              w-full text-center text-sm font-bold py-3.5 rounded-[14px] border-none transition-all duration-200
+              hover:not-disabled:-translate-y-0.5 active:not-disabled:translate-y-0
+              disabled:cursor-not-allowed disabled:opacity-60
+              ${
+                isCurrent
+                  ? "bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#e8d5a3]/40"
+                  : isPopular
+                    ? "bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] text-[#1a0e00] shadow-[0_4px_20px_rgba(201,168,76,0.4)] hover:shadow-[0_8px_24px_rgba(201,168,76,0.5)]"
+                    : key === "free"
+                      ? "bg-[#2d5a27]/20 border border-[#2d5a27]/40 text-[#e8d5a3]/80 hover:bg-[#2d5a27]/30"
+                      : "bg-[#2d5a27]/30 border border-[#2d5a27]/50 text-[#e8d5a3] hover:bg-[#2d5a27]/40"
+              }
+            `}
                   >
                     {isCurrent
                       ? "Current plan"
@@ -486,7 +486,7 @@ export default function PricingPage({
                           : "Pay with PayPal or card instead"}
                       </button>
                       {paypalPanelTier === key && (
-                        <div className="mt-3 rounded-xl bg-white/[0.03] border border-[#2d5a27]/20 p-3">
+                        <div className="mt-3 rounded-xl bg-white/[0.03] border border-[#2d5a27]/30 p-3">
                           <div ref={paypalContainerRef} />
                           <p className="text-[10px] text-[#e8d5a3]/30 mt-2 text-center">
                             PayPal shows a "Debit or Credit Card" option here

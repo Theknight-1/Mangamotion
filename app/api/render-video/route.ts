@@ -26,36 +26,30 @@ import {
 } from "@/app/actions/subscription/usages";
 
 // ── FFmpeg binary resolution ────────────────────────────────────────────────
-
-let ffmpegPath: string | undefined;
-let ffprobePath: string | undefined;
-
-if (process.env.NODE_ENV !== "production") {
-  try {
-    ffmpegPath = require("ffmpeg-static");
-  } catch {}
-
-  try {
-    ffprobePath = require("ffprobe-static").path;
-  } catch {}
+if (process.env.FFMPEG_PATH) {
+  ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH);
 }
 
-ffmpeg.setFfmpegPath(
-  process.env.FFMPEG_PATH || ffmpegPath || "/usr/bin/ffmpeg",
-);
-
-ffmpeg.setFfprobePath(
-  process.env.FFPROBE_PATH || ffprobePath || "/usr/bin/ffprobe",
-);
+if (process.env.FFPROBE_PATH) {
+  ffmpeg.setFfprobePath(process.env.FFPROBE_PATH);
+}
 
 const FPS = 30;
 
-const RESOLUTIONS: Record<AspectRatio, { w: number; h: number }> = {
-  "9:16": { w: 1080, h: 1920 },
-  "16:9": { w: 1920, h: 1080 },
-  "1:1": { w: 1080, h: 1080 },
-  "4:5": { w: 1080, h: 1350 },
+const RESOLUTIONS: Record<
+  AspectRatio,
+  Record<"1080p" | "4k", { w: number; h: number }>
+> = {
+  "9:16": { "1080p": { w: 1080, h: 1920 }, "4k": { w: 2160, h: 3840 } },
+  "16:9": { "1080p": { w: 1920, h: 1080 }, "4k": { w: 3840, h: 2160 } },
+  "1:1": { "1080p": { w: 1080, h: 1080 }, "4k": { w: 2880, h: 2880 } },
+  "4:5": { "1080p": { w: 1080, h: 1350 }, "4k": { w: 2688, h: 3360 } },
 };
+
+// A small silence buffer added to every non-final scene so the 0.3s audio
+// crossfade at the cut blends into trailing silence instead of clipping the
+// tail of one narration line into the head of the next one.
+const CROSSFADE_AUDIO_PAD = 0.35;
 
 interface CropRect {
   x: number;
@@ -142,8 +136,13 @@ function normToPixels(
     maxH = Math.floor(maxW / targetAspect);
   }
 
-  const minW = maxW * 0.9;
-  const minH = maxH * 0.9;
+  // This clamp used to allow zooming as far as 90% of the max possible
+  // crop, on top of a crop that's already tight because we're forcing a
+  // wide/square manga panel into a 9:16 frame. Stacking both was cropping
+  // out panel edges, faces, and speech bubbles. 95% leaves much less
+  // headroom for that extra zoom.
+  const minW = maxW * 0.95;
+  const minH = maxH * 0.95;
 
   let cw = kf.w * img.w;
   let ch = kf.h * img.h;
@@ -709,13 +708,14 @@ async function runRenderPipeline(
   scenes: Scene[],
   aspectRatio: AspectRatio,
   subtitlesEnabled: boolean,
+  resolutionTier: "1080p" | "4k",
 ): Promise<void> {
-  const { w: OUT_W, h: OUT_H } = RESOLUTIONS[aspectRatio];
+  const { w: OUT_W, h: OUT_H } = RESOLUTIONS[aspectRatio][resolutionTier];
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), `mm-${videoId}-`));
 
   try {
     const sceneResults = await Promise.all(
-      scenes.map(async (scene) => {
+      scenes.map(async (scene, i) => {
         const prefix = path.join(tmpDir, `s${scene.index}`);
         const finalPath = `${prefix}-final.mp4`;
         const imagePath = `${prefix}-panel.jpg`;
@@ -739,14 +739,26 @@ async function runRenderPipeline(
 
         duration = Math.max(2, duration);
 
+        // The final assembly crossfades adjacent scenes' audio with
+        // acrossfade. Without this pad, that 0.3s crossfade overlaps real
+        // speech at both ends of the cut — the tail of this scene's
+        // narration gets faded under the start of the next scene's
+        // narration, which is what was reading as a rushed/clipped
+        // narrator. Padding every non-final scene with a bit of trailing
+        // silence means the crossfade blends silence, not speech.
+        const isLastScene = i === scenes.length - 1;
+        const effectiveDuration = isLastScene
+          ? duration
+          : duration + CROSSFADE_AUDIO_PAD;
+
         let keyframes: Keyframe[] =
           (scene.keyframes?.length ?? 0) >= 2
             ? scene.keyframes
             : [
                 { t: 0, x: 0, y: 0, w: 1, h: 1 },
-                { t: duration * 0.3, x: 0.05, y: 0.03, w: 0.85, h: 0.85 },
-                { t: duration * 0.7, x: 0.1, y: 0.06, w: 0.72, h: 0.72 },
-                { t: duration, x: 0.12, y: 0.08, w: 0.65, h: 0.65 },
+                { t: duration * 0.3, x: 0.03, y: 0.02, w: 0.92, h: 0.92 },
+                { t: duration * 0.7, x: 0.06, y: 0.04, w: 0.85, h: 0.85 },
+                { t: duration, x: 0.08, y: 0.05, w: 0.78, h: 0.78 },
               ];
 
         keyframes = validateKeyframes(keyframes);
@@ -760,7 +772,7 @@ async function runRenderPipeline(
           imagePath,
           img,
           keyframes,
-          duration,
+          effectiveDuration,
           silentPath,
           tmpDir,
           scene.index,
@@ -795,15 +807,19 @@ async function runRenderPipeline(
           await muxVideoAudio(
             silentPath,
             audioPath,
-            duration,
+            effectiveDuration,
             finalPath,
             sfxPaths.length > 0 ? sfxPaths : undefined,
           );
         } else {
-          await addSilentAudio(silentPath, duration, finalPath);
+          await addSilentAudio(silentPath, effectiveDuration, finalPath);
         }
 
-        return { path: finalPath, duration, updatedScene: { ...scene } };
+        return {
+          path: finalPath,
+          duration: effectiveDuration,
+          updatedScene: { ...scene },
+        };
       }),
     );
 
@@ -996,6 +1012,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 4K is a Pro-only entitlement — everyone else renders at 1080p
+    // regardless of what the client requests. This used to be ignored
+    // entirely (RESOLUTIONS had no 4K entries at all), so Pro users were
+    // silently capped at 1080p.
+    const resolutionTier: "1080p" | "4k" =
+      quota.tier === "pro" ? "4k" : "1080p";
+
     await db
       .update(videos)
       .set({
@@ -1012,6 +1035,7 @@ export async function POST(request: NextRequest) {
       scenes,
       finalAspectRatio,
       finalSubtitlesEnabled,
+      resolutionTier,
     ).catch((err) => console.error("[render] Unhandled:", err));
 
     return NextResponse.json({ success: true, status: "processing" });

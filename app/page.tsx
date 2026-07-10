@@ -869,14 +869,6 @@ export default function Page() {
   return (
     <>
       <StructuredData />
-      {/* 
-        NOTE: Lighthouse flags robots.txt with 13 errors.
-        Fix: Add a valid /public/robots.txt file:
-        
-        User-agent: *
-        Allow: /
-        Sitemap: https://yourdomain.com/sitemap.xml
-      */}
       <main
         className="min-h-screen overflow-x-hidden bg-[#0c170c] text-[#e8d5a3]"
         id="main-content"

@@ -201,10 +201,10 @@ export function BulkUploader({
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/5 p-5">
               <h2 className="text-base font-bold text-white/90">Add Scenes</h2>
-              {!isUploading && !isAnalyzing && (
+              {!isUploading && (
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="text-white/40 hover:text-white"
+                  className="text-white/40 cursor-pointer hover:text-white"
                 >
                   <X size={18} />
                 </button>

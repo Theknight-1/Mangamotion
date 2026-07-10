@@ -146,7 +146,7 @@ export function TimelineEditor({
             </h2>
             <p className="mt-0.5 text-[11px] text-white/30">
               {scenes.length === 0
-                ? "Add scenes — each is one manga panel"
+                ? "Add scenes"
                 : `Total: ${totalDur > 0 ? `~${totalDur}s` : "0s"} · Drag to reorder`}
             </p>
           </div>

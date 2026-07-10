@@ -5,6 +5,7 @@ import {
   boolean,
   integer,
   jsonb,
+  real,
 } from "drizzle-orm/pg-core";
 
 // --- Better Auth required tables -------------------------------------------
@@ -127,7 +128,7 @@ export const subscriptions = pgTable("subscriptions", {
   paypalSubscriptionId: text("paypal_subscription_id"),
 
   // NEW: usage tracking, reset every billing period
-  renderMinutesUsed: integer("render_minutes_used").notNull().default(0),
+  renderMinutesUsed: real("render_minutes_used").notNull().default(0),
   currentPeriodStart: timestamp("current_period_start", {
     withTimezone: true,
   })

@@ -1,0 +1,1 @@
+ALTER TABLE "subscriptions" ALTER COLUMN "render_minutes_used" SET DATA TYPE real;

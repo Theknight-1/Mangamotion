@@ -230,39 +230,41 @@ export async function createPayPalSubscription(
   const planId = TIERS[tier].paypalPlanId;
   if (!planId) throw new Error(`No PayPal plan configured for tier "${tier}"`);
 
-try {
-  const response = await axios.post(
-    `${paypalBaseUrl()}/v1/billing/subscriptions`,
-    {
-      plan_id: planId,
-      // Lets the webhook map events back to a user without a lookup table.
-      custom_id: userId,
-      subscriber: { email_address: email },
-      application_context: {
-        brand_name: "MotionRecap",
-        locale: "en-US",
-        user_action: "SUBSCRIBE_NOW",
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
+  const response = await axios
+    .post(
+      `${paypalBaseUrl()}/v1/billing/subscriptions`,
+      {
+        plan_id: planId,
+        // Lets the webhook map events back to a user without a lookup table.
+        custom_id: userId,
+        subscriber: { email_address: email },
+        application_context: {
+          brand_name: "MotionRecap",
+          locale: "en-US",
+          user_action: "SUBSCRIBE_NOW",
+          return_url: `${process.env.NEXT_PUBLIC_APP_URL}/success`,
+          cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
+        },
       },
-    },
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    )
+    .catch((err) => {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        throw new Error(
+          `PayPal plan "${planId}" (tier: ${tier}) was not found. This usually means the plan ` +
+            `was created under a different Sandbox/Live app than PAYPAL_CLIENT_ID belongs to — ` +
+            `check the Sandbox/Live toggle in the PayPal Developer Dashboard and confirm the ` +
+            `plan exists under the same app that owns these credentials.`,
+        );
+      }
+      throw err;
+    });
 
   return response.data as {
     id: string;
     status: string;
     links: { href: string; rel: string; method: string }[];
   };
-} catch (err:any) {
-  console.error(
-    JSON.stringify(err.response?.data, null, 2)
-  );
-  throw err;
-}
-
-
-  
 }
 
 export async function getPayPalSubscription(

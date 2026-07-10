@@ -45,16 +45,3 @@ export async function GET() {
   }
 }
 
-/**
- * NOTE: This route no longer accepts POST to directly flip a user's tier.
- * That used to let anyone call this endpoint and grant themselves a paid
- * plan with no payment attached. Upgrades now go through:
- *   1. POST /api/subscriptions/checkout   → creates a provider subscription
- *   2. POST /api/subscriptions/verify     → verifies Razorpay checkout, OR
- *      GET  /api/subscriptions/paypal/activate → confirms PayPal approval
- *   3. Webhooks (/api/webhooks/razorpay, /api/webhooks/paypal) are the
- *      source of truth that actually activates/renews/cancels the plan.
- *
- * Cancellation lives in /api/subscriptions/cancel (PATCH = at period end,
- * DELETE = immediately).
- */
