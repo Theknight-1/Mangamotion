@@ -4,7 +4,7 @@ export const Footer = () => {
   return (
     <>
       {/* ── footer ── */}
-      <footer className="border-t border-[rgba(45,90,39,0.18)] px-6 py-9">
+      <footer className="border-t  border-[rgba(45,90,39,0.18)] px-6 py-9">
         <div className="mx-auto flex max-w-270 flex-col items-center justify-between gap-6 text-center md:flex-row md:text-left">
           {/* Logo */}
           <div className="flex items-center gap-2">

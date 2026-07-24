@@ -592,7 +592,7 @@ const VoiceDemo = memo(function VoiceDemo() {
               tabIndex={0}
               role="button"
               aria-selected={isSelected}
-              className={`flex min-h-11 cursor-pointer items-center justify-between rounded-lg border p-2.5 transition-colors ${
+              className={`flex min-h-11 cursor-pointer items-center justify-between rounded-lg border pl-4 transition-colors ${
                 isSelected
                   ? "border-[#5a9a52] bg-[#5a9a52]/30"
                   : "border-[#5a9a52]/20 bg-[#5a9a52]/10 hover:bg-[#5a9a52]/15"
@@ -877,19 +877,54 @@ export default function Page() {
 
         {/* ── Hero Section ── */}
         <section
-          className="relative flex min-h-screen items-center justify-center px-4 pb-20 pt-[120px] text-center"
+          className="relative overflow-hidden bg-[#040704] px-4 pb-20 pt-[120px] text-center"
           aria-labelledby="hero-heading"
         >
+
+          {/* Halftone screentone — manga's own shading language, masked to the beam */}
           <div
-            className="pointer-events-none absolute left-1/2 top-[20%] h-[600px] w-[600px] -translate-x-1/2 bg-[radial-gradient(circle,rgba(74,138,66,0.15)_0%,transparent_70%)]"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute bottom-[10%] left-[15%] h-[300px] w-[300px] bg-[radial-gradient(circle,rgba(201,168,76,0.06)_0%,transparent_70%)]"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, rgba(232,213,163,0.9) 1px, transparent 1px)",
+              backgroundSize: "7px 7px",
+              maskImage:
+                "radial-gradient(ellipse 40% 45% at 50% 40%, transparent 0%, transparent 60%, black 100%)",
+              WebkitMaskImage:
+                "radial-gradient(ellipse 40% 45% at 50% 40%, transparent 0%, transparent 60%, black 100%)",
+              opacity: 0.35,
+            }}
             aria-hidden="true"
           />
 
-          <div className="relative mx-auto w-full max-w-4xl">
+          {/* Faint secondary wash, low-left, kept dim so the top beam stays dominant */}
+          <div
+            className="pointer-events-none absolute -bottom-[20%] -left-[10%] h-[500px] w-[500px]"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(201,168,76,0.14) 0%, transparent 55%)",
+            }}
+            aria-hidden="true"
+          />
+
+          {/* Corner brackets — crisper, thicker, higher contrast */}
+          <svg
+            className="pointer-events-none absolute left-6 top-6 h-20 w-20 opacity-40"
+            aria-hidden="true"
+          >
+            <path d="M0 40 L40 0" stroke="#e8d5a3" strokeWidth="1.5" />
+            <path d="M14 56 L56 14" stroke="#e8d5a3" strokeWidth="1.5" />
+          </svg>
+          <svg
+            className="pointer-events-none absolute right-6 top-6 h-20 w-20 scale-x-[-1] opacity-40"
+            aria-hidden="true"
+          >
+            <path d="M0 40 L40 0" stroke="#e8d5a3" strokeWidth="1.5" />
+            <path d="M14 56 L56 14" stroke="#e8d5a3" strokeWidth="1.5" />
+          </svg>
+
+          {/* ── existing hero content stays exactly as-is ── */}
+          <div className="relative z-10 mx-auto w-full max-w-4xl">
             <FadeIn delay={80}>
               <h1
                 id="hero-heading"
@@ -1085,7 +1120,7 @@ export default function Page() {
                 className="mb-14 max-w-[500px] font-semibold leading-tight text-[#e8d5a3]"
                 style={{ fontSize: "clamp(26px, 3.5vw, 42px)" }}
               >
-                See the editor in action
+                See the Editor in action
               </h2>
             </FadeIn>
 

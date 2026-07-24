@@ -3,20 +3,23 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from "@/lib/auth-client";
-import { VideoExport } from '@/components/video-export'
 import {
   ArrowLeft,
   CheckCircle2,
   Clock,
   AlertCircle,
   Loader2,
+  Download,
 } from "lucide-react";
 import toast from 'react-hot-toast'
 import { useStore } from '@nanostores/react'
 import { IconLogo } from '@/components/icon-logo'
 import Loading from '@/components/animation/animate-loading'
 import type { Scene } from "@/types/scene";
-import { TimelineEditor } from "@/components/timeline-editor";
+import { SceneListPanel } from "@/components/scene-list-panel";
+import { ScenePreview } from "@/components/scene-preview";
+import { SceneCard } from "@/components/scene-card";
+import { RightPanel, type RightPanelTab } from "@/components/right-panel";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 interface VideoRaw {
@@ -77,6 +80,8 @@ export default function EditorPage() {
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
+  const [rightTab, setRightTab] = useState<RightPanelTab>("voice");
 
   // ── Auth guard ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -98,6 +103,9 @@ export default function EditorPage() {
       const normalized = normalizeVideo(data.video);
       setVideo(normalized);
       setTitle(normalized.title);
+      if (normalized.timeline.length > 0) {
+        setActiveSceneId(normalized.timeline[0].id);
+      }
     } catch {
       toast.error("Failed to load video");
       router.push("/dashboard");
@@ -148,10 +156,32 @@ export default function EditorPage() {
     [video],
   );
 
+  const handleSceneUpdate = useCallback(
+    (updated: Scene) => {
+      if (!video) return;
+      handleTimelineChange(
+        video.timeline.map((s) => (s.id === updated.id ? updated : s)),
+      );
+    },
+    [video, handleTimelineChange],
+  );
+
+  const handleSceneDelete = useCallback(
+    (sceneId: string) => {
+      if (!video) return;
+      const filtered = video.timeline.filter((s) => s.id !== sceneId);
+      handleTimelineChange(filtered.map((s, i) => ({ ...s, index: i })));
+      if (activeSceneId === sceneId) {
+        setActiveSceneId(filtered.length > 0 ? filtered[0].id : null);
+      }
+    },
+    [video, handleTimelineChange, activeSceneId],
+  );
+
   // ── Loading state ─────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-[#060e06] flex items-center justify-center">
         <Loading />
       </div>
     );
@@ -164,166 +194,120 @@ export default function EditorPage() {
     STATUS_CONFIG[video.status as keyof typeof STATUS_CONFIG] ??
     STATUS_CONFIG.draft;
   const StatusIcon = statusCfg.icon;
-  const previewAspectRatio = (video.aspectRatio || "16:9").replace(":", "/");
+  const activeScene =
+    video.timeline.find((s) => s.id === activeSceneId) ?? null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
-      {/* Header */}
-      <header className="border-b border-white/6 bg-[#0d0d14]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-4">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition shrink-0"
-            aria-label="Back to dashboard"
-            type="button"
-          >
-            <ArrowLeft size={18} />
-          </button>
+    <div className="flex h-screen flex-col bg-[#060e06] text-white">
+      {/* Top bar */}
+      <header className="flex h-14 shrink-0 items-center gap-4 border-b border-white/[0.07] bg-[#0a0f0a]/80 px-4 backdrop-blur-md">
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="shrink-0 rounded-lg p-2 text-white/40 transition hover:bg-white/5 hover:text-white"
+          aria-label="Back to dashboard"
+          type="button"
+        >
+          <ArrowLeft size={18} />
+        </button>
 
-          <div className="w-px h-5 bg-white/10 shrink-0" />
+        <div className="h-5 w-px shrink-0 bg-white/10" />
 
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center shrink-0">
-              <IconLogo />
-            </div>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={saveTitle}
-              onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-              className="text-sm font-medium text-white bg-transparent border-b border-transparent hover:border-white/20 focus:border-violet-500 focus:outline-none transition pb-0.5 min-w-0 max-w-xs"
-              placeholder="Video title"
-            />
-            {saving && (
-              <Loader2
-                size={13}
-                className="animate-spin text-white/30 shrink-0"
-              />
-            )}
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#c9a84c]/30 bg-[#c9a84c]/10">
+            <IconLogo />
           </div>
-
-          <div
-            className={`flex items-center gap-1.5 text-xs font-medium ${statusCfg.color} shrink-0`}
-          >
-            <StatusIcon
-              size={14}
-              className={video.status === "processing" ? "animate-spin" : ""}
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+            className="min-w-0 max-w-xs border-b border-transparent bg-transparent pb-0.5 text-sm font-medium text-white transition hover:border-white/20 focus:border-[#c9a84c] focus:outline-none"
+            placeholder="Chapter title"
+          />
+          {saving && (
+            <Loader2
+              size={13}
+              className="shrink-0 animate-spin text-white/30"
             />
-            {statusCfg.label}
-          </div>
-
-          {/* <div className="w-px h-5 bg-white/10 shrink-0" /> */}
-
-          {/* <div className="flex items-center gap-3 shrink-0">
-            <select
-              value={video.aspectRatio || "16:9"}
-              onChange={(e) => updateVideo({ aspectRatio: e.target.value })}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 appearance-none cursor-pointer"
-            >
-              <option value="9:16" className="bg-[#0d0d14]">
-                📱 9:16 (Shorts)
-              </option>
-              <option value="16:9" className="bg-[#0d0d14]">
-                🖥️ 16:9 (YouTube)
-              </option>
-              <option value="1:1" className="bg-[#0d0d14]">
-                ⬜ 1:1 (Square)
-              </option>
-              <option value="4:5" className="bg-[#0d0d14]">
-                📐 4:5 (IG Portrait)
-              </option>
-            </select>
-
-            <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer select-none hover:text-white/80 transition">
-              <input
-                type="checkbox"
-                checked={video.subtitlesEnabled !== false}
-                onChange={(e) =>
-                  updateVideo({ subtitlesEnabled: e.target.checked })
-                }
-                className="rounded border-white/20 bg-white/5 text-violet-600 focus:ring-violet-500 cursor-pointer"
-              />
-              <span className="text-xs font-medium">Subtitles</span>
-            </label>
-          </div> */}
+          )}
         </div>
+
+        <div
+          className={`flex shrink-0 items-center gap-1.5 text-xs font-medium ${statusCfg.color}`}
+        >
+          <StatusIcon
+            size={14}
+            className={video.status === "processing" ? "animate-spin" : ""}
+          />
+          {statusCfg.label}
+        </div>
+
+        <button
+          onClick={() => setRightTab("export")}
+          className="shrink-0 cursor-pointer rounded-lg border border-[#c9a84c]/40 bg-[#c9a84c]/10 px-3 py-1.5 text-xs font-semibold text-[#e8d5a3] transition hover:bg-[#c9a84c]/20"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Download size={12} /> Export
+          </span>
+        </button>
       </header>
 
-      {/* Body */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Preview */}
-          <div className="lg:col-span-2 flex justify-center">
-            <div
-              className="rounded-2xl overflow-hidden bg-[#0f0f1a] border border-white/[0.07] w-full relative"
-              style={{ aspectRatio: previewAspectRatio, maxHeight: "80vh" }}
-            >
-              <img
-                src={video.sourceImage}
-                alt={video.title}
-                className="w-full h-full object-cover"
-              />
-
-              {video.status === "processing" && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-3">
-                  <Loader2 size={20} className="animate-spin text-[#bbdf50]" />
-                  <span className="text-sm text-white/60">Rendering…</span>
-                </div>
-              )}
-
-              {video.status === "completed" && video.videoUrl && (
-                <div className="absolute inset-0">
-                  <video
-                    src={video.videoUrl}
-                    controls
-                    className="w-full h-full"
-                    crossOrigin="anonymous"
-                  >
-                    {video.subtitlesEnabled !== false && video.subtitleUrl && (
-                      <track
-                        kind="subtitles"
-                        src={video.subtitleUrl}
-                        srcLang="en"
-                        label="English"
-                        default
-                      />
-                    )}
-                  </video>
-                </div>
-              )}
-
-              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-                <span className="text-xs text-white/40 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-lg">
-                  {video.aspectRatio || "9:16"}
-                </span>
-                <span className="text-xs text-white/40 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-lg">
-                  {video.timeline.length} scene
-                  {video.timeline.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Export */}
-          <div className="lg:col-span-1">
-            <VideoExport
-              videoId={videoId}
-              scenes={video.timeline}
-              aspectRatio={video.aspectRatio || "9:16"}
-              subtitlesEnabled={video.subtitlesEnabled !== false}
-              onExportStart={() =>
-                setVideo((v) => (v ? { ...v, status: "processing" } : v))
-              }
-            />
-          </div>
-        </div>
-
-        {/* Scene Timeline Editor */}
-        <TimelineEditor
+      {/* 3-column body */}
+      <div className="grid h-full min-h-0 flex-1 overflow-hidden grid-cols-[300px_minmax(0,1fr)_400px]">
+        {/* Left: scene list */}
+        <SceneListPanel
           videoId={videoId}
           scenes={video.timeline}
+          activeSceneId={activeSceneId}
+          onSelectScene={setActiveSceneId}
           onScenesChange={handleTimelineChange}
+        />
+
+        {/* Center: preview + scene card */}
+        <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-6">
+          <ScenePreview
+            status={video.status as any}
+            videoUrl={video.videoUrl}
+            subtitlesEnabled={video.subtitlesEnabled}
+            subtitleUrl={video.subtitleUrl}
+            aspectRatio={video.aspectRatio}
+            activeScene={activeScene}
+            sceneCount={video.timeline.length}
+          />
+
+          {activeScene ? (
+            <SceneCard
+              key={activeScene.id}
+              scene={activeScene}
+              number={activeScene.index + 1}
+              videoId={videoId}
+              allScenes={video.timeline}
+              onUpdate={handleSceneUpdate}
+              onDelete={() => handleSceneDelete(activeScene.id)}
+            />
+          ) : (
+            <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-white/[0.07] py-12 text-center">
+              <p className="text-sm text-white/30">
+                Select a scene from the list, or add a new one to get started
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: voices & export */}
+        <RightPanel
+          activeTab={rightTab}
+          onTabChange={setRightTab}
+          videoId={videoId}
+          activeScene={activeScene}
+          onSceneUpdate={handleSceneUpdate}
+          scenes={video.timeline}
+          aspectRatio={video.aspectRatio}
+          subtitlesEnabled={video.subtitlesEnabled}
+          onExportStart={() =>
+            setVideo((v) => (v ? { ...v, status: "processing" } : v))
+          }
         />
       </div>
     </div>

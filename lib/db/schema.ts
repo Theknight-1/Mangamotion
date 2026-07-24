@@ -74,6 +74,13 @@ export const projects = pgTable("projects", {
   userId: text("userId").notNull(),
   title: text("title").notNull(),
   description: text("description"),
+
+  // Language & Copyright (set at project creation, locked)
+  language: text("language").notNull().default("en"), // en, es, fr, de, it, ja, ko, pt, ru, zh
+  isOriginalContent: boolean("isOriginalContent").notNull().default(true),
+  contentPurpose: text("contentPurpose"), // "original" | "review" | "educational"
+  copyrightAgreedAt: timestamp("copyrightAgreedAt"),
+
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -95,6 +102,11 @@ export const videos = pgTable("videos", {
   status: text("status").notNull().default("draft"), // draft, processing, completed, failed
   duration: integer("duration"), // in seconds
   timeline: text("timeline").default("[]"), // JSON string of timeline data
+
+  // Incremental rendering tracking
+  lastRenderedUpToScene: integer("lastRenderedUpToScene").default(0), // Last scene included in rendered video
+  lastRenderedVideoUrl: text("lastRenderedVideoUrl"), // URL of last rendered segment (for appending)
+
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });

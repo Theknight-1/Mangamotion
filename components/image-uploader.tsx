@@ -30,7 +30,7 @@ export function ImageUploader({ onImageSelect, disabled }: ImageUploaderProps) {
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('files', file)
 
       const res = await fetch('/api/upload', {
         method: 'POST',

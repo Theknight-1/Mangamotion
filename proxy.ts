@@ -1,4 +1,4 @@
-// middleware.ts
+// proxy.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
@@ -7,7 +7,7 @@ const AUTH_ROUTES = ["/login", "/signup", "/verify-email"];
 
 const PROTECTED_ROUTES = ["/dashboard", "/onboarding"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
 
   const { pathname } = request.nextUrl;

@@ -23,6 +23,10 @@ export async function GET() {
         userId: projectsTable.userId,
         title: projectsTable.title,
         description: projectsTable.description,
+        language: projectsTable.language,
+        isOriginalContent: projectsTable.isOriginalContent,
+        contentPurpose: projectsTable.contentPurpose,
+        copyrightAgreedAt: projectsTable.copyrightAgreedAt,
         createdAt: projectsTable.createdAt,
         updatedAt: projectsTable.updatedAt,
       })
@@ -36,6 +40,7 @@ export async function GET() {
       // Handle potential nulls if your schema allows it, though yours says notNull
       createdAt: p.createdAt.toISOString(),
       updatedAt: p.updatedAt.toISOString(),
+      copyrightAgreedAt: p.copyrightAgreedAt?.toISOString(),
     }));
 
     return NextResponse.json({ projects: serializedProjects });
@@ -55,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, description } = body;
+    const { title, description, isOriginal, contentPurpose, language } = body;
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -68,6 +73,10 @@ export async function POST(request: Request) {
         userId: session.user.id,
         title,
         description,
+        isOriginalContent: isOriginal ?? true,
+        contentPurpose: contentPurpose || null,
+        language: language ?? 'en',
+        copyrightAgreedAt: new Date(),
       })
       .returning();
 
@@ -76,6 +85,7 @@ export async function POST(request: Request) {
       ...newProject[0],
       createdAt: newProject[0].createdAt.toISOString(),
       updatedAt: newProject[0].updatedAt.toISOString(),
+      copyrightAgreedAt: newProject[0].copyrightAgreedAt ? newProject[0].copyrightAgreedAt.toISOString() : undefined,
     };
 
     return NextResponse.json({ project: serializedProject }, { status: 201 });

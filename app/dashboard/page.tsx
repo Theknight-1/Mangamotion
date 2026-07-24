@@ -1,87 +1,156 @@
-'use client'
+"use client";
 
-import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession, signOut } from '@/lib/auth-client'
-import { useStore } from '@nanostores/react'
-import useSWR, { mutate as globalMutate } from 'swr'
+import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
+import { useStore } from "@nanostores/react";
+import useSWR, { mutate as globalMutate } from "swr";
 import {
-  Plus, LogOut, Play, Trash2, Film, FolderOpen,
-  Sparkles, ChevronRight, Clock, LayoutGrid, List,
-  ImageIcon, Loader2, X, Check, AlertCircle,
-} from 'lucide-react'
-import toast from 'react-hot-toast'
-import { projectsApi, videosApi, uploadApi, swrKeys, type Project, type Video } from '@/lib/api'
-import { IconLogo } from "@/components/icon-logo";
+  Plus,
+  Play,
+  Trash2,
+  Film,
+  FolderOpen,
+  Palette,
+  Mic2,
+  Users2,
+  Clock,
+  LayoutGrid,
+  List,
+  Sparkles,
+  Lock,
+  ImageIcon,
+  Loader2,
+  X,
+  Check,
+  AlertCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Upload,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import {
+  projectsApi,
+  videosApi,
+  swrKeys,
+  type Project,
+  type Video,
+} from "@/lib/api";
 import ProjectList from "@/components/sidebar/project-list";
 import { Button } from "@/components/loader-button";
+import { CopyrightForm } from "@/components/copyright-form";
+import { ProfileMenu } from "@/components/user/profile-menu";
+import { IconRail, type RailKey } from "@/components/icon-rail";
 
-// ─── Status config ─────────────────────────────────────────────────────────────
+// ─── Status config ─────────────────────────────────────────────────────────
 const STATUS: Record<string, { label: string; cls: string }> = {
-  draft:      { label: 'Draft',      cls: 'bg-white/6 text-white/40' },
-  processing: { label: 'Rendering',  cls: 'bg-amber-500/15 text-amber-300' },
-  completed:  { label: 'Done',       cls: 'bg-[#bbdf50]/15 text-[#bbdf50]' },
-  failed:     { label: 'Failed',     cls: 'bg-red-500/15 text-red-400' },
+  draft: { label: "Draft", cls: "bg-white/6 text-white/40" },
+  processing: { label: "Rendering", cls: "bg-amber-500/15 text-amber-300" },
+  completed: { label: "Done", cls: "bg-[#4a8a42]/40 text-[#83d171]" },
+  failed: { label: "Failed", cls: "bg-red-500/15 text-red-400" },
+};
+
+// ─── Create grid — the colorful feature cards (HeyGen/Kling pattern) ──────
+interface CreateCard {
+  key: string;
+  title: string;
+  subtitle: string;
+  icon: typeof Film;
+  wash: string; // tailwind gradient classes
+  soon?: boolean;
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+const CREATE_CARDS: CreateCard[] = [
+  {
+    key: "manga-recap",
+    title: "Manga Recap",
+    subtitle: "Panels to cinematic MP4",
+    icon: Film,
+    wash: "from-[#4a8a42] via-[#2d5a27] to-[#0c170c]",
+  },
+  {
+    key: "voice-studio",
+    title: "Voice Studio",
+    subtitle: "100+ AI character voices",
+    icon: Sparkles,
+    wash: "from-[#c9a84c] via-[#8a6f2f] to-[#0c170c]",
+  },
+  {
+    key: "colorize",
+    title: "Manga Colorize",
+    subtitle: "B&W panels, in color",
+    icon: Palette,
+    wash: "from-white/10 via-white/5 to-[#0c170c]",
+    soon: true,
+  },
+  {
+    key: "auto-dub",
+    title: "Auto Dub Studio",
+    subtitle: "Multi-language dubbing",
+    icon: Mic2,
+    wash: "from-white/10 via-white/5 to-[#0c170c]",
+    soon: true,
+  },
+];
+
+// ─── Skeleton ────────────────────────────────────────────────────────────
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl bg-white/4 ${className}`} />
+  return <div className={`animate-pulse rounded-xl bg-white/4 ${className}`} />;
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
-function EmptyVideos({ onUpload }: { onUpload: () => void }) {
+// ─── Empty state ─────────────────────────────────────────────────────────
+function EmptyVideos() {
   return (
     <div className="rounded-2xl border border-dashed border-white/8 p-16 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-white/4 border border-white/[0.07] flex items-center justify-center mx-auto mb-4">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/4">
         <Film size={22} className="text-white/20" />
       </div>
-      <p className="text-white/40 text-sm font-medium">No videos yet</p>
-      <p className="text-white/20 text-xs mt-1 mb-6">
-        Upload a manga cover to create your first video
+      <p className="text-sm font-medium text-white/40">No videos yet</p>
+      <p className="mt-1 text-xs text-white/20">
+        Upload a manga cover above to create your first video
       </p>
     </div>
   );
 }
 
-// ─── Video card ───────────────────────────────────────────────────────────────
+// ─── Video card ──────────────────────────────────────────────────────────
 function VideoCard({
   video,
   onDelete,
   onOpen,
   compact,
 }: {
-  video: Video
-  onDelete: () => void
-  onOpen: () => void
-  compact: boolean
+  video: Video;
+  onDelete: () => void;
+  onOpen: () => void;
+  compact: boolean;
 }) {
-  const s = STATUS[video.status] ?? STATUS.draft
-  const isProcessing = video.status === 'processing'
+  const s = STATUS[video.status] ?? STATUS.draft;
+  const isProcessing = video.status === "processing";
 
   if (compact) {
     return (
       <div
         onClick={onOpen}
-        className="group flex items-center gap-4 px-4 py-3 rounded-2xl border border-white/6 bg-[#0f0f1a] cursor-pointer hover:border-white/12 transition"
+        className="group flex cursor-pointer items-center gap-4 rounded-2xl border border-white/6 bg-[#0d1a0d] px-4 py-3 transition hover:border-[#4a8a42]/30"
       >
-        <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-white/4 shrink-0">
+        <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded-lg bg-white/4">
           <img
             src={video.sourceImage}
             alt=""
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
           {isProcessing && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <Loader2 size={12} className="animate-spin text-amber-400" />
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white/80 truncate">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-white/80">
             {video.title}
           </p>
-          <p className="text-xs text-white/30 mt-0.5 flex items-center gap-1">
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-white/30">
             <Clock size={10} />
             {new Date(video.createdAt).toLocaleDateString("en-US", {
               month: "short",
@@ -90,7 +159,7 @@ function VideoCard({
           </p>
         </div>
         <span
-          className={`text-[11px] px-2.5 py-1 rounded-full font-medium shrink-0 ${s.cls}`}
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${s.cls}`}
         >
           {s.label}
         </span>
@@ -99,7 +168,7 @@ function VideoCard({
             e.stopPropagation();
             onDelete();
           }}
-          className="shrink-0 p-1.5 rounded-lg cursor-pointer text-white/20 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
+          className="shrink-0 cursor-pointer rounded-lg p-1.5 text-white/20 opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
         >
           <Trash2 size={13} />
         </button>
@@ -110,344 +179,307 @@ function VideoCard({
   return (
     <div
       onClick={onOpen}
-      className="group rounded-2xl border border-white/6 bg-[#0f0f1a] overflow-hidden cursor-pointer hover:border-white/[0.14] transition"
+      className="group cursor-pointer overflow-hidden rounded-lg border border-white/6 bg-[#142214] transition hover:border-[#4a8a42]/30"
     >
-      {/* Thumbnail — portrait ratio to match 9:16 output */}
-      <div className="relative overflow-hidden bg-black w-full" style={{ aspectRatio: '9/16', maxHeight: 250 }}>
+      <div
+        className="relative w-full overflow-hidden bg-black "
+        style={{ aspectRatio: "16/9", maxHeight: 250 }}
+      >
         <img
           src={video.sourceImage}
           alt={video.title}
-          className="w-full h-full object-cover group-hover:scale-[1.03] transition duration-500"
+          className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.03]"
         />
         {isProcessing && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60">
             <Loader2 size={18} className="animate-spin text-amber-400" />
             <span className="text-xs text-white/50">Rendering…</span>
           </div>
         )}
-        {video.status === 'completed' && (
-          <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition flex items-end justify-center pb-4">
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full text-white text-xs font-medium">
-              <Play size={12} className="fill-white" /> Open Editor
+        {video.status === "completed" && (
+          <div className="absolute inset-0 flex items-end justify-center bg-linear-to-t from-black/70 via-transparent to-transparent pb-4 opacity-0 transition group-hover:opacity-100">
+            <div className="flex items-center gap-2 rounded-full border border-[#c9a84c]/30 bg-[#c9a84c]/15 px-4 py-2 text-xs font-medium text-[#e8d5a3] backdrop-blur-sm">
+              <Play size={12} className="fill-[#e8d5a3]" /> Open editor
             </div>
           </div>
         )}
-        {video.status === 'failed' && (
-          <div className="absolute top-2 right-2">
-            <div className="w-6 h-6 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center">
+        {video.status === "failed" && (
+          <div className="absolute right-2 top-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-red-500/40 bg-red-500/20">
               <AlertCircle size={12} className="text-red-400" />
             </div>
           </div>
         )}
       </div>
-
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium text-white/80 truncate leading-tight">{video.title}</p>
+          <p className="truncate text-sm font-medium leading-tight text-white/80">
+            {video.title}
+          </p>
           <button
-            onClick={e => { e.stopPropagation(); onDelete() }}
-            className="shrink-0 p-1 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="shrink-0 cursor-pointer rounded-lg p-1 text-white/20 opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
           >
             <Trash2 size={12} />
           </button>
         </div>
-        <div className="flex items-center justify-between mt-2">
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.cls}`}>
+        <div className="mt-2 flex items-center justify-between">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${s.cls}`}
+          >
             {s.label}
           </span>
-          <span className="text-[11px] text-white/25">
-            {new Date(video.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          <span className="text-[11px] text-white/50">
+            {new Date(video.createdAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            })}
           </span>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-// ─── Upload drop zone ─────────────────────────────────────────────────────────
-function UploadZone({
-  disabled,
-  onFile,
-  uploading,
-}: {
-  disabled: boolean
-  onFile: (file: File) => void
-  uploading: boolean
-}) {
-  const [drag, setDrag] = useState(false)
-
-  return (
-    <label
-      className={`flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 border-dashed transition cursor-pointer ${
-        disabled
-          ? 'opacity-40 cursor-not-allowed border-white/6'
-          : drag
-          ? 'border-[#bbdf50]/60 bg-[#bbdf50]/4'
-          : 'border-white/8 hover:border-white/16 hover:bg-white/2'
-      }`}
-      onDragOver={e => { e.preventDefault(); if (!disabled) setDrag(true) }}
-      onDragLeave={() => setDrag(false)}
-      onDrop={e => {
-        e.preventDefault(); setDrag(false)
-        if (!disabled) { const f = e.dataTransfer.files[0]; if (f) onFile(f) }
-      }}
-    >
-      <input
-        type="file"
-        accept="image/*"
-        className="hidden"
-        disabled={disabled || uploading}
-        onChange={e => { const f = e.currentTarget.files?.[0]; if (f) onFile(f); e.currentTarget.value = '' }}
-      />
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition ${
-        drag ? 'bg-[#bbdf50]/10 border-[#bbdf50]/30' : 'bg-white/4 border-white/7'
-      }`}>
-        {uploading
-          ? <Loader2 size={18} className="text-white/40 animate-spin" />
-          : <ImageIcon size={18} className={drag ? 'text-[#bbdf50]' : 'text-white/30'} />
-        }
-      </div>
-      <div className="text-center">
-        <p className="text-sm text-white/50">
-          {uploading ? 'Uploading…' : drag ? 'Drop to upload' : 'Drop cover panel here'}
-        </p>
-        <p className="text-xs text-white/25 mt-0.5">
-          or <span className="text-[#bbdf50]/70">click to browse</span> · JPG, PNG, WebP
-        </p>
-      </div>
-    </label>
-  )
-}
-
-// ─── Dashboard ────────────────────────────────────────────────────────────────
+// ─── Dashboard ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const router   = useRouter()
-  const session  = useStore(useSession)
-  const user     = session?.data?.user
+  const router = useRouter();
+  const session = useStore(useSession);
+  const user = session?.data?.user;
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
-  const [newProjectTitle, setNewProjectTitle]     = useState('')
-  const [showNewProject, setShowNewProject]       = useState(false)
-  const [creatingProject, setCreatingProject]     = useState(false)
-  const [uploading, setUploading]                 = useState(false)
-  const [viewMode, setViewMode]                   = useState<'grid' | 'list'>('grid')
+  const [railActive, setRailActive] = useState<RailKey>("home");
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
+  const [newProjectTitle, setNewProjectTitle] = useState("");
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [showCopyrightForm, setShowCopyrightForm] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [drag, setDrag] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-
-  // ── Data fetching with SWR ─────────────────────────────────────────────────
-  // SWR deduplicates — multiple components can call the same key without extra requests
+  // ── Data fetching ─────────────────────────────────────────────────────
   const { data: projectsData, isLoading: loadingProjects } = useSWR(
     user ? swrKeys.projects() : null,
     () => projectsApi.list(),
     {
-      onSuccess: data => {
-        // Auto-select first project on initial load only
-        if (!selectedProjectId && data.projects.length > 0) {
-          setSelectedProjectId(data.projects[0].id)
-        }
+      onSuccess: (data) => {
+        if (!selectedProjectId && data.projects.length > 0)
+          setSelectedProjectId(data.projects[0].id);
       },
-      revalidateOnFocus: false, // don't re-fetch on tab focus — reduces noise
-    }
-  )
+      revalidateOnFocus: false,
+    },
+  );
 
   const { data: videosData, isLoading: loadingVideos } = useSWR(
     selectedProjectId ? swrKeys.videos(selectedProjectId) : null,
     () => videosApi.list(selectedProjectId!),
     {
       revalidateOnFocus: false,
-      // Poll if any video is processing — stops when none are
-      refreshInterval: (data) => {
-        const hasProcessing = data?.videos.some(v => v.status === 'processing')
-        return hasProcessing ? 4000 : 0
-      },
-    }
-  )
+      refreshInterval: (data) =>
+        data?.videos.some((v) => v.status === "processing") ? 4000 : 0,
+    },
+  );
 
-  const projects = projectsData?.projects ?? []
-  const videos   = videosData?.videos ?? []
-  const selectedProject = projects.find(p => p.id === selectedProjectId)
+  const projects = projectsData?.projects ?? [];
+  const videos = videosData?.videos ?? [];
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
-  // ── Actions ────────────────────────────────────────────────────────────────
-  const createProject = useCallback(async () => {
-    if (!newProjectTitle.trim()) return
-    setCreatingProject(true)
-    try {
-      const { project } = await projectsApi.create(newProjectTitle.trim())
-      // Optimistic update + revalidate
-      await globalMutate(swrKeys.projects())
-      setSelectedProjectId(project.id)
-      setNewProjectTitle('')
-      setShowNewProject(false)
-      toast.success('Project created')
-    } catch (e: any) {
-      toast.error(e.message ?? 'Failed to create project')
-    } finally {
-      setCreatingProject(false)
-    }
-  }, [newProjectTitle])
+  // ── Actions ──────────────────────────────────────────────────────────
+  const handleNewProjectClick = useCallback(() => {
+    setPanelOpen(true);
+    setShowNewProject(true);
+  }, []);
 
-    const handleUpload = useCallback(
-      async (file: File) => {
-        if (!selectedProjectId) {
-          toast.error("Select a project first");
-          return;
-        }
-        if (!file.type.startsWith("image/")) {
-          toast.error("Images only");
-          return;
-        }
-        if (file.size > 2 * 1024 * 1024) {
-          toast.error("Max 2MB");
-          return;
-        }
+  const handleProjectNameSubmit = useCallback(() => {
+    if (!newProjectTitle.trim()) return;
+    setShowNewProject(false);
+    setShowCopyrightForm(true);
+  }, [newProjectTitle]);
 
-        setUploading(true);
-        try {
-          // Updated to use 'files' to match the new bulk upload API
-          const fd = new FormData();
-          fd.append("files", file);
+  const createProject = useCallback(
+    async (copyrightData: {
+      isOriginal: boolean;
+      purpose: string;
+      language: string;
+    }) => {
+      if (!newProjectTitle.trim()) return;
+      setCreatingProject(true);
+      try {
+        const { project } = await projectsApi.create(newProjectTitle.trim(), {
+          isOriginal: copyrightData.isOriginal,
+          contentPurpose: copyrightData.purpose,
+          language: copyrightData.language,
+        });
+        await globalMutate(swrKeys.projects());
+        setSelectedProjectId(project.id);
+        setNewProjectTitle("");
+        setShowNewProject(false);
+        setShowCopyrightForm(false);
+        toast.success("Project created");
+      } catch (e: any) {
+        toast.error(e.message ?? "Failed to create project");
+      } finally {
+        setCreatingProject(false);
+      }
+    },
+    [newProjectTitle],
+  );
 
-          const res = await fetch("/api/upload", {
-            method: "POST",
-            credentials: "include",
-            body: fd,
-          });
+  const handleUpload = useCallback(
+    async (file: File) => {
+      if (!selectedProjectId) {
+        toast.error("Select or create a project first");
+        setPanelOpen(true);
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        toast.error("Images only");
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Max 2MB");
+        return;
+      }
 
-          if (!res.ok) throw new Error("Upload failed");
-          const data = await res.json();
+      setUploading(true);
+      try {
+        const fd = new FormData();
+        fd.append("files", file);
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          credentials: "include",
+          body: fd,
+        });
+        if (!res.ok) throw new Error("Upload failed");
+        const data = await res.json();
+        const url = data.files[0].url;
 
-          // Extract the first (and only) file from the response array
-          const url = data.files[0].url;
+        const { video } = await videosApi.create({
+          projectId: selectedProjectId,
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          sourceImage: url,
+        });
 
-          const { video } = await videosApi.create({
-            projectId: selectedProjectId,
-            title: file.name.replace(/\.[^/.]+$/, ""),
-            sourceImage: url,
-          });
+        await globalMutate(swrKeys.videos(selectedProjectId));
+        toast.success("Opening editor…");
+        setTimeout(() => router.push(`/editor/${video.id}`), 300);
+      } catch (e: any) {
+        toast.error(e.message ?? "Upload failed");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [selectedProjectId, router],
+  );
 
-          // Revalidate video list
-          await globalMutate(swrKeys.videos(selectedProjectId));
-          toast.success("Opening editor…");
-          setTimeout(() => router.push(`/editor/${video.id}`), 300);
-        } catch (e: any) {
-          toast.error(e.message ?? "Upload failed");
-        } finally {
-          setUploading(false);
-        }
-      },
-      [selectedProjectId, router],
-    );
+  const deleteVideo = useCallback(
+    async (videoId: string) => {
+      if (!confirm("Delete this video?")) return;
+      try {
+        await videosApi.delete(videoId);
+        globalMutate(
+          swrKeys.videos(selectedProjectId!),
+          (prev: any) =>
+            prev
+              ? { videos: prev.videos.filter((v: Video) => v.id !== videoId) }
+              : prev,
+          { revalidate: false },
+        );
+        toast.success("Deleted");
+      } catch (e: any) {
+        toast.error(e.message ?? "Failed to delete");
+      }
+    },
+    [selectedProjectId],
+  );
 
-  const deleteVideo = useCallback(async (videoId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!confirm('Delete this video?')) return
-    try {
-      await videosApi.delete(videoId)
-      // Optimistically remove from cache
-      globalMutate(
-        swrKeys.videos(selectedProjectId!),
-        (prev: any) => prev ? { videos: prev.videos.filter((v: Video) => v.id !== videoId) } : prev,
-        { revalidate: false }
-      )
-      toast.success('Deleted')
-    } catch (e: any) {
-      toast.error(e.message ?? 'Failed to delete')
-    }
-  }, [selectedProjectId])
+  const selectProject = useCallback(
+    (id: string) => setSelectedProjectId(id),
+    [],
+  );
 
-  const selectProject = useCallback((id: string) => {
-    setSelectedProjectId(id)
-  }, [])
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#080810] text-white">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-[#080810]/90 backdrop-blur-xl">
-        <div className="max-w-350 mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            {/* Logo mark */}
-            <div className="w-7 h-7 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center shrink-0">
-              <IconLogo />
-            </div>
-            <span className="font-semibold text-white tracking-tight text-sm">
-              MotionRecap
-            </span>
-            <span className="text-white/15 text-xs ml-1">AI Studio</span>
-          </div>
+    <div className="flex h-screen overflow-hidden bg-[#060e06] text-white">
+      {/* ── Icon rail ── */}
+      <IconRail
+        active={railActive}
+        onSelect={(k) => {
+          setRailActive(k);
+          if (k === "projects") setPanelOpen(true);
+        }}
+      >
+        <ProfileMenu email={user?.email} name={user?.name} variant="rail" />
+      </IconRail>
 
-          <div className="flex items-center gap-3">
-            <span className="text-white/30 text-xs hidden sm:block">
-              {user?.email}
+      {/* ── Collapsible projects panel ── */}
+      {panelOpen && (
+        <aside className="flex w-64 shrink-0 flex-col border-r border-white/6 bg-[#080d08]">
+          <div className="flex items-center justify-between border-b border-white/6 p-4">
+            <span className="text-sm font-semibold text-[#e8d5a3]">
+              Projects
             </span>
             <button
-              onClick={() => signOut().then(() => router.push("/"))}
-              className="flex items-center gap-1.5 cursor-pointer text-xs px-3 py-1.5 rounded-lg border border-white/8 hover:border-white/16 text-white/80 hover:text-white/70 transition"
+              onClick={() => setPanelOpen(false)}
+              className="cursor-pointer rounded-lg p-1.5 text-white/25 transition hover:bg-white/5 hover:text-white/60"
+              aria-label="Collapse panel"
             >
-              <LogOut size={12} />
-              Sign out
+              <PanelLeftClose size={15} />
             </button>
           </div>
-        </div>
-      </header>
 
-      <div className="max-w-350 mx-auto px-6 py-7 flex gap-6">
-        {/* ── Sidebar ── */}
-        <aside className="w-56 shrink-0 space-y-5">
-          {/* New project button */}
-          <Button
-            onClick={() => setShowNewProject(true)}
-            className="w-full py-2"
-          >
-            <Plus size={15} />
-            New Project
-          </Button>
+          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+            <Button onClick={handleNewProjectClick} className="w-full py-2">
+              <Plus size={15} /> New project
+            </Button>
 
-          {/* New project input */}
-          {showNewProject && (
-            <div className="p-3 rounded-xl border border-white/8 bg-white/2 space-y-2">
-              <input
-                autoFocus
-                type="text"
-                value={newProjectTitle}
-                onChange={(e) => setNewProjectTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") createProject();
-                  if (e.key === "Escape") {
-                    setShowNewProject(false);
-                    setNewProjectTitle("");
-                  }
-                }}
-                placeholder="Project name"
-                className="w-full px-3 py-1.5 bg-white/5 border border-white/8 rounded-lg text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#bbdf50]/40 transition"
-              />
-              <div className="flex gap-1.5">
-                <Button
-                  className="flex-1 py-1.5"
-                  loading={creatingProject}
-                  disabled={!newProjectTitle.trim()}
-                  leftIcon={<Check size={16} />}
-                  onClick={createProject}
-                >
-                  Create
-                </Button>
-                <button
-                  onClick={() => {
-                    setShowNewProject(false);
-                    setNewProjectTitle("");
+            {showNewProject && (
+              <div className="space-y-2 rounded-xl border border-white/8 bg-white/2 p-3">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newProjectTitle}
+                  onChange={(e) => setNewProjectTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleProjectNameSubmit();
+                    if (e.key === "Escape") {
+                      setShowNewProject(false);
+                      setNewProjectTitle("");
+                    }
                   }}
-                  className="cursor-pointer px-2.5 py-1.5 bg-white/5 hover:bg-white/9 text-white/40 rounded-lg transition"
-                >
-                  <X size={11} />
-                </button>
+                  placeholder="Project name"
+                  className="w-full rounded-lg border border-white/8 bg-white/5 px-3 py-1.5 text-sm text-white placeholder-white/25 transition focus:border-[#4a8a42]/50 focus:outline-none"
+                />
+                <div className="flex gap-1.5">
+                  <Button
+                    className="flex-1 py-1.5"
+                    loading={creatingProject}
+                    disabled={!newProjectTitle.trim()}
+                    leftIcon={<Check size={16} />}
+                    onClick={handleProjectNameSubmit}
+                  >
+                    Next
+                  </Button>
+                  <button
+                    onClick={() => {
+                      setShowNewProject(false);
+                      setNewProjectTitle("");
+                    }}
+                    className="cursor-pointer rounded-lg bg-white/5 px-2.5 py-1.5 text-white/40 transition hover:bg-white/9"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Project list */}
-          <div>
-            <p className="text-[10px] font-semibold text-white/20 uppercase tracking-widest mb-2 px-1">
-              Projects
-            </p>
             {loadingProjects ? (
               <div className="space-y-1.5">
                 {[1, 2, 3].map((i) => (
@@ -455,7 +487,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : projects.length === 0 ? (
-              <p className="text-xs text-white/25 px-1 py-2">No projects yet</p>
+              <p className="px-1 py-2 text-xs text-white/25">No projects yet</p>
             ) : (
               <ProjectList
                 projects={projects}
@@ -467,73 +499,275 @@ export default function DashboardPage() {
             )}
           </div>
         </aside>
+      )}
 
-        {/* ── Main content ── */}
-        <main className="flex-1 min-w-0 space-y-6">
-          {/* Upload zone */}
-          <section className="rounded-2xl border border-white/6 bg-[#0c0c18] p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-sm font-semibold text-white">New Video</h2>
-                <p className="text-xs text-white/30 mt-0.5">
-                  Upload a cover image — This will be used as the cover panel
-                  for your video.
-                </p>
+      {/* ── Main content ── */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-8 py-10">
+          {/* Top bar */}
+          <div className="mb-8 flex items-center justify-between">
+            {!panelOpen && (
+              <button
+                onClick={() => setPanelOpen(true)}
+                className="flex cursor-pointer items-center gap-2 rounded-lg font-semibold border border-white/50 px-3 py-1.5 text-xs text-white/50 transition hover:border-white/30 hover:text-white/80"
+              >
+                <PanelLeftOpen size={13} /> Projects
+              </button>
+            )}
+            <div className="flex-1" />
+            <button
+              onClick={() => router.push("/pricing")}
+              className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[#c9a84c]/40 bg-[#c9a84c]/10 px-4 py-1.5 text-xs font-semibold text-[#e8d5a3] transition hover:bg-[#c9a84c]/20"
+            >
+              <Sparkles size={12} /> Upgrade
+            </button>
+          </div>
+
+          {/* Hero */}
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-[#e8d5a3] md:text-[40px]">
+              Bring your manga panels to life
+            </h1>
+            <p className="mx-auto mt-2 max-w-md text-sm text-[#e8d5a3]/50">
+              Drop a cover panel to start a new video
+              {selectedProject ? ` in ${selectedProject.title}` : ""}.
+            </p>
+          </div>
+
+          {/* Prompt-bar style upload */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => !uploading && fileRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileRef.current?.click();
+              }
+            }}
+            className={`group relative mx-auto mb-4 max-w-2xl cursor-pointer overflow-hidden rounded-3xl border p-6 text-center transition-all duration-300 ${
+              drag
+                ? "border-[#82e667]  bg-[#132513]"
+                : "border-white/10 bg-[#0d1a0d]/90 hover:-translate-y-0.5 hover:border-[#4a8a42]/40"
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDrag(true);
+            }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDrag(false);
+              const f = e.dataTransfer.files[0];
+              if (f) handleUpload(f);
+            }}
+          >
+            {/* background glow */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#4a8a4225,transparent_70%)]" />
+
+            {/* animated border glow */}
+            <div
+              className={`absolute inset-0 rounded-3xl transition-opacity ${
+                drag ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`}
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(127,184,112,.25), transparent 45%, rgba(201,168,76,.18))",
+                mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                padding: "1px",
+              }}
+            />
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.currentTarget.files?.[0];
+                if (f) handleUpload(f);
+                e.currentTarget.value = "";
+              }}
+            />
+
+            <div className="relative z-10">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-[#7fb870] via-[#5ea654] to-[#c9a84c] shadow-[0_0_40px_rgba(127,184,112,.35)] transition duration-300 group-hover:scale-105">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#0d1a0d]/80 backdrop-blur">
+                  {uploading ? (
+                    <Loader2 className="animate-spin text-white" size={22} />
+                  ) : (
+                    <Upload size={22} className="text-white" />
+                  )}
+                </div>
               </div>
-              {!selectedProjectId && (
-                <span className="text-xs text-amber-400/70 bg-amber-500/10 border border-amber-500/15 px-2.5 py-1 rounded-full">
-                  Select a project first
+
+              <h3 className="text-lg font-semibold text-white">
+                {drag ? "Drop your image" : "Upload Cover Panel"}
+              </h3>
+
+              <p className="mt-2 text-sm text-white/55">
+                Drag & drop your image here or{" "}
+                <span className="font-medium text-[#82e667]">
+                  click anywhere to browse
                 </span>
+              </p>
+
+              {!selectedProjectId && (
+                <p className="mt-5 text-xs text-amber-400">
+                  Select or create a project first
+                </p>
               )}
             </div>
-            <UploadZone
-              disabled={!selectedProjectId || uploading}
-              onFile={handleUpload}
-              uploading={uploading}
-            />
-          </section>
+          </div>
 
-          {/* Videos section */}
+          {/* Quick pills */}
+          <div className="mb-12 flex flex-wrap justify-center gap-2">
+            {[
+              "Fight scene",
+              "Romance recap",
+              "Comedy short",
+              "Bulk upload",
+            ].map((label) => (
+              <button
+                key={label}
+                onClick={() => {
+                  if (label === "Bulk upload") fileRef.current?.click();
+                  else toast("Templates are coming soon");
+                }}
+                className="cursor-pointer rounded-full border border-white/10 px-4 py-1.5 text-xs text-white/50 transition hover:border-white/25 hover:text-white/80"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Create grid — colorful feature cards */}
+          <div className="mb-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {CREATE_CARDS.map((card) => {
+              const Icon = card.icon;
+              return (
+                <button
+                  key={card.key}
+                  disabled={card.soon}
+                  onClick={() => fileRef.current?.click()}
+                  className={`group relative aspect-4/5 overflow-hidden rounded-2xl border text-left transition ${
+                    card.soon
+                      ? "cursor-not-allowed border-white/6"
+                      : "cursor-pointer border-white/10 hover:-translate-y-1 hover:border-white/20"
+                  }`}
+                >
+                  {/* Base gradient wash */}
+                  <div
+                    className={`absolute inset-0 bg-linear-to-br ${card.wash}`}
+                  />
+
+                  {/* Halftone screentone texture — manga's own shading language */}
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)",
+                      backgroundSize: "6px 6px",
+                      maskImage:
+                        "radial-gradient(ellipse 90% 70% at 15% 15%, black 0%, transparent 60%)",
+                      WebkitMaskImage:
+                        "radial-gradient(ellipse 90% 70% at 15% 15%, black 0%, transparent 60%)",
+                      opacity: 0.35,
+                    }}
+                  />
+
+                  {/* Oversized ghost icon — watermark depth, bottom-right */}
+                  <Icon
+                    size={100}
+                    strokeWidth={1.1}
+                    className="pointer-events-none absolute -bottom-5 -right-5 rotate-[-8deg] text-white/8 transition-transform duration-500 group-hover:rotate-0 group-hover:scale-105"
+                  />
+
+                  {/* Fine diagonal speed-lines in the far corner — manga action-line motif */}
+                  <svg
+                    className="pointer-events-none absolute -right-2 -top-2 h-20 w-20 opacity-[0.15]"
+                    aria-hidden="true"
+                  >
+                    {[0, 6, 12, 18, 24].map((offset) => (
+                      <line
+                        key={offset}
+                        x1={80 - offset}
+                        y1={0}
+                        x2={80}
+                        y2={offset}
+                        stroke="white"
+                        strokeWidth="1"
+                      />
+                    ))}
+                  </svg>
+
+                  {card.soon && (
+                    <div className="absolute inset-0 bg-black/50" />
+                  )}
+
+                  <div className="relative flex h-full flex-col justify-between p-4">
+                    <Icon size={20} className="text-white/90" />
+                    <div>
+                      <p className="text-sm font-bold leading-tight text-white">
+                        {card.title}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/70">
+                        {card.subtitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  {card.soon && (
+                    <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-white/60">
+                      <Lock size={9} /> Soon
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Recent videos */}
           <section>
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-white">
                   {selectedProject?.title ?? "Videos"}
                 </h2>
-                <p className="text-xs text-white/30 mt-0.5">
+                <p className="mt-0.5 text-xs text-white/30">
                   {loadingVideos
                     ? "Loading…"
                     : `${videos.length} video${videos.length !== 1 ? "s" : ""}`}
                 </p>
               </div>
-
-              {/* View toggle */}
-              <div className="flex items-center gap-0.5 p-1 rounded-lg bg-white/4 border border-white/5">
+              <div className="flex items-center gap-0.5 rounded-lg border border-white/5 bg-white/4 p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-md transition ${viewMode === "grid" ? "bg-white/10 text-white" : "text-white/25 hover:text-white/50"}`}
+                  className={`cursor-pointer rounded-md p-1.5 transition ${viewMode === "grid" ? "bg-[#4a8a42]/20 text-[#7fb870]" : "text-white/25 hover:text-white/50"}`}
                 >
                   <LayoutGrid size={13} />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-md transition ${viewMode === "list" ? "bg-white/10 text-white" : "text-white/25 hover:text-white/50"}`}
+                  className={`cursor-pointer rounded-md p-1.5 transition ${viewMode === "list" ? "bg-[#4a8a42]/20 text-[#7fb870]" : "text-white/25 hover:text-white/50"}`}
                 >
                   <List size={13} />
                 </button>
               </div>
             </div>
 
-            {/* Loading state */}
             {loadingVideos ? (
               <div
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    ? "grid gap-3 grid-cols-2 lg:grid-cols-3"
                     : "space-y-2"
                 }
               >
-                {[1, 2, 3, 4, 5].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                   <Skeleton
                     key={i}
                     className={viewMode === "grid" ? "h-56" : "h-14"}
@@ -548,20 +782,16 @@ export default function DashboardPage() {
                 </p>
               </div>
             ) : videos.length === 0 ? (
-              <EmptyVideos onUpload={() => {}} />
+              <EmptyVideos />
             ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              <div className="grid  gap-3 grid-cols-2 lg:grid-cols-3">
                 {videos.map((video) => (
                   <VideoCard
                     key={video.id}
                     video={video}
                     compact={false}
                     onOpen={() => router.push(`/editor/${video.id}`)}
-                    onDelete={() =>
-                      deleteVideo(video.id, {
-                        stopPropagation: () => {},
-                      } as any)
-                    }
+                    onDelete={() => deleteVideo(video.id)}
                   />
                 ))}
               </div>
@@ -573,18 +803,25 @@ export default function DashboardPage() {
                     video={video}
                     compact={true}
                     onOpen={() => router.push(`/editor/${video.id}`)}
-                    onDelete={() =>
-                      deleteVideo(video.id, {
-                        stopPropagation: () => {},
-                      } as any)
-                    }
+                    onDelete={() => deleteVideo(video.id)}
                   />
                 ))}
               </div>
             )}
           </section>
-        </main>
-      </div>
+        </div>
+      </main>
+
+      <CopyrightForm
+        isOpen={showCopyrightForm}
+        projectName={newProjectTitle}
+        onClose={() => {
+          setShowCopyrightForm(false);
+          setShowNewProject(true);
+        }}
+        onSubmit={(data) => createProject(data)}
+        isSubmitting={creatingProject}
+      />
     </div>
   );
 }

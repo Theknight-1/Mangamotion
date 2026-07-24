@@ -269,8 +269,10 @@ async function renderSegment(
         `-r ${FPS}`,
         "-pix_fmt yuv420p",
         "-c:v libx264",
-        "-preset ultrafast",
-        "-crf 0",
+        "-preset veryfast",
+        "-crf 16",
+        "-maxrate 5000k",
+        "-bufsize 10000k",
         "-movflags +faststart",
       ])
       .output(safeOutPath)
@@ -551,10 +553,12 @@ function assembleFinalVideo(
         "-map [vout]",
         "-map [aout]",
         "-c:v libx264",
-        "-preset fast",
-        "-crf 18",
+        "-preset medium",
+        "-crf 16",
+        "-maxrate 5000k",
+        "-bufsize 10000k",
         "-c:a aac",
-        "-b:a 192k",
+        "-b:a 256k",
         "-ar 48000",
         "-ac 2",
         "-movflags +faststart",
@@ -945,6 +949,7 @@ export async function POST(request: NextRequest) {
       timeline: incomingTimeline,
       aspectRatio,
       subtitlesEnabled,
+      isIncremental = false, // NEW: flag for incremental rendering
     } = await request.json();
     if (!videoId)
       return NextResponse.json({ error: "videoId required" }, { status: 400 });
@@ -1019,6 +1024,19 @@ export async function POST(request: NextRequest) {
     const resolutionTier: "1080p" | "4k" =
       quota.tier === "pro" ? "4k" : "1080p";
 
+    // For incremental rendering, only render new scenes
+    const scenesToRender = isIncremental && (video.lastRenderedUpToScene ?? 0) > 0
+      ? scenes.filter(s => s.index > (video.lastRenderedUpToScene ?? 0))
+      : scenes;
+
+    if (isIncremental && scenesToRender.length === 0) {
+      return NextResponse.json({ 
+        success: true, 
+        status: "completed",
+        message: "No new scenes to render" 
+      });
+    }
+
     await db
       .update(videos)
       .set({
@@ -1032,7 +1050,7 @@ export async function POST(request: NextRequest) {
     runRenderPipeline(
       videoId,
       session.user.id,
-      scenes,
+      scenesToRender.length > 0 ? scenesToRender : scenes,
       finalAspectRatio,
       finalSubtitlesEnabled,
       resolutionTier,

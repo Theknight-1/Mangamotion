@@ -34,7 +34,6 @@ const COMPARISON_ROWS: { label: string; key: LimitKey; suffix?: string }[] = [
   { label: "SFX library", key: "sfxLibrary" },
   { label: "Priority rendering", key: "priorityRendering" },
   { label: "Custom branding", key: "customBranding" },
-  { label: "API access", key: "api" },
   { label: "Watermark free", key: "watermark" },
 ];
 
@@ -297,7 +296,7 @@ export default function PricingPage({
   }
 
   return (
-    <main className="bg-[#060e06] text-[#e8d5a3] min-h-screen overflow-x-hidden">
+    <main className="bg-[#0a1d0a] text-[#e8d5a3] min-h-screen overflow-x-hidden">
       <style>{`
         @keyframes shimmer {
           0% { background-position: -200% center; }
@@ -345,162 +344,167 @@ export default function PricingPage({
       {/* ── Pricing Cards ── */}
       <section className="px-6 pb-28">
         <div className="max-w-275 mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-          {TIER_ORDER.map((key, i) => {
-            const tier = TIERS[key];
-            const isCurrent = currentTier === key;
-            const isPopular = key === POPULAR_TIER;
-            const isProcessing = processingTier === key;
+  {TIER_ORDER.map((key, i) => {
+    const tier = TIERS[key];
+    const isCurrent = currentTier === key;
+    const isPopular = key === POPULAR_TIER;
+    const isProcessing = processingTier === key;
+    const glow =
+      key === "free"
+        ? "rgba(120,140,120,0.35)"
+        : isPopular
+          ? "rgba(201,168,76,0.5)"
+          : "rgba(74,138,66,0.5)";
 
-            return (
-              <FadeIn key={key} delay={i * 100}>
-                <div
-                  className={`
-            relative h-full flex flex-col p-8 rounded-3xl transition-all duration-300 hover:-translate-y-1.5
+    return (
+      <FadeIn key={key} delay={i * 100}>
+        <div
+          className={`
+            relative h-full flex flex-col p-5 rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5
+            bg-[#121a1293]
             ${
               isPopular
-                ? "bg-gradient-to-br from-[#152015] to-[#1a2a1a] border-2 border-[#c9a84c]/60 shadow-[0_0_50px_rgba(201,168,76,0.15),0_10px_40px_rgba(0,0,0,0.5)] pt-10"
-                : isCurrent
-                  ? "bg-[#132013] border-2 border-[#c9a84c]/40 shadow-[0_0_20px_rgba(201,168,76,0.08),0_8px_30px_rgba(0,0,0,0.4)]"
-                  : "bg-[#101a10] border border-[#2d5a27]/50 shadow-[0_8px_30px_rgba(0,0,0,0.3)]"
+                ? "border border-[#c9a84c]/50 shadow-[0_16px_40px_rgba(0,0,0,0.6)]"
+                : "border border-white/[0.08] shadow-[0_16px_40px_rgba(0,0,0,0.6)]"
             }
           `}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-linear-to-r from-[#c9a84c] via-[#e8d5a3] to-[#c9a84c] bg-bg-size-[200%_auto] animate-[shimmer_3s_linear_infinite] text-[#1a0e00] text-[10px] font-extrabold tracking-[0.12em] uppercase py-1.5 px-5 rounded-full whitespace-nowrap shadow-[0_4px_12px_rgba(201,168,76,0.4)]">
-                      Best Value
-                    </div>
-                  )}
+        >
+          {/* Directional corner glow */}
+          <div
+            className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full blur-3xl"
+            style={{ background: glow, opacity: 0.5 }}
+            aria-hidden="true"
+          />
+          {/* Decorative outline circle, top-right */}
+          <div
+            className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full border border-white/[0.06]"
+            aria-hidden="true"
+          />
 
-                  {isCurrent && !isPopular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0c170c] border border-[#c9a84c]/40 text-[#c9a84c] text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full">
-                      Current
-                    </div>
-                  )}
+          {isPopular && (
+            <div className="relative z-10 flex justify-end">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] border border-[#c9a84c]/40 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]">
+                <Star size={10} className="fill-[#c9a84c]" /> Popular
+              </span>
+            </div>
+          )}
+          {isCurrent && !isPopular && (
+            <div className="relative z-10 flex justify-end">
+              <span className="inline-flex items-center rounded-full bg-white/[0.06] border border-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e8d5a3]/70">
+                Current
+              </span>
+            </div>
+          )}
 
-                  {/* Header */}
-                  <div className="flex items-center gap-2.5 mb-6">
-                    <div
-                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 border
-              ${isPopular ? "bg-[#c9a84c]/15 border-[#c9a84c]/30 text-[#c9a84c]" : "bg-[#2d5a27]/15 border-[#2d5a27]/30 text-[#4a8a42]"}`}
-                    >
-                      {TIER_ICONS[key]}
-                    </div>
-                    <span
-                      className={`text-base font-bold tracking-tight ${isPopular ? "text-[#e8d5a3]" : "text-[#e8d5a3]/80"}`}
-                    >
-                      {tier.name}
-                    </span>
-                  </div>
+          {/* Icon */}
+          <div
+            className={`relative z-10 w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 border mt-1
+              ${isPopular ? "bg-[#c9a84c]/20 border-[#c9a84c]/40 text-[#c9a84c]" : key === "free" ? "bg-white/[0.06] border-white/15 text-[#e8d5a3]/70" : "bg-[#4a8a42]/20 border-[#4a8a42]/45 text-[#5fa856]"}`}
+          >
+            {TIER_ICONS[key]}
+          </div>
 
-                  {/* Price */}
-                  <div className="mb-2">
-                    <div className="flex items-baseline gap-1">
-                      {tier.price > 0 && (
-                        <span className="text-xl text-[#e8d5a3]/40 font-medium mt-2">
-                          ${" "}
-                        </span>
-                      )}
-                      <span
-                        className={`font-extrabold tracking-tighter leading-none text-[#e8d5a3] ${tier.price === 0 ? "text-[40px]" : "text-5xl"}`}
-                      >
-                        {tier.price === 0 ? "Free" : tier.price}
-                      </span>
-                      {tier.price > 0 && (
-                        <span className="text-sm text-[#e8d5a3]/40 mb-0.5">
-                          /mo
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[13px] text-[#e8d5a3]/40 mt-2 leading-relaxed">
-                      {tier.description}
-                    </p>
-                  </div>
+          {/* Name */}
+          <span className="relative z-10 mt-4 text-base font-bold tracking-tight text-[#e8d5a3]">
+            {tier.name}
+          </span>
 
-                  {/* Usage Pill */}
-                  <div className="inline-flex items-center gap-1.5 mt-3 mb-6 text-xs text-[#e8d5a3]/70 bg-[#c9a84c]/5 border border-[#c9a84c]/15 rounded-lg px-3 py-1.5 w-fit">
-                    <Video size={13} className="opacity-80" />
-                    {tier.limits.renderMinutes} render minutes
-                  </div>
+          {/* Price */}
+          <div className="relative z-10 mt-3 mb-2">
+            <div className="flex items-baseline gap-1">
+              {tier.price > 0 && (
+                <span className="text-xl text-[#e8d5a3]/50 font-medium">$</span>
+              )}
+              <span
+                className={`font-extrabold tracking-tighter leading-none text-[#e8d5a3] ${tier.price === 0 ? "text-[40px]" : "text-5xl"}`}
+              >
+                {tier.price === 0 ? "Free" : tier.price}
+              </span>
+              {tier.price > 0 && (
+                <span className="text-sm text-[#e8d5a3]/50 mb-0.5">/mo</span>
+              )}
+            </div>
+            <p className="text-[13px] text-[#e8d5a3]/45 mt-2 leading-relaxed">
+              {tier.description}
+            </p>
+          </div>
 
-                  <div className="h-px bg-[#e8d5a3]/10 mb-6" />
+          {/* Usage pill */}
+          <div className="relative z-10 inline-flex items-center gap-1.5 mt-2 mb-6 text-xs text-[#e8d5a3]/75 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-1.5 w-fit">
+            <Video size={13} className="opacity-80" />
+            {tier.limits.renderMinutes} render minutes
+          </div>
 
-                  {/* Features */}
-                  <ul className="list-none p-0 m-0 mb-8 flex-1 flex flex-col gap-3">
-                    {tier.features.map((f: string) => (
-                      <li
-                        key={f}
-                        className={`flex items-start gap-2.5 text-sm leading-relaxed ${f.includes("✨") ? "text-[#e8d5a3]/50" : "text-[#e8d5a3]/80"}`}
-                      >
-                        <div
-                          className={`w-[18px] h-[18px] rounded-md flex items-center justify-center shrink-0 mt-0.5
-                  ${f.includes("NO Watermark") ? "bg-[#c9a84c]/20" : "bg-[#4a8a42]/20"}`}
-                        >
-                          <Check
-                            size={11}
-                            className={
-                              f.includes("NO Watermark")
-                                ? "text-[#c9a84c]"
-                                : "text-[#4a8a42]"
-                            }
-                          />
-                        </div>
-                        {f.replace("✨ ", "")}
-                      </li>
-                    ))}
-                  </ul>
+          {/* Primary CTA — Razorpay, disabled for now */}
+          {/* <button
+            disabled
+            title="Card payments via Razorpay are coming soon — use PayPal below"
+            className="relative z-10 w-full text-center text-sm font-bold py-3.5 rounded-[14px] border border-white/10 bg-white/[0.03] text-[#e8d5a3]/30 cursor-not-allowed"
+          >
+            {isCurrent ? "Current plan" : "Razorpay — coming soon"}
+          </button> */}
 
-                  {/* CTA Button */}
-                  <button
-                    onClick={() => handleSubscribe(key)}
-                    disabled={isProcessing || isCurrent}
-                    className={`
-              w-full text-center text-sm font-bold py-3.5 rounded-[14px] border-none transition-all duration-200
-              hover:not-disabled:-translate-y-0.5 active:not-disabled:translate-y-0
-              disabled:cursor-not-allowed disabled:opacity-60
-              ${
-                isCurrent
-                  ? "bg-[#c9a84c]/10 border border-[#c9a84c]/20 text-[#e8d5a3]/40"
-                  : isPopular
-                    ? "bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] text-[#1a0e00] shadow-[0_4px_20px_rgba(201,168,76,0.4)] hover:shadow-[0_8px_24px_rgba(201,168,76,0.5)]"
-                    : key === "free"
-                      ? "bg-[#2d5a27]/20 border border-[#2d5a27]/40 text-[#e8d5a3]/80 hover:bg-[#2d5a27]/30"
-                      : "bg-[#2d5a27]/30 border border-[#2d5a27]/50 text-[#e8d5a3] hover:bg-[#2d5a27]/40"
-              }
-            `}
-                  >
-                    {isCurrent
-                      ? "Current plan"
-                      : isProcessing
-                        ? "Processing…"
-                        : tier.cta}
-                  </button>
+          {/* Real working CTA */}
+          {key === "free" ? (
+            <button
+              onClick={() => handleSubscribe(key)}
+              disabled={isProcessing || isCurrent}
+              className="relative z-10 mt-2 w-full text-center text-sm font-bold py-3.5 rounded-[14px] border-none bg-white text-[#0c110c] transition-all duration-200 hover:not-disabled:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isProcessing ? "Processing…" : tier.cta}
+            </button>
+          ) : (
+            !isCurrent && (
+              <button
+                onClick={() => togglePaypalPanel(key)}
+                className={`relative z-10 mt-2 w-full text-center text-sm font-bold py-3.5 rounded-[14px] border-none transition-all duration-200 hover:not-disabled:-translate-y-0.5 cursor-pointer
+                  ${isPopular ? "bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] text-[#1a0e00] shadow-[0_4px_20px_rgba(201,168,76,0.4)]" : "bg-white text-[#0c110c]"}`}
+              >
+                {paypalPanelTier === key ? isPopular ? "PayPal panel open" : "PayPal panel open" : isPopular ? "Remove watermark" : "Grab it now"}
+              </button>
+            )
+          )}
 
-                  {!isCurrent && key !== "free" && (
-                    <div className="mt-2">
-                      <button
-                        onClick={() => togglePaypalPanel(key)}
-                        className="w-full cursor-pointer text-center text-xs text-[#e8d5a3]/40 hover:text-[#e8d5a3]/70 underline"
-                      >
-                        {paypalPanelTier === key
-                          ? "Hide PayPal / card checkout"
-                          : "Pay with PayPal or card instead"}
-                      </button>
-                      {paypalPanelTier === key && (
-                        <div className="mt-3 rounded-xl bg-white/[0.03] border border-[#2d5a27]/30 p-3">
-                          <div ref={paypalContainerRef} />
-                          <p className="text-[10px] text-[#e8d5a3]/30 mt-2 text-center">
-                            PayPal shows a "Debit or Credit Card" option here
-                            too — no PayPal account required.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </FadeIn>
-            );
-          })}
+          {paypalPanelTier === key && (
+            <div className="relative z-10 mt-3 rounded-xl bg-white/[0.03] border border-white/10 p-3">
+              <div ref={paypalContainerRef} />
+              <p className="text-[10px] text-[#e8d5a3]/35 mt-2 text-center">
+                PayPal also shows a "Debit or Credit Card" option here — no PayPal account required.
+              </p>
+            </div>
+          )}
+
+          <div className="relative z-10 h-px bg-white/10 my-6" />
+
+          {/* "Stand out features" divider */}
+          <div className="relative z-10 flex items-center gap-3 mb-5">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#e8d5a3]/35 whitespace-nowrap">
+              Stand out features
+            </span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+
+          {/* Features */}
+          <ul className="relative z-10 list-none p-0 m-0 flex-1 flex flex-col gap-3">
+            {tier.features.map((f: string) => (
+              <li
+                key={f}
+                className={`flex items-start gap-2.5 text-sm leading-relaxed ${f.includes("✨") ? "text-[#e8d5a3]/50" : "text-[#e8d5a3]/80"}`}
+              >
+                <Check
+                  size={14}
+                  className={`shrink-0 mt-0.5 ${f.includes("NO Watermark") ? "text-[#c9a84c]" : "text-[#5fa856]"}`}
+                />
+                {f.replace("✨ ", "")}
+              </li>
+            ))}
+          </ul>
         </div>
+      </FadeIn>
+    );
+  })}
+</div>
 
         <FadeIn delay={400}>
           <p className="text-center mt-8 text-xs text-[#e8d5a3]/30 flex items-center justify-center gap-1.5">
@@ -512,17 +516,17 @@ export default function PricingPage({
       </section>
 
       {/* ── Trust Stats ── */}
-      <section className="border-y border-[#2d5a27]/15 py-18 px-6 bg-[#2d5a27]/5">
-        <div className="max-w-[960px] mx-auto">
+      <section className="border-y border-[#2d5a27]/15 py-18 px-6 bg-[#080f08]">
+        <div className="max-w-240 mx-auto">
           <FadeIn>
-            <p className="text-center text-[11px] tracking-[0.14em] text-[#6b9e62] uppercase font-bold mb-12">
+            <p className="text-center text-xl tracking-[0.14em] text-[#6b9e62] uppercase font-bold mb-12">
               Trusted by creators worldwide
             </p>
           </FadeIn>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {STATS.map((s, i) => (
               <FadeIn key={i} delay={i * 80}>
-                <div className="text-center py-7 px-4 rounded-2xl bg-[#2d5a27]/5 border border-[#2d5a27]/12 transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d5a27]/10">
+                <div className="text-center py-7 px-4 rounded-2xl bg-[#2d5a27]/30 border border-[#2d5a27]/12 transition-all duration-300 hover:-translate-y-1 hover:bg-[#2d5a27]/10">
                   <div className="text-[clamp(30px,4vw,42px)] font-extrabold text-[#e8d5a3] tracking-tighter mb-1">
                     <AnimatedStat value={s.value} suffix={s.suffix} />
                   </div>

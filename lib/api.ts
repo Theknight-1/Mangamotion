@@ -19,10 +19,16 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 // ─── Projects ─────────────────────────────────────────────────────────────────
 export const projectsApi = {
   list: () => request<{ projects: Project[] }>('/api/projects'),
-  create: (title: string, description?: string) =>
+  create: (title: string, data?: { description?: string; isOriginal?: boolean; contentPurpose?: string; language?: string }) =>
     request<{ project: Project }>('/api/projects', {
       method: 'POST',
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify({ 
+        title, 
+        description: data?.description,
+        isOriginal: data?.isOriginal ?? true,
+        contentPurpose: data?.contentPurpose,
+        language: data?.language ?? 'en',
+      }),
     }),
   delete: (id: string) =>
     request<{ success: boolean }>(`/api/projects/${id}`, { method: 'DELETE' }),
@@ -45,7 +51,7 @@ export const videosApi = {
 export const uploadApi = {
   image: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('files', file)
     const res = await fetch('/api/upload', { method: 'POST', credentials: 'include', body: formData })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
@@ -62,6 +68,10 @@ export interface Project {
   title: string;
   description?: string;
   coverImage?: string;
+  language: string;
+  isOriginalContent: boolean;
+  contentPurpose?: string;
+  copyrightAgreedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

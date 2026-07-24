@@ -12,6 +12,7 @@ import {
   Wand2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { requestQueue, createQueueKey } from "@/lib/request-queue";
 import type { Scene } from "@/types/scene";
 
 interface BulkUploaderProps {
@@ -133,23 +134,33 @@ export function BulkUploader({
       setIsAnalyzing(true);
       setProgress({ current: 0, total: currentNewScenes.length });
 
-      // 4. Analyze sequentially
+      // 4. Analyze sequentially with request queue
       for (let i = 0; i < currentNewScenes.length; i++) {
         const scene = currentNewScenes[i];
-        try {
-          const analyzeRes = await fetch("/api/analyze-panel", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              imageUrl: scene.imageUrl,
-              videoId,
-              sceneIndex: scene.index,
-              allScenes: [...allScenes, ...currentNewScenes.slice(0, i)],
-            }),
-          });
 
-          if (!analyzeRes.ok) throw new Error();
-          const data = await analyzeRes.json();
+        // Create queue key to prevent duplicate analysis
+        const queueKey = createQueueKey("analyze-bulk", {
+          imageUrl: scene.imageUrl,
+          videoId,
+          sceneIndex: scene.index,
+        });
+
+        try {
+          const data = await requestQueue.enqueue(queueKey, async () => {
+            const analyzeRes = await fetch("/api/analyze-panel", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                imageUrl: scene.imageUrl,
+                videoId,
+                sceneIndex: scene.index,
+                allScenes: [...allScenes, ...currentNewScenes.slice(0, i)],
+              }),
+            });
+
+            if (!analyzeRes.ok) throw new Error();
+            return await analyzeRes.json();
+          });
 
           currentNewScenes = currentNewScenes.map((s) =>
             s.id === scene.id
@@ -190,14 +201,14 @@ export function BulkUploader({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-xl border border-[#4a8a42]/30 bg-[#4a8a42]/10 px-3 py-1.5 text-xs font-semibold text-[#7fb870] transition-colors hover:bg-[#4a8a42]/20"
+        className="flex items-center gap-2 rounded-sm border border-[#4a8a42]/30 bg-[#212920] px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-[#4a8a42]/20"
       >
         <Upload size={14} /> Bulk Upload
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-white/[0.07] bg-[#0d0d18] shadow-2xl">
+          <div className="w-full max-w-3xl rounded-2xl border border-white/[0.07] bg-[#0d0d18] shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/5 p-5">
               <h2 className="text-base font-bold text-white/90">Add Scenes</h2>
@@ -288,46 +299,86 @@ export function BulkUploader({
                   </div>
 
                   {/* Queue List */}
-                  {pendingFiles.length > 0 && (
-                    <div className="mb-4 max-h-48 space-y-2 overflow-y-auto pr-2">
-                      {pendingFiles.map((pf, i) => (
+                  <div className="mb-4 max-h-120 overflow-y-auto rounded-xl">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {pendingFiles.map((pf) => (
                         <div
                           key={pf.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, pf.id)}
                           onDragOver={(e) => handleDragOver(e, pf.id)}
                           onDrop={(e) => handleDrop(e, pf.id)}
-                          className={`flex items-center gap-3 rounded-lg border bg-white/2 p-2.5 transition-all ${
+                          className={`group relative overflow-hidden rounded-xl border transition-all ${
                             draggingId === pf.id
                               ? "opacity-40"
                               : dragOverId === pf.id
-                                ? "border-[#c9a84c] ring-1 ring-[#c9a84c]"
-                                : "border-white/7"
+                                ? "border-[#c9a84c] ring-2 ring-[#c9a84c]"
+                                : "border-white/10 hover:border-white/20"
                           }`}
                         >
-                          <div className="cursor-grab text-white/30 hover:text-white/60">
-                            <GripVertical size={14} />
+                          <img
+                            src={URL.createObjectURL(pf.file)}
+                            alt={pf.file.name}
+                            className="aspect-2/3 w-full object-cover"
+                          />
+
+                          {/* Top Bar */}
+                          <div className="absolute left-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white flex items-center gap-2">
+                            <GripVertical size={13} />
+                            Drag
                           </div>
-                          <div className="flex h-10 w-10 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/50">
-                            <img
-                              src={URL.createObjectURL(pf.file)}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
+
+                          {/* Bottom Overlay */}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3">
+                            <div className="truncate text-xs text-white">
+                              {pf.file.name}
+                            </div>
+
+                            <div className="mt-1 flex justify-between items-center">
+                              <span className="text-[10px] text-white/60">
+                                {(pf.file.size / 1024 / 1024).toFixed(2)} MB
+                              </span>
+
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                <label
+                                  htmlFor={`replace-${pf.id}`}
+                                  className="cursor-pointer rounded bg-white/10 p-2 hover:bg-white/20"
+                                >
+                                  <Upload size={14} />
+                                </label>
+
+                                <button
+                                  onClick={() => removePendingFile(pf.id)}
+                                  className="rounded bg-red-500/20 p-2 hover:bg-red-500/40 cursor-pointer"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <span className="flex-1 truncate text-xs text-white/70">
-                            {pf.file.name}
-                          </span>
-                          <button
-                            onClick={() => removePendingFile(pf.id)}
-                            className="p-1 text-white/20 hover:text-red-400"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+
+                          <input
+                            id={`replace-${pf.id}`}
+                            type="file"
+                            accept="image/*"
+                            hidden
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                const newFile = e.target.files[0];
+                                setPendingFiles((prev) =>
+                                  prev.map((f) =>
+                                    f.id === pf.id
+                                      ? { ...f, file: newFile }
+                                      : f,
+                                  ),
+                                );
+                              }
+                            }}
+                          />
                         </div>
                       ))}
                     </div>
-                  )}
+                  </div>
 
                   {/* Footer Actions */}
                   <div className="flex justify-end gap-3 border-t border-white/5 pt-4">
@@ -343,7 +394,7 @@ export function BulkUploader({
                       className={`flex items-center cursor-pointer gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
                         pendingFiles.length === 0
                           ? "cursor-not-allowed bg-white/5 text-white/20"
-                          : "border border-[#5a9a52]/50 bg-[#2d5a27] text-[#e8d5a3] hover:bg-[#4e8347]"
+                          : "border border-[#5a9a52]/50 bg-[#2d5a27] text-white hover:bg-[#4e8347]"
                       }`}
                     >
                       <Upload size={12} />

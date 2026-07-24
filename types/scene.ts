@@ -56,3 +56,21 @@
     // Extracted dialogue text for on-screen subtitles / VTT generation
     dialogue?: string;
   }
+
+  export interface Video {
+    id: string;
+    projectId: string;
+    userId: string;
+    title: string;
+    sourceImage: string;
+    status: "draft" | "processing" | "completed" | "failed";
+    timeline: Scene[];
+    videoUrl?: string;
+    subtitleUrl?: string;
+    duration?: number;
+    aspectRatio?: string;
+    subtitlesEnabled?: boolean;
+    projectLanguage?: string;
+    createdAt: string;
+    updatedAt: string;
+  }

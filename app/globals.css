@@ -175,3 +175,17 @@ html {
     scroll-behavior: auto;
   }
 }
+/* Apply this class to any scrollable element */
+.hide-scrollbar {
+  overflow: auto;
+
+  /* Firefox */
+  scrollbar-width: none;
+
+  /* IE and Edge (legacy) */
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

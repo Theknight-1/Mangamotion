@@ -264,7 +264,7 @@ export function TimelineEditor({
 
               <Button
                 onClick={addScene}
-                className="w-full cursor-pointer rounded-xl border border-dashed border-white/[0.07] py-2 text-sm transition-colors"
+                className="w-full cursor-pointer rounded-lg border border-dashed border-white/[0.07] py-2 text-sm transition-colors"
               >
                 <Plus size={14} /> Add Scene
               </Button>

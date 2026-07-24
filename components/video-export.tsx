@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Download, Play, RotateCw } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { Button } from "./loader-button";
+import { Button } from "./loader-button"
+import type { Scene } from '@/types/scene'
 
 interface VideoStatus {
   id: string
@@ -16,8 +17,7 @@ interface VideoStatus {
 
 interface VideoExportProps {
   videoId: string
-  scenes: any[]
-  // 🆕 New props for render settings
+  scenes: Scene[]
   aspectRatio?: string
   subtitlesEnabled?: boolean
   onExportStart?: () => void
@@ -102,9 +102,7 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
   }
 
   return (
-    <div className="bg-slate-800 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Export Video</h3>
-
+    <div className="rounded-lg p-3">
       {/* 🆕 Show current render settings */}
       <div className="mb-4 p-3 bg-slate-900/50 rounded-lg border border-white/5 text-xs text-slate-400 space-y-1">
         <div className="flex justify-between">
@@ -160,7 +158,7 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
 
               <Button
                 onClick={downloadVideo}
-                className="w-full font-semibold py-2"
+                className="w-full font-semibold py-2 hover:translate-y-none cursor-pointer rounded-lg"
               >
                 <Download size={20} />
                 Download Video

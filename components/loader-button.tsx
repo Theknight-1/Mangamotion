@@ -13,7 +13,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.3)] hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(201,168,76,0.4)]",
+    "bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.3)] hover:shadow-[0_8px_28px_rgba(201,168,76,0.4)]",
 
   secondary:
     "border border-[#5a9a52]/30 bg-[#183218] text-[#d4edb8] hover:bg-[#214021]",

@@ -81,8 +81,8 @@ async function generateWithGemini(
 function getDefaultKeyframes(): Keyframe[] {
   return [
     { t: 0,   x: 0,    y: 0,    w: 1,    h: 1    },
-    { t: 2.5, x: 0.1,  y: 0.05, w: 0.75, h: 0.75 },
-    { t: 6.0, x: 0.15, y: 0.1,  w: 0.6,  h: 0.75 },
+    { t: 2.5, x: 0.05, y: 0.05, w: 0.95, h: 0.95 },
+    { t: 6.0, x: 0.1,  y: 0.1,  w: 0.9,  h: 0.9  },
   ];
 }
 
@@ -106,8 +106,8 @@ function validateKeyframes(kfs: Keyframe[]): Keyframe[] {
         typeof kf.t === "number" && !isNaN(kf.t) &&
         typeof kf.x === "number" && !isNaN(kf.x) && kf.x >= 0 && kf.x < 1 &&
         typeof kf.y === "number" && !isNaN(kf.y) && kf.y >= 0 && kf.y < 1 &&
-        typeof kf.w === "number" && !isNaN(kf.w) && kf.w >= 0.2 && kf.w <= 1 &&
-        typeof kf.h === "number" && !isNaN(kf.h) && kf.h >= 0.2 && kf.h <= 1 &&
+        typeof kf.w === "number" && !isNaN(kf.w) && kf.w >= 0.8 && kf.w <= 1 &&
+        typeof kf.h === "number" && !isNaN(kf.h) && kf.h >= 0.8 && kf.h <= 1 &&
         kf.x + kf.w <= 1.02 &&
         kf.y + kf.h <= 1.02,
     )
@@ -115,8 +115,8 @@ function validateKeyframes(kfs: Keyframe[]): Keyframe[] {
       t: kf.t,
       x: Math.max(0, Math.min(kf.x, 1 - kf.w)),
       y: Math.max(0, Math.min(kf.y, 1 - kf.h)),
-      w: Math.min(kf.w, 1),
-      h: Math.min(kf.h, 1),
+      w: Math.min(Math.max(0.8, kf.w), 1),
+      h: Math.min(Math.max(0.8, kf.h), 1),
     }))
     .sort((a, b) => a.t - b.t);
 
@@ -257,9 +257,9 @@ DO NOT write: "In this panel..." / "The image shows..." / "Here we see..."
 Output is ${aspectDesc}. x=0 left, y=0 top, w/h are 0-1 fractions.
 - First t=0.0, last t=6-9 (scaled to audio length later)
 - x+w ≤ 1.0, y+h ≤ 1.0
-- CRITICAL SAFE ZONE: min w MUST be ≥ 0.9, min h MUST be ≥ 0.9. NEVER zoom in closer than 90% of the image. The entire panel must always remain visible.
-- 3-5 keyframes, smooth motion (max 0.05 change in x/y between adjacent keyframes)
-- This is a subtle pan/scan, NOT a deep zoom. Keep the full context of the art visible at all times.
+- CRITICAL: w and h MUST BE AT LEAST 0.8 (NEVER smaller). The entire image must remain visible. Max pan is 10% - 20%.
+- 3-4 keyframes, smooth motion (max 0.1 change in x/y between adjacent keyframes)
+- This is a SUBTLE gentle camera scan/pan only. NO ZOOMING. NO CROPPING. The full manga panel is always visible.
 
 Return ONLY the JSON object — no markdown fences, no commentary before or after.`;
 
@@ -315,7 +315,6 @@ Return ONLY the JSON object — no markdown fences, no commentary before or afte
     );
   }
 }
-
 
 
 

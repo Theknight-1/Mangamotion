@@ -26,7 +26,7 @@ const SOURCES = [
   { label: "Other", icon: "•" },
 ];
 
-function MangaBg() {
+export function MangaBg() {
   return (
     <svg
       className="pointer-events-none absolute inset-0 h-full w-full"
@@ -238,7 +238,7 @@ export default function OnboardingPage() {
             }}
           />
 
-          <div className="relative px-6 py-7 sm:px-8 sm:py-8">
+          <div className="relative px-4 py-4 sm:px-8 sm:py-8">
             {/* step 1 */}
             <div
               className="transition-all duration-300 ease-out"
@@ -251,7 +251,7 @@ export default function OnboardingPage() {
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b9e62]">
                 Step 1 of 2
               </p>
-              <h2 className="mb-1 text-xl font-bold text-[#e8d5a3]">
+              <h2 className="mb-1 text-2xl font-bold text-[#e8d5a3]">
                 What's your profession?
               </h2>
               <p className="mb-5 text-sm text-[rgba(232,213,163,0.5)]">
@@ -263,7 +263,7 @@ export default function OnboardingPage() {
                   <button
                     key={p.label}
                     onClick={() => setProfession(p.label)}
-                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium text-left transition-all duration-200 ${
+                    className={`flex items-center cursor-pointer gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium text-left transition-all duration-200 ${
                       profession === p.label
                         ? "border-[#c9a84c] bg-[rgba(201,168,76,0.1)] text-[#e8d5a3]"
                         : "border-[rgba(232,213,163,0.10)] text-[rgba(232,213,163,0.6)] hover:border-[rgba(232,213,163,0.25)] hover:text-[#e8d5a3]"
@@ -291,7 +291,7 @@ export default function OnboardingPage() {
               <button
                 onClick={() => setStep(2)}
                 disabled={!profession}
-                className="w-full rounded-xl bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] py-3 text-sm font-bold tracking-wide text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.30)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_26px_rgba(201,168,76,0.40)] disabled:cursor-not-allowed disabled:opacity-30"
+                className="w-full cursor-pointer rounded-xl bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] py-3 text-sm font-bold tracking-wide text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.30)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_26px_rgba(201,168,76,0.40)] disabled:cursor-not-allowed disabled:opacity-30"
               >
                 Continue →
               </button>
@@ -309,7 +309,7 @@ export default function OnboardingPage() {
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b9e62]">
                 Step 2 of 2
               </p>
-              <h2 className="mb-1 text-xl font-bold text-[#e8d5a3]">
+              <h2 className="mb-1 text-2xl font-bold text-[#e8d5a3]">
                 How did you find us?
               </h2>
               <p className="mb-5 text-sm text-[rgba(232,213,163,0.5)]">
@@ -321,7 +321,7 @@ export default function OnboardingPage() {
                   <button
                     key={s.label}
                     onClick={() => setSource(s.label)}
-                    className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium text-left transition-all duration-200 ${
+                    className={`flex items-center gap-2.5 rounded-xl cursor-pointer border px-4 py-3 text-sm font-medium text-left transition-all duration-200 ${
                       source === s.label
                         ? "border-[#c9a84c] bg-[rgba(201,168,76,0.1)] text-[#e8d5a3]"
                         : "border-[rgba(232,213,163,0.10)] text-[rgba(232,213,163,0.6)] hover:border-[rgba(232,213,163,0.25)] hover:text-[#e8d5a3]"
@@ -349,14 +349,14 @@ export default function OnboardingPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex-[0.45] rounded-xl border border-[rgba(232,213,163,0.10)] px-4 py-3 text-sm font-medium text-[rgba(232,213,163,0.5)] transition-all duration-200 hover:border-[rgba(232,213,163,0.25)] hover:text-[#e8d5a3]"
+                  className="flex-1 rounded-xl border border-[rgba(232,213,163,0.10)]  py-3 text-sm font-medium text-[rgba(232,213,163,0.5)] transition-all duration-200 hover:border-[rgba(232,213,163,0.25)] hover:text-[#e8d5a3]"
                 >
                   ← Back
                 </button>
                 <button
                   onClick={handleFinish}
                   disabled={!source || loading}
-                  className="flex-1 rounded-xl bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] py-3 text-sm font-bold tracking-wide text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.30)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_26px_rgba(201,168,76,0.40)] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-linear-to-br from-[#c9a84c] to-[#e8d5a3] py-3 text-sm font-bold tracking-wide text-[#060e06] shadow-[0_4px_20px_rgba(201,168,76,0.30)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_26px_rgba(201,168,76,0.40)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { videos } from '@/lib/db/schema'
+import { videos, projects } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { Scene } from '@/types/scene'
 
@@ -31,12 +31,21 @@ export async function POST(request: NextRequest) {
 
     if (!video) return NextResponse.json({ error: 'Video not found' }, { status: 404 })
 
+    // Get project to fetch language
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, video.projectId))
+
+    const projectLanguage = project?.language ?? 'en'
+
     const cvoiceKey = process.env.CVOICE_API_KEY
     if (!cvoiceKey) {
       return NextResponse.json({ error: 'CVOICE_API_KEY not configured' }, { status: 500 })
     }
 
     // CVoice API — correct endpoint from docs
+    // Language mapping for cvoice.ai
     const cvoiceRes = await fetch('https://cvoice.ai/api/tts', {
       method: 'POST',
       headers: {
@@ -46,6 +55,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         voice_id: voiceId,
         text: text.trim(),
+        language: projectLanguage, // Pass project language to cvoice
       }),
     })
 
