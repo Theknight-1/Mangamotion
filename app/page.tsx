@@ -6,6 +6,7 @@ import { useStore } from "@nanostores/react";
 import { useSession } from "@/lib/auth-client";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { EditorMockup } from "@/components/landing/editor-mockup";
 
 /* ══════════════════════════════════════════════ TYPES ══════════════════════════════════════════ */
 
@@ -880,7 +881,6 @@ export default function Page() {
           className="relative overflow-hidden bg-[#040704] px-4 pb-20 pt-[120px] text-center"
           aria-labelledby="hero-heading"
         >
-
           {/* Halftone screentone — manga's own shading language, masked to the beam */}
           <div
             className="pointer-events-none absolute inset-0"
@@ -939,7 +939,7 @@ export default function Page() {
 
             <FadeIn delay={160}>
               <p
-                className="mx-auto mb-10 max-w-[560px] leading-snug text-[#e8d5a3]/70"
+                className="mx-auto mb-10 max-w-[600px] leading-snug text-[#e8d5a3]/70"
                 style={{ fontSize: "clamp(16px, 2vw, 20px)" }}
               >
                 Upload manga images, assign 100+ AI character voices, compose a
@@ -951,13 +951,13 @@ export default function Page() {
               <div className="flex flex-wrap justify-center gap-3">
                 <a
                   href="/signup"
-                  className="inline-flex min-h-[48px] items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80"
                 >
                   Start creating free <IconArrow />
                 </a>
                 <a
                   href="#how-it-works"
-                  className="inline-flex min-h-[48px] items-center gap-2 rounded-xl border border-[#5a9a52]/30 px-7 py-3.5 text-[15px] font-medium text-[#e8d5a3]/65 no-underline transition-all hover:border-[#5a9a52]/55 hover:text-[#e8d5a3]"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#5a9a52]/60 px-7 py-3.5 text-[15px] font-medium text-[#e8d5a3]/65 no-underline transition-all hover:border-[#5a9a52]/55 hover:text-[#e8d5a3]"
                 >
                   See how it works
                 </a>
@@ -965,90 +965,19 @@ export default function Page() {
             </FadeIn>
 
             <FadeIn delay={320}>
-              <div className="mt-10 flex items-center justify-center gap-1.5 text-[13px] text-[#e8d5a3]/60">
+              <div className="mt-10 flex items-center justify-center gap-1.5 text-[15px] text-[#e8d5a3]/60">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <IconStar key={i} />
                 ))}
-                <span className="ml-1">Loved by 2,400+ manga creators</span>
+                <span className="ml-1">Loved by 100+ manga creators</span>
               </div>
             </FadeIn>
 
             {/* Editor mockup */}
+          </div>
+          <div className="relative z-10 mx-auto w-full max-w-5xl">
             <FadeIn delay={400}>
-              <div className="relative mt-16">
-                <div
-                  className="pointer-events-none absolute -inset-px rounded-[20px] bg-gradient-to-b from-[#5a9a52]/35 to-transparent z-10"
-                  aria-hidden="true"
-                />
-                <div className="overflow-hidden rounded-[18px] border border-[#5a9a52]/30 bg-[#142114]">
-                  <div className="flex items-center gap-1.5 border-b border-[#5a9a52]/18 px-[18px] py-3">
-                    {[
-                      "rgba(232,100,100,0.75)",
-                      "rgba(232,180,60,0.75)",
-                      "rgba(60,180,60,0.75)",
-                    ].map((c, i) => (
-                      <div
-                        key={i}
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ background: c }}
-                        aria-hidden="true"
-                      />
-                    ))}
-                    <div className="flex-1 text-center">
-                      <span className="rounded-md bg-[#5a9a52]/12 px-4 py-0.5 text-[11px] text-[#e8d5a3]/75">
-                        Fight Scene — Editor
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid min-h-[220px] grid-cols-1 md:grid-cols-2">
-                    <div className="flex items-center justify-center border-r border-[#5a9a52]/12 p-4 md:p-5">
-                      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[10px] border border-[#5a9a52]/18 bg-[#0c170c]">
-                        <div
-                          className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_50%_50%,rgba(74,138,66,0.06),transparent)]"
-                          aria-hidden="true"
-                        />
-                        <div className="text-center">
-                          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#5a9a52]/25 bg-[#5a9a52]/20 text-[#5a9a52]">
-                            <IconPlay />
-                          </div>
-                          <p className="text-[11px] text-[#e8d5a3]/40">
-                            Preview panel
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-3.5">
-                      <p className="mb-2.5 text-[9px] uppercase tracking-[0.15em] text-[#e8d5a3]/40">
-                        Timeline
-                      </p>
-                      {TIMELINE_SCENES.slice(0, 3).map(
-                        ({ label, dur, voice }, i) => (
-                          <div
-                            key={label}
-                            className={`mb-1.5 rounded-md border p-2 ${
-                              i === 0
-                                ? "border-[#5a9a52]/35 bg-[#5a9a52]/18"
-                                : "border-[#5a9a52]/15 bg-[#5a9a52]/6"
-                            }`}
-                          >
-                            <p
-                              className={`text-[11px] font-medium ${i === 0 ? "text-[#d4edb8]" : "text-[#e8d5a3]/50"}`}
-                            >
-                              {label} — {dur}s
-                            </p>
-                            {voice && (
-                              <p className="mt-0.5 text-[9px] text-[#7fb870]">
-                                Voice active
-                              </p>
-                            )}
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <EditorMockup />
             </FadeIn>
           </div>
         </section>

@@ -4,21 +4,31 @@ import { headers } from "next/headers";
 import AuthForm from "@/components/auth-form";
 import MangaShowcase from "@/components/auth/manga-showcase";
 import type { Metadata } from "next";
+import { VerifyToast } from "@/app/(auth)/verify-email/verify-toast";
 
 export const metadata: Metadata = {
   title: "Sign in",
   robots: { index: false, follow: false },
 };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (session?.user) redirect("/dashboard");
+
+  const params = await searchParams;
 
   return (
     <div className="grid min-h-screen md:grid-cols-[1.05fr_1fr] bg-[#0c170c]">
       <MangaShowcase />
 
       <div className="relative flex min-h-svh flex-col items-center justify-center px-5 py-10 sm:px-6 sm:py-14 md:min-h-0 md:px-8 md:py-14">
+        {/* Reads searchParams on the client and fires toast */}
+        <VerifyToast verified={params.verified} error={params.error} />
+
         {/* Ambient glow — smaller on mobile */}
         <div
           className="pointer-events-none absolute left-1/2 top-[8%] h-60 w-60 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(201,168,76,0.05)_0%,transparent_70%)] sm:h-80 sm:w-80 md:h-120 md:w-120"
@@ -61,7 +71,7 @@ export default async function LoginPage() {
               Welcome back
             </h1>
             <p className="text-sm leading-relaxed text-[#e8d5a3]/55">
-              Transform manga images into animated videos.
+              Transform manga images into recap videos.
             </p>
           </div>
 

@@ -129,6 +129,16 @@
   }
 }
 
+/* Base font — Geist inherits everywhere via font-sans */
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* All headings automatically get Bricolage */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+}
+
 /* Fade-in animation */
 .fade-in-wrapper {
   opacity: 0;

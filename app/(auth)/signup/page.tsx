@@ -61,7 +61,7 @@ export default async function SignupPage() {
               Create your account
             </h1>
             <p className="text-sm leading-relaxed text-[#e8d5a3]/55">
-              Start turning manga panels into animated videos.
+              Start turning manga panels into recap videos.
             </p>
           </div>
 

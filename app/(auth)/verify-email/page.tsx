@@ -1,17 +1,19 @@
 // app/verify-email/page.tsx
 import Link from "next/link";
+import { MangaBg } from "@/components/ui/manga-bg";
 
 export default function VerifyEmailPage() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-[#0c170c] px-5 py-10 sm:px-6">
-      <div className="relative z-10 w-full max-w-md text-center">
+    <div className="flex min-h-svh flex-col items-center justify-center bg-[#0c170c] px-4 py-10 sm:px-6">
+      <MangaBg />
+      <div className="relative z-10 w-full max-w-lg text-center">
         {/* Ambient glow */}
         <div
           className="pointer-events-none absolute left-1/2 top-0 h-60 w-60 -translate-x-1/2 -translate-y-1/4 rounded-full bg-[radial-gradient(circle,rgba(201,168,76,0.08)_0%,transparent_70%)]"
           aria-hidden="true"
         />
 
-        <div className="relative z-10 rounded-2xl border border-[rgba(232,213,163,0.10)] bg-white/2.5 p-8 sm:p-10">
+        <div className="relative z-10 rounded-2xl border border-[rgba(232,213,163,0.10)] bg-white/2.5 p-5 sm:p-8">
           {/* Mail Icon */}
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(201,168,76,0.2)] bg-[rgba(201,168,76,0.05)]">
             <svg
@@ -27,7 +29,10 @@ export default function VerifyEmailPage() {
           </div>
 
           <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#e8d5a3]">
-            Check your email
+            You'r ready to go!
+          </h1>
+          <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#e8d5a3]">
+            Check your email to verify your account
           </h1>
           <p className="mb-6 text-sm leading-relaxed text-[#e8d5a3]/55">
             We sent a verification link to your email address. Please check your
