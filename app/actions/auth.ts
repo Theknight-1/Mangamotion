@@ -38,7 +38,7 @@ export async function registerUser({
     await auth.api.sendVerificationEmail({
       body: {
         email: cleanEmail,
-        callbackURL: "/login",
+        callbackURL: "/login?verified=true",
       },
     });
 
@@ -56,7 +56,7 @@ export async function registerUser({
       name: cleanName,
       email: cleanEmail,
       password,
-      callbackURL: "/login",
+      callbackURL: "/login?verified=true",
     },
   });
 

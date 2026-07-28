@@ -5,7 +5,7 @@ import { getSessionCookie } from "better-auth/cookies";
 
 const AUTH_ROUTES = ["/login", "/signup", "/verify-email"];
 
-const PROTECTED_ROUTES = ["/dashboard", "/onboarding"];
+const PROTECTED_ROUTES = ["/dashboard", "/onboarding" , "/editor"];
 
 export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
@@ -38,5 +38,6 @@ export const config = {
     "/login",
     "/signup",
     "/verify-email",
+    "/editor/:path*"
   ],
 };

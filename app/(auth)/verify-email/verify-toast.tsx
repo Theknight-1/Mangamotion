@@ -13,7 +13,7 @@ export function VerifyToast({ verified, error }: VerifyToastProps) {
     if (verified === "true") {
       toast.success("Email verified! You can now sign in.", {
         duration: 5000,
-        icon: "✉️",
+        icon: "🎉",
       });
     } else if (error === "invalid_token") {
       toast.error("Verification link is invalid or expired.", {
