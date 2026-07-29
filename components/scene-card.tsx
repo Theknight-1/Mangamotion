@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   ImageIcon,
   Sparkles,
@@ -9,6 +9,7 @@ import {
   Loader2,
   Upload,
   RotateCcw,
+  Save,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { requestQueue, createQueueKey } from "@/lib/request-queue";
@@ -22,7 +23,6 @@ interface SceneCardProps {
   onDelete: () => void;
   videoId: string;
   allScenes: Scene[]; // needed to build within-video narration context for Gemini/OpenRouter
-
 }
 
 export function SceneCard({
@@ -32,9 +32,18 @@ export function SceneCard({
   onDelete,
   videoId,
   allScenes,
-  
 }: SceneCardProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /* ── Local narration state (decoupled from parent) ── */
+  const [draft, setDraft] = useState(scene.narration);
+  const [dirty, setDirty] = useState(false);
+
+  // Sync draft when scene updates from outside (e.g. after re-analysis)
+  useEffect(() => {
+    setDraft(scene.narration);
+    setDirty(false);
+  }, [scene.narration]);
 
   const hasImage = !!scene.imageUrl;
   const isAnalyzing = scene.status === "analyzing";
@@ -44,6 +53,7 @@ export function SceneCard({
     scene.status === "done" ||
     scene.status === "generating_voice";
 
+  /* ── Handlers ── */
   async function handleFile(file: File) {
     if (!file.type.startsWith("image/")) {
       toast.error("Images only");
@@ -61,7 +71,6 @@ export function SceneCard({
       if (!res.ok) throw new Error();
 
       const { files: uploadedFiles } = await res.json();
-
       const url = uploadedFiles[0]?.url;
       if (!url) throw new Error("Upload returned no URL");
 
@@ -135,12 +144,22 @@ export function SceneCard({
   }
 
   async function reAnalyze() {
-    if (!scene.imageUrl) return;
+    if (!scene.imageUrl || isAnalyzing) return;
     await analyzePanel(scene.imageUrl, {
       ...scene,
       voice: undefined,
       clipUrl: undefined,
     });
+  }
+
+  function saveNarration() {
+    onUpdate({
+      ...scene,
+      narration: draft,
+      clipUrl: undefined,
+    });
+    setDirty(false);
+    toast.success("Narration saved");
   }
 
   function onDrop(e: React.DragEvent) {
@@ -157,6 +176,7 @@ export function SceneCard({
           : "border-white/[0.07] bg-[#0d0d18]"
       }`}
     >
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-white/5 p-3.5">
         <div className="flex items-center gap-2.5">
           <div
@@ -258,39 +278,64 @@ export function SceneCard({
               </label>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-white/15">
-                  {scene.narration.length}/500
+                  {draft.length}/500
                 </span>
-                <Button
+                <button
                   onClick={reAnalyze}
+                  disabled={isAnalyzing || !scene.imageUrl}
                   title="Re-run AI analysis"
-                  className="rounded-md border-0 gap-1 px-1.5 py-0.5 text-[11px] font-semibold transition-colors cursor-pointer"
+                  className={`rounded-md border flex items-center gap-1.5 px-2 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
+                    isAnalyzing
+                      ? "border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[#c9a84c] cursor-not-allowed"
+                      : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                  }`}
                 >
-                  <RotateCcw size={9} /> Re-analyze
-                </Button>
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="animate-spin" size={12} />
+                      <span>Analyzing…</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw size={12} />
+                      <span>Re-analyze</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
             <textarea
-              value={scene.narration}
-              onChange={(e) =>
-                onUpdate({
-                  ...scene,
-                  narration: e.target.value,
-                  clipUrl: undefined,
-                })
-              }
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setDirty(e.target.value !== scene.narration);
+              }}
               rows={6}
               maxLength={500}
               placeholder="AI will generate narration after upload. You can edit it here before generating voice in the Voices and settings panel…"
               className="w-full resize-none rounded-xl border border-white/8 bg-white/5 p-3 text-[13px] leading-relaxed text-white outline-none transition-colors focus:border-[#4a8a42]/40 font-[inherit]"
             />
 
-            {(scene.keyframes?.length ?? 0) > 0 && (
-              <div className="flex items-center gap-1.5 text-[11px] text-white/20">
-                <Sparkles size={10} className="text-[#3a6032]" />
-                {scene.keyframes.length} zoom keyframes detected by AI
-              </div>
-            )}
+            {/* Footer row: keyframes + save */}
+            <div className="flex items-center justify-between min-h-7">
+              {(scene.keyframes?.length ?? 0) > 0 && (
+                <div className="flex items-center gap-1.5 text-[11px] text-white/20">
+                  <Sparkles size={10} className="text-[#3a6032]" />
+                  {scene.keyframes.length} zoom keyframes detected by AI
+                </div>
+              )}
+
+              {dirty && (
+                <button
+                  onClick={saveNarration}
+                  className="ml-auto flex items-center gap-1.5 rounded-md bg-[#4a8a42] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#3d7336] active:scale-95"
+                >
+                  <Save size={12} />
+                  Save narration
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

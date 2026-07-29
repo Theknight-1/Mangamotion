@@ -323,8 +323,8 @@ IconCheck.displayName = "IconCheck";
 
 const IconStar = memo(() => (
   <svg
-    width="14"
-    height="14"
+    width="16"
+    height="16"
     viewBox="0 0 14 14"
     fill="#c9a84c"
     stroke="none"
@@ -588,34 +588,39 @@ const VoiceDemo = memo(function VoiceDemo() {
           return (
             <div
               key={voice}
-              onClick={() => setSelected(index)}
-              onKeyDown={(e) => e.key === "Enter" && setSelected(index)}
-              tabIndex={0}
-              role="button"
-              aria-selected={isSelected}
-              className={`flex min-h-11 cursor-pointer items-center justify-between rounded-lg border pl-4 transition-colors ${
+              className={`flex min-h-11 items-center justify-between rounded-lg border transition-colors ${
                 isSelected
                   ? "border-[#5a9a52] bg-[#5a9a52]/30"
-                  : "border-[#5a9a52]/20 bg-[#5a9a52]/10 hover:bg-[#5a9a52]/15"
+                  : "border-[#5a9a52]/20 bg-[#5a9a52]/10"
               }`}
             >
-              <span
-                className={`text-xs ${
-                  isSelected ? "text-[#d4edb8]" : "text-[#8fb880]"
-                }`}
-              >
-                {voice}
-              </span>
-
+              {/* Select Voice */}
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => setSelected(index)}
+                aria-pressed={isSelected}
+                className={`flex flex-1 items-center self-stretch rounded-l-lg pl-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7fb870] ${
+                  !isSelected ? "hover:bg-[#5a9a52]/15" : ""
+                }`}
+              >
+                <span
+                  className={`text-xs ${
+                    isSelected ? "text-[#d4edb8]" : "text-[#8fb880]"
+                  }`}
+                >
+                  {voice}
+                </span>
+              </button>
+
+              {/* Preview */}
+              <button
+                type="button"
+                onClick={() => {
                   setSelected(index);
                   togglePlay(index);
                 }}
                 aria-label={`Preview ${voice}`}
-                className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[#5a9a52]/15"
+                className="flex h-11 w-11 items-center justify-center rounded-r-lg transition-colors hover:bg-[#5a9a52]/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7fb870]"
               >
                 <span
                   className={
@@ -767,7 +772,11 @@ const TestimonialCard = memo(function TestimonialCard({
   return (
     <FadeIn delay={index * 90}>
       <article className="rounded-2xl border border-[#e6dcc0] bg-white p-5 md:p-6 transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(45,90,39,0.12)]">
-        <div className="mb-4 flex gap-0.5" aria-label="5 out of 5 stars">
+        <div
+          className="mb-4 flex gap-0.5"
+          role="img"
+          aria-label="5 out of 5 stars"
+        >
           {Array.from({ length: 5 }).map((_, j) => (
             <IconStar key={j} />
           ))}
@@ -987,10 +996,10 @@ export default function Page() {
           className="border-y border-[#5a9a52]/18 px-5 py-4"
           aria-label="Key benefits"
         >
-          <ul className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-center gap-6 md:gap-8 text-[13px] text-[#e8d5a3]/60">
+          <ul className="mx-auto flex max-w-270 flex-wrap items-center justify-center gap-6 md:gap-8 text-[13px] text-[#e8d5a3]/70">
             {SOCIAL_PROOF_ITEMS.map((text) => (
-              <li key={text} className="flex items-center gap-1.5">
-                <span className="text-[#5a9a52]" aria-hidden="true">
+              <li key={text} className="flex items-center gap-1.5 ">
+                <span className="text-[#6cec5b]" aria-hidden="true">
                   <IconCheck />
                 </span>
                 {text}
@@ -1096,23 +1105,26 @@ export default function Page() {
 
             <ol className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-4">
               {STEPS.map((step, i) => (
-                <FadeIn key={step.n} delay={i * 100}>
-                  <li className="relative pr-7">
+                <li key={step.n} className="relative pr-7">
+                  <FadeIn delay={i * 100}>
                     <div className="mb-5 text-[36px] font-bold leading-none tabular-nums text-[#5a9a52]/30">
                       {step.n}
                     </div>
+
                     <div
                       className="mb-5 h-8 w-0.5 rounded-full bg-[#5a9a52]/30"
                       aria-hidden="true"
                     />
+
                     <h3 className="mb-2.5 text-base font-semibold text-[#e8d5a3]">
                       {step.title}
                     </h3>
+
                     <p className="m-0 text-sm leading-relaxed text-[#e8d5a3]/65">
                       {step.desc}
                     </p>
-                  </li>
-                </FadeIn>
+                  </FadeIn>
+                </li>
               ))}
             </ol>
           </div>

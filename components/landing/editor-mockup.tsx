@@ -12,7 +12,7 @@ export function EditorMockup() {
       />
 
       <div
-        className="pointer-events-none absolute -inset-14 rounded-[22px] opacity-60 blur-xl"
+        className="pointer-events-none absolute -inset-20 rounded-[60px] opacity-60 blur-xl"
         style={{
           background:
             "linear-gradient(180deg, rgba(34, 197, 94, 0.30) 0%, rgba(22, 163, 74, 0.08) 50%, transparent 100%)",
@@ -22,7 +22,7 @@ export function EditorMockup() {
 
       {/* === BORDER / SHEEN OVERLAY === */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-[18px] ring-2 ring-inset ring-emerald-400/15 z-20"
+        className="pointer-events-none absolute inset-0 rounded-[18px] ring-2 ring-inset ring-[#6cec5b]/15 z-20"
         aria-hidden="true"
       />
 

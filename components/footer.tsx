@@ -9,7 +9,7 @@ export const Footer = () => {
           {/* Logo */}
           <div className="flex items-center gap-2">
             <IconLogo />
-            <span className="text-sm font-medium text-[rgba(232,213,163,0.4)]">
+            <span className="text-sm font-medium text-[rgba(232,213,163,0.88)]">
               MotionRecap
             </span>
           </div>
@@ -25,7 +25,7 @@ export const Footer = () => {
               <a
                 key={link}
                 href="#"
-                className="text-[13px] text-[rgba(232,213,163,0.25)] transition-colors duration-200 hover:text-[#e8d5a3]"
+                className="text-[13px] text-[rgba(232,213,163,0.82)] transition-colors duration-200 hover:text-[#e8d5a3]"
               >
                 {link}
               </a>
