@@ -211,7 +211,7 @@ export function BulkUploader({
           <div className="w-full max-w-3xl rounded-2xl border border-white/[0.07] bg-[#0d0d18] shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/5 p-5">
-              <h2 className="text-base font-bold text-white/90">Add Scenes</h2>
+              <h2 className="text-lg font-bold text-white/90">Add Scenes</h2>
               {!isUploading && (
                 <button
                   onClick={() => setIsOpen(false)}

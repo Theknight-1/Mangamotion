@@ -14,7 +14,6 @@ import {
 import toast from "react-hot-toast";
 import { requestQueue, createQueueKey } from "@/lib/request-queue";
 import type { Scene } from "@/types/scene";
-import { Button } from "./loader-button";
 
 interface SceneCardProps {
   scene: Scene;
@@ -145,11 +144,20 @@ export function SceneCard({
 
   async function reAnalyze() {
     if (!scene.imageUrl || isAnalyzing) return;
-    await analyzePanel(scene.imageUrl, {
+
+    // Immediately set status to "analyzing" so UI shows loader
+    const base: Scene = {
       ...scene,
+      status: "analyzing",
+      narration: "",
+      keyframes: [],
       voice: undefined,
       clipUrl: undefined,
-    });
+    };
+    onUpdate(base);
+
+    // Now run the actual analysis
+    await analyzePanel(scene.imageUrl, base);
   }
 
   function saveNarration() {
@@ -170,7 +178,7 @@ export function SceneCard({
 
   return (
     <div
-      className={`flex flex-col overflow-hidden rounded-xl border transition-colors ${
+      className={`relative flex flex-col overflow-hidden rounded-xl border transition-colors ${
         isDone
           ? "border-[#4a8a42]/30 bg-[#0c170c]/80"
           : "border-white/[0.07] bg-[#0d0d18]"
@@ -191,17 +199,42 @@ export function SceneCard({
           <span className="text-[13px] font-semibold text-white/75">
             Scene {number}
           </span>
-          {isAnalyzing && (
-            <Loader2 size={11} className="animate-spin text-[#c9a84c]" />
-          )}
         </div>
         <button
           onClick={onDelete}
           aria-label="Delete scene"
-          className="flex h-7 w-7 items-center justify-center rounded-md border-0 cursor-pointer transition-colors hover:bg-red-500/10 bg-red-400 text-white hover:text-red-400"
+          className="flex h-7 w-7 z-40 items-center justify-center rounded-md border-0 cursor-pointer transition-colors hover:bg-red-500/10 bg-red-400 text-white hover:text-red-400"
         >
           <Trash2 size={12} />
         </button>
+        {/* Full-card analyzing overlay */}
+        {isAnalyzing && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-xl bg-[#0d0d18]/50 backdrop-blur-sm">
+            <div className="relative">
+              <Loader2 size={28} className="animate-spin text-[#c9a84c]" />
+              <div className="absolute inset-0 animate-ping">
+                <Loader2 size={28} className="text-[#c9a84c]/30" />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[#c9a84c]">
+                AI Analyzing Panel
+              </p>
+              <p className="mt-1 text-xs text-white/40">
+                Detecting keyframes, emotion & generating narration…
+              </p>
+            </div>
+            <div className="mt-1 flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="h-1 w-1 animate-bounce rounded-full bg-[#c9a84c]"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-[160px_1fr] sm:items-start">

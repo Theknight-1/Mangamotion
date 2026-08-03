@@ -12,7 +12,7 @@ export function EditorMockup() {
       />
 
       <div
-        className="pointer-events-none absolute -inset-20 rounded-[60px] opacity-60 blur-xl"
+        className="pointer-events-none absolute -inset-14 rounded-[60px] opacity-60 blur-xl"
         style={{
           background:
             "linear-gradient(180deg, rgba(34, 197, 94, 0.30) 0%, rgba(22, 163, 74, 0.08) 50%, transparent 100%)",
@@ -36,7 +36,7 @@ export function EditorMockup() {
       />
 
       {/* === MAIN CARD === */}
-      <div className="relative overflow-hidden rounded-[18px] border border-white/[0.06] bg-[#0e0e0e] shadow-2xl shadow-black/50">
+      <div className="relative overflow-hidden rounded-[18px] border border-white/6 bg-[#0e0e0e] shadow-2xl shadow-black/50">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#111] px-4 py-2.5">
           <div className="flex items-center gap-2.5">

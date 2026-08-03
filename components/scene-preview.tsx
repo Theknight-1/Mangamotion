@@ -28,7 +28,7 @@ export function ScenePreview({
 
   return (
     <div
-      className="relative xl:w-full 2xl:w-[70%] mx-auto overflow-hidden rounded-xl border border-white/8 bg-[#0d0d18]"
+      className="relative xl:w-full 2xl:w-[75%] mx-auto overflow-hidden rounded-xl border border-white/8 bg-[#0d0d18]"
       style={{ aspectRatio: ratio, maxHeight: "60vh" }}
     >
       {showFinalVideo ? (

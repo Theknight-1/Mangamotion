@@ -20,6 +20,14 @@ import { SceneListPanel } from "@/components/scene-list-panel";
 import { ScenePreview } from "@/components/scene-preview";
 import { SceneCard } from "@/components/scene-card";
 import { RightPanel, type RightPanelTab } from "@/components/right-panel";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 interface VideoRaw {
@@ -92,6 +100,50 @@ export default function EditorPage() {
   useEffect(() => {
     if (session?.data?.user) fetchVideo();
   }, [session, videoId]);
+
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Don't interfere with text inputs
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      // Ctrl/Cmd + S → save title
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        saveTitle();
+        return;
+      }
+
+      if (!video) return;
+
+      const currentIndex = video.timeline.findIndex(
+        (s) => s.id === activeSceneId,
+      );
+      if (currentIndex === -1) return;
+
+      // Arrow Left/Up → previous scene
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (currentIndex > 0) {
+          setActiveSceneId(video.timeline[currentIndex - 1].id);
+        }
+      }
+      // Arrow Right/Down → next scene
+      else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        if (currentIndex < video.timeline.length - 1) {
+          setActiveSceneId(video.timeline[currentIndex + 1].id);
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [video, activeSceneId]);
 
   async function fetchVideo() {
     try {
@@ -233,6 +285,26 @@ export default function EditorPage() {
           )}
         </div>
 
+        {/* Scene stats */}
+        {video.timeline.length > 0 && (
+          <div className="flex shrink-0 items-center gap-3 text-xs text-white/30">
+            <span className="flex items-center gap-1">
+              <Clock size={11} />
+              {video.timeline.length} scenes
+            </span>
+            <span className="text-white/10">·</span>
+            <span>
+              {Math.round(
+                video.timeline.reduce(
+                  (sum, s) => sum + (s.voice?.duration ?? 0),
+                  0,
+                ),
+              )}
+              s total
+            </span>
+          </div>
+        )}
+
         <div
           className={`flex shrink-0 items-center gap-1.5 text-xs font-medium ${statusCfg.color}`}
         >
@@ -242,6 +314,38 @@ export default function EditorPage() {
           />
           {statusCfg.label}
         </div>
+
+        <Select
+          value={video.aspectRatio || "9:16"}
+          onValueChange={(value) =>
+            updateVideo({ aspectRatio: value ?? undefined })
+          }
+        >
+          <SelectTrigger className="w-32 rounded-md border border-white/10 bg-white/5 backdrop-blur-md text-white hover:border-[#c9a84c]/50">
+            <SelectValue />
+          </SelectTrigger>
+
+          <SelectContent className="rounded-md border border-white/10 bg-[#111] text-white">
+            <SelectItem value="9:16">📱 9:16 • Reels</SelectItem>
+            <SelectItem value="16:9">📺 16:9 • YouTube</SelectItem>
+            <SelectItem value="1:1">⬜ 1:1 • Square</SelectItem>
+            <SelectItem value="4:5">📸 4:5 • Portrait</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Subtitle toggle */}
+        <button
+          onClick={() =>
+            updateVideo({ subtitlesEnabled: !video.subtitlesEnabled })
+          }
+          className={`shrink-0 cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+            video.subtitlesEnabled
+              ? "border-[#4a8a42]/30 bg-[#4a8a42]/10 text-[#7fb870]"
+              : "border-white/10 bg-white/5 text-white/40 hover:bg-white/10"
+          }`}
+        >
+          CC {video.subtitlesEnabled ? "ON" : "OFF"}
+        </button>
 
         <button
           onClick={() => setRightTab("export")}
@@ -266,33 +370,49 @@ export default function EditorPage() {
 
         {/* Center: preview + scene card */}
         <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-6">
-          <ScenePreview
-            status={video.status as any}
-            videoUrl={video.videoUrl}
-            subtitlesEnabled={video.subtitlesEnabled}
-            subtitleUrl={video.subtitleUrl}
-            aspectRatio={video.aspectRatio}
-            activeScene={activeScene}
-            sceneCount={video.timeline.length}
-          />
-
-          {activeScene ? (
-            <SceneCard
-              key={activeScene.id}
-              scene={activeScene}
-              number={activeScene.index + 1}
-              videoId={videoId}
-              allScenes={video.timeline}
-              onUpdate={handleSceneUpdate}
-              onDelete={() => handleSceneDelete(activeScene.id)}
+          {/* Constrain preview width based on aspect ratio */}
+          <div
+            className={`mx-auto w-full ${
+              video.aspectRatio === "16:9"
+                ? "max-w-[90%]"
+                : video.aspectRatio === "1:1"
+                  ? "max-w-[65%]"
+                  : video.aspectRatio === "4:5"
+                    ? "max-w-[55%]"
+                    : "max-w-105"
+            }`}
+          >
+            <ScenePreview
+              status={video.status as any}
+              videoUrl={video.videoUrl}
+              subtitlesEnabled={video.subtitlesEnabled}
+              subtitleUrl={video.subtitleUrl}
+              aspectRatio={video.aspectRatio}
+              activeScene={activeScene}
+              sceneCount={video.timeline.length}
             />
-          ) : (
-            <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-white/[0.07] py-12 text-center">
-              <p className="text-sm text-white/30">
-                Select a scene from the list, or add a new one to get started
-              </p>
-            </div>
-          )}
+          </div>
+
+          {/* Scene card — also constrained for consistency */}
+          <div className="mx-auto w-full">
+            {activeScene ? (
+              <SceneCard
+                key={activeScene.id}
+                scene={activeScene}
+                number={activeScene.index + 1}
+                videoId={videoId}
+                allScenes={video.timeline}
+                onUpdate={handleSceneUpdate}
+                onDelete={() => handleSceneDelete(activeScene.id)}
+              />
+            ) : (
+              <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-white/[0.07] py-12 text-center">
+                <p className="text-sm text-white/30">
+                  Select a scene from the list, or add a new one to get started
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: voices & export */}

@@ -767,7 +767,7 @@ export default function DashboardPage() {
                     : "space-y-2"
                 }
               >
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3].map((i) => (
                   <Skeleton
                     key={i}
                     className={viewMode === "grid" ? "h-56" : "h-14"}

@@ -30,28 +30,32 @@ interface FlatVoice {
   uniqueKey: string;
 }
 
-export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceGenerated }: VoiceGeneratorProps) {
-  const [text, setText] = useState(prefillText)
-  const [search, setSearch] = useState('')
-  const [flatVoices, setFlatVoices] = useState<FlatVoice[]>([])
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null)
-  const [generating, setGenerating] = useState(false)
-  const [loadingVoices, setLoadingVoices] = useState(true)
-  const [previewingId, setPreviewingId] = useState<string | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasAutoSelected = useRef(false)
+// ── Module-level cache (survives component remounts) ──
+const voiceCache = new Map<string, FlatVoice[]>();
+const pendingFetches = new Map<string, Promise<FlatVoice[]>>();
 
-  useEffect(() => { setText(prefillText) }, [prefillText])
+async function fetchVoicesCached(q: string): Promise<FlatVoice[]> {
+  const cacheKey = q || "__all__";
 
-  const fetchVoices = useCallback(async (q: string) => {
-    setLoadingVoices(true)
+  // Return cached result immediately
+  if (voiceCache.has(cacheKey)) {
+    return voiceCache.get(cacheKey)!;
+  }
+
+  // If a fetch for this query is already in-flight, wait for it
+  if (pendingFetches.has(cacheKey)) {
+    return pendingFetches.get(cacheKey)!;
+  }
+
+  const fetchPromise = (async () => {
     try {
-      const res = await fetch(`/api/voice-profiles?q=${encodeURIComponent(q)}&limit=20`)
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      const profiles = data.profiles ?? []
-      
+      const res = await fetch(
+        `/api/voice-profiles?q=${encodeURIComponent(q)}&limit=50`,
+      );
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const profiles = data.profiles ?? [];
+
       const flat: FlatVoice[] = profiles.map((p: any, index: number) => ({
         voice_id: p.voice_id,
         label: p.name,
@@ -61,67 +65,149 @@ export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceG
         uniqueKey: `${p.voice_id}-${p.character}-${index}`,
       }));
 
-      setFlatVoices(flat);
-      
-      if (!hasAutoSelected.current && flat.length > 0) {
-        setSelectedVoice(flat[0].voice_id)
-        hasAutoSelected.current = true
-      }
-    } catch {
-      toast.error('Failed to load voices')
+      voiceCache.set(cacheKey, flat);
+      return flat;
     } finally {
-      setLoadingVoices(false)
+      pendingFetches.delete(cacheKey);
     }
-  }, [])
+  })();
 
-  useEffect(() => { 
-    fetchVoices('')
-  }, [fetchVoices])
+  pendingFetches.set(cacheKey, fetchPromise);
+  return fetchPromise;
+}
+
+// Optional: invalidate cache when needed (e.g., after adding new voice profiles)
+export function invalidateVoiceCache() {
+  voiceCache.clear();
+  pendingFetches.clear();
+}
+
+export function VoiceGenerator({
+  videoId,
+  sceneIndex,
+  prefillText = "",
+  onVoiceGenerated,
+}: VoiceGeneratorProps) {
+  const [text, setText] = useState(prefillText);
+  const [search, setSearch] = useState("");
+  const [flatVoices, setFlatVoices] = useState<FlatVoice[]>(
+    () => voiceCache.get("__all__") ?? [],
+  );
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [loadingVoices, setLoadingVoices] = useState(
+    () => !voiceCache.has("__all__"),
+  );
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasAutoSelected = useRef(false);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchVoices(search), 300)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [search, fetchVoices])
+    setText(prefillText);
+  }, [prefillText]);
+
+  // Initial load — reads from cache if available, no refetch
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const voices = await fetchVoicesCached("");
+        if (!mounted) return;
+        setFlatVoices(voices);
+        if (!hasAutoSelected.current && voices.length > 0) {
+          setSelectedVoice(voices[0].voice_id);
+          hasAutoSelected.current = true;
+        }
+      } catch {
+        toast.error("Failed to load voices");
+      } finally {
+        if (mounted) setLoadingVoices(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Debounced search — also cached
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      // Skip fetch if search matches cached query
+      const cached = voiceCache.get(search || "__all__");
+      if (cached) {
+        setFlatVoices(cached);
+        return;
+      }
+      setLoadingVoices(true);
+      try {
+        const voices = await fetchVoicesCached(search);
+        setFlatVoices(voices);
+      } catch {
+        toast.error("Failed to load voices");
+      } finally {
+        setLoadingVoices(false);
+      }
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [search]);
 
   function togglePreview(voice: FlatVoice) {
-    if (!voice.preview_url) return
-    
+    if (!voice.preview_url) return;
+
     if (previewingId === voice.voice_id) {
-      audioRef.current?.pause()
-      setPreviewingId(null)
-      return
+      audioRef.current?.pause();
+      setPreviewingId(null);
+      return;
     }
-    if (audioRef.current) audioRef.current.pause()
-    const audio = new Audio(voice.preview_url)
-    audio.onended = () => setPreviewingId(null)
+    if (audioRef.current) audioRef.current.pause();
+    const audio = new Audio(voice.preview_url);
+    audio.onended = () => setPreviewingId(null);
     audio.onerror = () => {
-      setPreviewingId(null)
-      toast.error('Failed to play preview')
-    }
-    audio.play()
-    audioRef.current = audio
-    setPreviewingId(voice.voice_id)
+      setPreviewingId(null);
+      toast.error("Failed to play preview");
+    };
+    audio.play();
+    audioRef.current = audio;
+    setPreviewingId(voice.voice_id);
   }
 
-  useEffect(() => () => { audioRef.current?.pause() }, [])
+  useEffect(
+    () => () => {
+      audioRef.current?.pause();
+    },
+    [],
+  );
 
-  const selectedMeta = flatVoices.find(v => v.voice_id === selectedVoice)
-  const textTooShort = text.trim().length < 50
-  const textTooLong = text.trim().length > 500
+  const selectedMeta = flatVoices.find((v) => v.voice_id === selectedVoice);
+  const textTooShort = text.trim().length < 50;
+  const textTooLong = text.trim().length > 500;
 
   async function generateVoice() {
-    if (textTooShort) { toast.error('Text must be at least 50 characters'); return }
-    if (textTooLong) { toast.error('Text must be 500 characters or less'); return }
-    if (!selectedVoice) { toast.error('Select a voice'); return }
-    
+    if (textTooShort) {
+      toast.error("Text must be at least 50 characters");
+      return;
+    }
+    if (textTooLong) {
+      toast.error("Text must be 500 characters or less");
+      return;
+    }
+    if (!selectedVoice) {
+      toast.error("Select a voice");
+      return;
+    }
+
     setGenerating(true);
 
+    // In voice-generator.tsx, inside generateVoice():
     const queueKey = createQueueKey("voice-gen", {
       videoId,
       sceneIndex,
       voiceId: selectedVoice,
-      textHash: text.trim().length,
+      textHash: text.trim().substring(0, 100),
     });
 
     try {
@@ -150,10 +236,10 @@ export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceG
       onVoiceGenerated(data.voice.audioUrl, data.voice.duration);
       toast.success("Voice generated successfully!");
     } catch (e: any) {
-      toast.error(e.message || 'Failed to generate voice')
-      console.error('Voice generation error:', e)
+      toast.error(e.message || "Failed to generate voice");
+      console.error("Voice generation error:", e);
     } finally {
-      setGenerating(false)
+      setGenerating(false);
     }
   }
 
@@ -203,7 +289,7 @@ export function VoiceGenerator({ videoId, sceneIndex, prefillText = '', onVoiceG
         </div>
 
         {/* Visual Avatar Grid instead of flat table row list */}
-        <div className="max-h-66 overflow-y-auto pr-1 hide-scrollbar">
+        <div className="max-h-80 overflow-y-auto pr-1 hide-scrollbar">
           {loadingVoices ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2 text-zinc-500">
               <Loader2 size={16} className="animate-spin text-violet-400" />

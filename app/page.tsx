@@ -937,7 +937,7 @@ export default function Page() {
             <FadeIn delay={80}>
               <h1
                 id="hero-heading"
-                className="mb-10 font-bold leading-[1.05] tracking-[-0.03em] text-[#e8d5a3] md:mt-15"
+                className="mb-6 md:mb-10 font-bold leading-[1.05] tracking-[-0.03em] text-[#e8d5a3] md:mt-15"
                 style={{ fontSize: "clamp(40px, 6.5vw, 76px)" }}
               >
                 Bring your manga
@@ -948,7 +948,7 @@ export default function Page() {
 
             <FadeIn delay={160}>
               <p
-                className="mx-auto mb-10 max-w-[600px] leading-snug text-[#e8d5a3]/70"
+                className="mx-auto mb-6 md:mb-10 max-w-[600px] leading-snug text-[#e8d5a3]/70"
                 style={{ fontSize: "clamp(16px, 2vw, 20px)" }}
               >
                 Upload manga images, assign 100+ AI character voices, compose a
@@ -960,15 +960,15 @@ export default function Page() {
               <div className="flex flex-wrap justify-center gap-3">
                 <a
                   href="/signup"
-                  className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80"
+                  className="inline-flex min-h-12 w-full md:w-max mx-5 md:mx-0 justify-center items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80"
                 >
                   Start creating free <IconArrow />
                 </a>
                 <a
                   href="#how-it-works"
-                  className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-[#5a9a52]/60 px-7 py-3.5 text-[15px] font-medium text-[#e8d5a3]/65 no-underline transition-all hover:border-[#5a9a52]/55 hover:text-[#e8d5a3]"
+                  className="inline-flex min-h-12 w-full md:w-max mx-5 md:mx-0 justify-center items-center gap-2 rounded-xl border border-[#5a9a52]/60 px-7 py-3.5 text-[15px] font-medium text-[#e8d5a3]/65 no-underline transition-all hover:border-[#5a9a52]/55 hover:text-[#e8d5a3]"
                 >
-                  See how it works
+                  See how it works 
                 </a>
               </div>
             </FadeIn>

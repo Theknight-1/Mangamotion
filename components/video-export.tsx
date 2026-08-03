@@ -28,6 +28,22 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
   const [loading, setLoading] = useState(false)
   const [polling, setPolling] = useState(false)
 
+  // Fetch initial status on mount so we know if incremental rendering is possible
+  useEffect(() => {
+    async function fetchStatus() {
+      try {
+        const response = await fetch(`/api/videos/${videoId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setStatus(data.video)
+        }
+      } catch (error) {
+        console.error('[v0] Fetch status error:', error)
+      }
+    }
+    fetchStatus()
+  }, [videoId])
+
   useEffect(() => {
     let pollInterval: NodeJS.Timeout
 
@@ -58,7 +74,7 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
     }
   }, [polling, videoId])
 
-  async function startRender() {
+  async function startRender(isFullRender = false) {
     if (scenes.length === 0) {
       toast.error('Add at least one scene to render')
       return
@@ -66,22 +82,26 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
 
     setLoading(true)
     try {
-      const response = await fetch('/api/render-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/render-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           videoId,
           timeline: scenes,
-          aspectRatio,       // 🆕 Send selected aspect ratio
-          subtitlesEnabled,  // 🆕 Send subtitle toggle state
+          aspectRatio,
+          subtitlesEnabled,
+          // Send incremental if we have a previously rendered video and it's not a full re-render
+          isIncremental: !!status?.videoUrl && !isFullRender,
+          // Force full render if user explicitly requests it
+          forceFullRender: isFullRender,
         }),
-      })
+      });
 
-      if (!response.ok) throw new Error('Render request failed')
+      if (!response.ok) throw new Error("Render request failed");
 
-      toast.success('Rendering started! Preparing your video...')
-      setPolling(true)
-      onExportStart?.()
+      toast.success(isFullRender ? "Re-rendering all scenes..." : "Rendering started! Preparing your video...");
+      setPolling(true);
+      onExportStart?.();
     } catch (error) {
       console.error('[v0] Render error:', error)
       toast.error('Failed to start rendering')
@@ -100,6 +120,9 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
       document.body.removeChild(link)
     }
   }
+
+  // Check if an existing video URL is present (meaning incremental is possible)
+  const canIncremental = !!status?.videoUrl
 
   return (
     <div className="rounded-lg p-3">
@@ -166,22 +189,34 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
             </div>
           )}
 
-          {status.status === "draft" && (
-            <Button
-              onClick={startRender}
-              disabled={loading}
-              className="w-full  py-2 rounded-lg  disabled:opacity-50"
-            >
-              <Play size={20} />
-              {loading ? "Starting..." : "Start Rendering"}
-            </Button>
+          {status.status !== "processing" && (
+            <div className={`space-y-2 ${status.status === 'completed' ? 'pt-4 mt-2 border-t border-white/5' : ''}`}>
+              <Button
+                onClick={() => startRender(false)}
+                disabled={loading}
+                className="w-full py-2 rounded-lg disabled:opacity-50 cursor-pointer"
+              >
+                <Play size={20} className="fill-current" />
+                {loading ? "Starting..." : canIncremental ? "Render New Scenes" : "Start Rendering"}
+              </Button>
+              {canIncremental && (
+                <Button
+                  onClick={() => startRender(true)}
+                  disabled={loading}
+                  className="w-full py-2 rounded-lg disabled:opacity-50 cursor-pointer text-slate-400 hover:text-white border border-white/10 bg-transparent hover:bg-white/5"
+                >
+                  <RotateCw size={18} />
+                  Re-render All Scenes
+                </Button>
+              )}
+            </div>
           )}
         </div>
       ) : (
         <Button
-          onClick={startRender}
+          onClick={() => startRender(false)}
           disabled={loading || scenes.length === 0}
-          className="w-full  cursor-pointer  font-semibold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full cursor-pointer font-semibold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Play size={20} className="fill-accent-foreground" />
           {loading ? "Preparing..." : `Render Video (${scenes.length} scenes)`}

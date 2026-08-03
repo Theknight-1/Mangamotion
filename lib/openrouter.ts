@@ -13,7 +13,7 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 // Qwen2.5-VL benchmarks ~75% on document/text OCR tasks — best free vision
 // model for this use case as of testing. Source: GetOmni OCR benchmark.
 const OPENROUTER_MODEL_CHAIN = [
-  "qwen/qwen2.5-vl-72b-instruct",
+  "openai/gpt-image-2",
   "qwen/qwen2.5-vl-72b-instruct",
   "meta-llama/llama-4-maverick",
   "meta-llama/llama-3.2-11b-vision-instruct",
