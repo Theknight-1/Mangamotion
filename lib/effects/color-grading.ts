@@ -4,13 +4,7 @@
 // no API call) and maps it to an FFmpeg color grading filter string.
 // Used by the render pipeline to give each scene a distinct cinematic feel.
 
-export type Emotion =
-  | "action"
-  | "drama"
-  | "horror"
-  | "comedy"
-  | "romance"
-  | "mystery";
+import { Emotion } from "@/types/scene";
 
 interface EmotionProfile {
   contrast: number;
@@ -30,6 +24,14 @@ export const EMOTION_PROFILES: Record<Emotion, EmotionProfile> = {
   comedy: { contrast: 1.04, brightness: 0.06, saturation: 1.15, gamma: 1.04 },
   romance: { contrast: 1.0, brightness: 0.04, saturation: 1.18, gamma: 1.02 },
   mystery: { contrast: 1.12, brightness: -0.03, saturation: 0.85, gamma: 0.92 },
+  awe: { contrast: 1.1, brightness: 0.02, saturation: 1.2, gamma: 1.01 },
+  melancholy: {
+    contrast: 0.95,
+    brightness: -0.05,
+    saturation: 0.8,
+    gamma: 0.95,
+  },
+  tension: { contrast: 1.15, brightness: -0.02, saturation: 0.9, gamma: 0.9 },
 };
 
 const EMOTION_KEYWORDS: Record<Emotion, string[]> = {
@@ -97,6 +99,36 @@ const EMOTION_KEYWORDS: Record<Emotion, string[]> = {
     "discover",
     "unknown",
     "suspect",
+  ],
+  awe: [
+    "amazing",
+    "incredible",
+    "wonderful",
+    "spectacular",
+    "extraordinary",
+    "marvelous",
+    "astounding",
+    "breathtaking",
+  ],
+  melancholy: [
+    "sad",
+    "depressed",
+    "gloomy",
+    "melancholic",
+    "pensive",
+    "thoughtful",
+    "longing",
+    "yearning",
+  ],
+  tension: [
+    "tense",
+    "anxious",
+    "nervous",
+    "stressed",
+    "uneasy",
+    "restless",
+    "anticipate",
+    "expectant",
   ],
 };
 

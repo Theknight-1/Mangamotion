@@ -26,15 +26,13 @@ import {
 } from "@/app/actions/subscription/usages";
 
 // ── FFmpeg binary resolution ────────────────────────────────────────────────
-if (process.env.FFMPEG_PATH) {
-  ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH);
-}
-
-if (process.env.FFPROBE_PATH) {
-  ffmpeg.setFfprobePath(process.env.FFPROBE_PATH);
-}
+if (process.env.FFMPEG_PATH) ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH);
+if (process.env.FFPROBE_PATH) ffmpeg.setFfprobePath(process.env.FFPROBE_PATH);
 
 const FPS = 30;
+const CROSSFADE_AUDIO_PAD = 0.35;
+// Production: Limit concurrent segment renders to prevent OOM on serverless
+const MAX_CONCURRENT_RENDERS = 3;
 
 const RESOLUTIONS: Record<
   AspectRatio,
@@ -46,23 +44,29 @@ const RESOLUTIONS: Record<
   "4:5": { "1080p": { w: 1080, h: 1350 }, "4k": { w: 2688, h: 3360 } },
 };
 
-// A small silence buffer added to every non-final scene so the 0.3s audio
-// crossfade at the cut blends into trailing silence instead of clipping the
-// tail of one narration line into the head of the next one.
-const CROSSFADE_AUDIO_PAD = 0.35;
-
-interface CropRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-interface ImageSize {
-  w: number;
-  h: number;
-}
-
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+/** Runs async tasks with bounded concurrency to prevent memory exhaustion */
+async function pLimit<T>(
+  tasks: (() => Promise<T>)[],
+  limit: number,
+): Promise<T[]> {
+  const results: T[] = [];
+  let index = 0;
+
+  async function worker() {
+    while (index < tasks.length) {
+      const i = index++;
+      results[i] = await tasks[i]();
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () =>
+    worker(),
+  );
+  await Promise.all(workers);
+  return results;
+}
 
 async function downloadToFile(url: string, destPath: string): Promise<void> {
   const opts: RequestInit = {};
@@ -76,32 +80,23 @@ async function downloadToFile(url: string, destPath: string): Promise<void> {
   await fs.writeFile(destPath, Buffer.from(await res.arrayBuffer()));
 }
 
-async function copyLocalMedia(url: string, destPath: string): Promise<boolean> {
-  try {
-    const localPath = path.join(process.cwd(), "public", url);
-    await fs.copyFile(localPath, destPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function resolveMedia(url: string, destPath: string): Promise<void> {
   if (url.startsWith("http")) {
     await downloadToFile(url, destPath);
   } else {
-    const ok = await copyLocalMedia(url, destPath);
-    if (!ok) throw new Error(`Local media not found: ${url}`);
+    const localPath = path.join(process.cwd(), "public", url);
+    await fs.copyFile(localPath, destPath).catch(() => {
+      throw new Error(`Local media not found: ${url}`);
+    });
   }
 }
 
-function probeSize(filePath: string): Promise<ImageSize> {
+function probeSize(filePath: string): Promise<{ w: number; h: number }> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err, meta) => {
       if (err) return reject(new Error(`ffprobe failed: ${err.message}`));
       const s = meta.streams.find((s) => s.codec_type === "video");
-      if (!s?.width || !s?.height)
-        return reject(new Error("No video stream found"));
+      if (!s?.width || !s?.height) return reject(new Error("No video stream"));
       resolve({ w: s.width, h: s.height });
     });
   });
@@ -111,13 +106,24 @@ function probeDuration(filePath: string): Promise<number> {
   return new Promise((resolve) => {
     ffmpeg.ffprobe(filePath, (err, meta) => {
       if (err) return resolve(0);
-      const dur = meta.format.duration ?? 0;
-      resolve(dur <= 0 ? 0 : dur);
+      resolve(Math.max(0, meta.format.duration ?? 0));
     });
   });
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Crop & Keyframe Math ───────────────────────────────────────────────────
+
+interface CropRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+interface ImageSize {
+  w: number;
+  h: number;
+}
+
 function normToPixels(
   kf: Keyframe,
   img: ImageSize,
@@ -136,26 +142,19 @@ function normToPixels(
     maxH = Math.floor(maxW / targetAspect);
   }
 
-  // This clamp used to allow zooming as far as 90% of the max possible
-  // crop, on top of a crop that's already tight because we're forcing a
-  // wide/square manga panel into a 9:16 frame. Stacking both was cropping
-  // out panel edges, faces, and speech bubbles. 95% leaves much less
-  // headroom for that extra zoom.
   const minW = maxW * 0.95;
   const minH = maxH * 0.95;
 
   let cw = kf.w * img.w;
   let ch = kf.h * img.h;
 
-  if (cw / ch > targetAspect) {
-    cw = ch * targetAspect;
-  } else {
-    ch = cw / targetAspect;
-  }
+  if (cw / ch > targetAspect) cw = ch * targetAspect;
+  else ch = cw / targetAspect;
 
   cw = Math.max(minW, Math.min(cw, maxW));
   ch = Math.max(minH, Math.min(ch, maxH));
 
+  // Ensure even dimensions for h264
   cw = Math.max(2, Math.floor(cw / 2) * 2);
   ch = Math.max(2, Math.floor(ch / 2) * 2);
 
@@ -174,7 +173,7 @@ function normToPixels(
   return { x: cx, y: cy, w: cw, h: ch };
 }
 
-// ─── Segment renderer with Cinematic Effects ─────────────────────────────
+// ─── Segment Renderer (Production Grade) ──────────────────────────────────
 
 async function renderSegment(
   imagePath: string,
@@ -191,9 +190,8 @@ async function renderSegment(
   const totalFrames = Math.max(2, Math.round(duration * FPS));
   const N = Math.max(1, totalFrames - 1);
 
-  const smooth = (s: number, e: number): string => {
-    return `${s}+(${e}-${s})*(0.5-0.5*cos(PI*n/${N}))`;
-  };
+  const smooth = (s: number, e: number): string =>
+    `${s}+(${e}-${s})*(0.5-0.5*cos(PI*n/${N}))`;
 
   const maxCropW = Math.max(startCrop.w, endCrop.w);
   const maxCropH = Math.max(startCrop.h, endCrop.h);
@@ -209,14 +207,14 @@ async function renderSegment(
   const safeMaxW = Math.max(2, scaledW - 4);
   const safeMaxH = Math.max(2, scaledH - 4);
 
-  const sSX = startCrop.x * sf;
-  const sSY = startCrop.y * sf;
-  const sSW = startCrop.w * sf;
-  const sSH = startCrop.h * sf;
-  const eSX = endCrop.x * sf;
-  const eSY = endCrop.y * sf;
-  const eSW = endCrop.w * sf;
-  const eSH = endCrop.h * sf;
+  const sSX = startCrop.x * sf,
+    sSY = startCrop.y * sf;
+  const sSW = startCrop.w * sf,
+    sSH = startCrop.h * sf;
+  const eSX = endCrop.x * sf,
+    eSY = endCrop.y * sf;
+  const eSW = endCrop.w * sf,
+    eSH = endCrop.h * sf;
 
   const rawWE = smooth(sSW, eSW);
   const rawHE = smooth(sSH, eSH);
@@ -225,22 +223,30 @@ async function renderSegment(
 
   const wE = `min(max(${rawWE}\\,2)\\,${safeMaxW})`;
   const hE = `min(max(${rawHE}\\,2)\\,${safeMaxH})`;
-
   let xE = `min(max(${rawXE}\\,0)\\,${scaledW}-(${wE}))`;
   let yE = `min(max(${rawYE}\\,0)\\,${scaledH}-(${hE}))`;
 
   if (effects.includes("shake")) {
-    const shakeX = `(${xE})+12*sin(n/5)`;
-    const shakeY = `(${yE})+12*cos(n/5)`;
-    xE = `min(max(${shakeX}\\,0)\\,${scaledW}-(${wE}))`;
-    yE = `min(max(${shakeY}\\,0)\\,${scaledH}-(${hE}))`;
+    xE = `min(max((${xE})+12*sin(n/5)\\,0)\\,${scaledW}-(${wE}))`;
+    yE = `min(max((${yE})+12*cos(n/5)\\,0)\\,${scaledH}-(${hE}))`;
   }
 
-  const filterChain = [
-    `scale=${scaledW}:${scaledH}:flags=fast_bilinear`,
-    `crop=${wE}:${hE}:${xE}:${yE}`,
-    `scale=${outW}:${outH}:flags=fast_bilinear`,
-  ];
+  // PRODUCTION FILTER CHAIN — swscale only (zscale incompatible with mjpeg unknown matrix)
+const filterChain: string[] = [
+  // Step 1: Scale to intermediate resolution with explicit range handling
+  `scale=${scaledW}:${scaledH}:flags=lanczos:in_range=pc:out_range=pc`,
+
+  // Step 2: Animated crop
+  `crop=${wE}:${hE}:${xE}:${yE}`,
+
+  // Step 3: Final scale to output with colorspace conversion via swscale
+  // in_color_matrix=bt470bg tells swscale to treat the undefined-matrix JPEG as BT.601
+  // out_color_matrix=bt709 + out_range=tv produces standard h264 output
+  `scale=${outW}:${outH}:flags=lanczos:in_color_matrix=bt470bg:out_color_matrix=bt709:in_range=pc:out_range=tv`,
+
+  // Step 4: Ensure pixel format for libx264
+  `format=yuv420p`,
+];
 
   if (emotion) {
     const colorFilter = getColorGradingFilter(emotion);
@@ -249,43 +255,41 @@ async function renderSegment(
     filterChain.push(`eq=contrast=1.05:brightness=0.02:saturation=1.05`);
   }
 
-  if (effects.includes("flash")) {
-    filterChain.push(`eq=brightness=0.6:enable='between(t\\,0\\,0.15)'`);
-  }
-  if (effects.includes("fade_in")) {
-    filterChain.push(`fade=t=in:st=0:d=0.5`);
-  }
+  // Subtle grain hides banding/compression artifacts in dark scenes
+  filterChain.push(`noise=alls=2:allf=t+u`);
 
-  const filterString = filterChain.join(",");
+  if (effects.includes("flash"))
+    filterChain.push(`eq=brightness=0.6:enable='between(t\\,0\\,0.15)'`);
+  if (effects.includes("fade_in")) filterChain.push(`fade=t=in:st=0:d=0.5`);
+
   const safeImagePath = imagePath.replace(/\\/g, "/");
   const safeOutPath = outPath.replace(/\\/g, "/");
 
   return new Promise((resolve, reject) => {
     ffmpeg(safeImagePath)
-      .inputOptions(["-loop 1", "-err_detect", "ignore_err"])
+      .inputOptions(["-loop 1", "-framerate", String(FPS)])
       .duration(duration)
       .outputOptions([
-        `-vf ${filterString}`,
-        `-r ${FPS}`,
+        `-vf ${filterChain.join(",")}`,
         "-pix_fmt yuv420p",
         "-c:v libx264",
-        "-preset veryfast",
-        "-crf 16",
-        "-maxrate 5000k",
-        "-bufsize 10000k",
+        "-preset slow", // Better quality per bit than veryfast
+        "-crf 18", // Visually lossless for production
+        "-maxrate 8000k", // Higher ceiling for 4K
+        "-bufsize 16000k",
         "-movflags +faststart",
       ])
       .output(safeOutPath)
       .on("end", () => resolve())
-      .on("error", (err, _stdout, stderr) => {
+      .on("error", (_err, _stdout, stderr) => {
         console.error(`[segment] FFmpeg stderr:`, stderr);
-        reject(new Error(`segment: ${err.message}`));
+        reject(new Error(`segment render failed`));
       })
       .run();
   });
 }
 
-// ─── Scene clip renderer ──────────────────────────────────────────────────
+// ─── Scene Clip Renderer ──────────────────────────────────────────────────
 
 async function renderSceneClip(
   imagePath: string,
@@ -318,11 +322,11 @@ async function renderSceneClip(
     kfs.push({ ...kfs[kfs.length - 1], t: duration });
   }
 
+  // Vertical pan fallback for narrow panels
   const sourceAspect = img.w / img.h;
   const targetAspect = outW / outH;
-
   if (sourceAspect < targetAspect * 0.8) {
-    const panH = Math.max(0.6, 0.7);
+    const panH = 0.7;
     const maxY = Math.max(0, 1 - panH);
     kfs = [
       { t: 0, x: 0, y: 0, w: 1, h: panH },
@@ -358,7 +362,8 @@ async function renderSceneClip(
     return;
   }
 
-  const subClipPromises = segments.map((seg, i) => {
+  // Bounded concurrency prevents OOM on serverless
+  const subClipTasks = segments.map((seg, i) => () => {
     const segPath = path.join(tmpDir, `s${sceneIdx}-seg${i}.mp4`);
     const startCrop = normToPixels(seg.from, img, outW, outH);
     const endCrop = normToPixels(seg.to, img, outW, outH);
@@ -376,7 +381,7 @@ async function renderSceneClip(
     ).then(() => segPath);
   });
 
-  const subClips = await Promise.all(subClipPromises);
+  const subClips = await pLimit(subClipTasks, MAX_CONCURRENT_RENDERS);
 
   if (subClips.length === 1) {
     await fs.copyFile(subClips[0], outPath);
@@ -385,8 +390,6 @@ async function renderSceneClip(
 
   await concatClips(subClips, outPath, tmpDir, sceneIdx);
 }
-
-// ─── Concat ──────────────────────────────────────────────────────────────
 
 function concatClips(
   clipPaths: string[],
@@ -405,7 +408,7 @@ function concatClips(
         ffmpeg()
           .input(listPath)
           .inputOptions(["-f concat", "-safe 0"])
-          .outputOptions(["-c copy"])
+          .outputOptions(["-c copy"]) // Stream copy - zero re-encode
           .output(outPath)
           .on("end", () => resolve())
           .on("error", (err) => reject(new Error(`concat: ${err.message}`)))
@@ -415,7 +418,7 @@ function concatClips(
   });
 }
 
-// ─── Audio helpers ───────────────────────────────────────────────────────
+// ─── Audio Pipeline (EBU R128 Normalized) ─────────────────────────────────
 
 function muxVideoAudio(
   videoPath: string,
@@ -428,21 +431,16 @@ function muxVideoAudio(
     const cmd = ffmpeg();
     cmd.input(videoPath);
     cmd.input(audioPath);
+    if (sfxPaths?.length) sfxPaths.forEach((sfx) => cmd.input(sfx));
 
-    if (sfxPaths && sfxPaths.length > 0) {
-      sfxPaths.forEach((sfx) => cmd.input(sfx));
-    }
-
-    let filter: string;
     const sfxCount = sfxPaths?.length ?? 0;
+    let filter: string;
 
     if (sfxCount > 0) {
       const sfxFilters = sfxPaths!
         .map((_, i) => {
           const delay = (i * duration) / sfxCount;
-          return `[${i + 2}:a]adelay=${Math.round(delay * 1000)}|${Math.round(
-            delay * 1000,
-          )},volume=0.8[sfx${i}]`;
+          return `[${i + 2}:a]adelay=${Math.round(delay * 1000)}|${Math.round(delay * 1000)},volume=0.8[sfx${i}]`;
         })
         .join(";");
 
@@ -450,12 +448,12 @@ function muxVideoAudio(
       filter = `
         [1:a]apad,atrim=duration=${duration}[voice];
         ${sfxFilters};
-        ${mixInputs}[voice]amix=inputs=${
-          sfxCount + 1
-        }:duration=first:dropout_transition=2,atrim=duration=${duration}[a]
+        ${mixInputs}[voice]amix=inputs=${sfxCount + 1}:duration=first:dropout_transition=2,
+        loudnorm=I=-16:LRA=11:TP=-1.5,atrim=duration=${duration}[a]
       `;
     } else {
-      filter = `[1:a]apad,atrim=duration=${duration}[a]`;
+      // EBU R128 loudness normalization for consistent dialogue
+      filter = `[1:a]apad,atrim=duration=${duration},loudnorm=I=-16:LRA=11:TP=-1.5[a]`;
     }
 
     cmd
@@ -463,7 +461,7 @@ function muxVideoAudio(
       .outputOptions([
         "-map 0:v",
         "-map [a]",
-        "-c:v copy",
+        "-c:v copy", // Never re-encode video during audio mux
         "-c:a aac",
         "-b:a 192k",
         `-t ${duration}`,
@@ -502,20 +500,19 @@ function addSilentAudio(
   });
 }
 
-// ─── Single-Pass Final Assembly (xfade chain) ────────────────────────────
+// ─── Final Assembly (Optimized xfade) ─────────────────────────────────────
 
 function assembleFinalVideo(
   sceneClips: { path: string; duration: number }[],
   outPath: string,
 ): Promise<number> {
   return new Promise((resolve, reject) => {
-    if (sceneClips.length === 0)
-      return reject(new Error("No scenes to assemble"));
+    if (sceneClips.length === 0) return reject(new Error("No scenes"));
     if (sceneClips.length === 1) {
-      fs.copyFile(sceneClips[0].path, outPath)
+      return fs
+        .copyFile(sceneClips[0].path, outPath)
         .then(() => resolve(sceneClips[0].duration))
         .catch(reject);
-      return;
     }
 
     const cmd = ffmpeg();
@@ -523,40 +520,36 @@ function assembleFinalVideo(
 
     const fadeDur = 0.3;
     let filter = "";
-    let lastVideoLabel = "[0:v]";
-    let lastAudioLabel = "[0:a]";
-    let currentOffset = 0;
+    let lastV = "[0:v]",
+      lastA = "[0:a]";
+    let offset = 0;
     let totalDuration = sceneClips[0].duration;
 
     for (let i = 1; i < sceneClips.length; i++) {
-      const prevDuration = sceneClips[i - 1].duration;
-      const offset = currentOffset + prevDuration - fadeDur;
-      currentOffset = offset;
+      const prevDur = sceneClips[i - 1].duration;
+      offset += prevDur - fadeDur;
 
       const vOut = i === sceneClips.length - 1 ? "[vout]" : `[v${i}]`;
       const aOut = i === sceneClips.length - 1 ? "[aout]" : `[a${i}]`;
 
-      filter += `${lastVideoLabel}[${i}:v]xfade=transition=fade:duration=${fadeDur}:offset=${offset.toFixed(2)},format=yuv420p${vOut};`;
-      filter += `${lastAudioLabel}[${i}:a]acrossfade=d=${fadeDur}:c1=tri:c2=tri${aOut};`;
+      filter += `${lastV}[${i}:v]xfade=transition=fade:duration=${fadeDur}:offset=${offset.toFixed(3)},format=yuv420p${vOut};`;
+      filter += `${lastA}[${i}:a]acrossfade=d=${fadeDur}:c1=tri:c2=tri${aOut};`;
 
-      lastVideoLabel = vOut;
-      lastAudioLabel = aOut;
-
+      lastV = vOut;
+      lastA = aOut;
       totalDuration = offset + sceneClips[i].duration;
     }
 
-    filter = filter.slice(0, -1);
-
     cmd
-      .complexFilter(filter)
+      .complexFilter(filter.slice(0, -1))
       .outputOptions([
         "-map [vout]",
         "-map [aout]",
         "-c:v libx264",
         "-preset medium",
-        "-crf 16",
-        "-maxrate 5000k",
-        "-bufsize 10000k",
+        "-crf 18",
+        "-maxrate 8000k",
+        "-bufsize 16000k",
         "-c:a aac",
         "-b:a 256k",
         "-ar 48000",
@@ -566,9 +559,9 @@ function assembleFinalVideo(
       ])
       .output(outPath)
       .on("end", () => resolve(totalDuration))
-      .on("error", (err, _stdout, stderr) => {
-        console.error(`[assembly] FFmpeg stderr:`, stderr);
-        reject(new Error(`assembly: ${err.message}`));
+      .on("error", (_err, _stdout, stderr) => {
+        console.error(`[assembly] stderr:`, stderr);
+        reject(new Error(`assembly failed`));
       })
       .run();
   });
@@ -586,9 +579,10 @@ function mixBGM(
       .input(bgmPath)
       .complexFilter([
         `[0:a]asplit[main][sidechain]`,
-        `[1:a]aloop=loop=-1:size=2e+09,volume=0.3[bgm]`,
-        `[bgm][sidechain]sidechaincompress=threshold=0.1:ratio=4:attack=5:release=200[bgm_ducked]`,
-        `[main][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=3,atrim=duration=${duration}[a]`,
+        `[1:a]aloop=loop=-1:size=2e+09,volume=0.25[bgm]`,
+        `[bgm][sidechain]sidechaincompress=threshold=0.08:ratio=4:attack=5:release=200[ducked]`,
+        `[main][ducked]amix=inputs=2:duration=first:dropout_transition=3,
+         loudnorm=I=-14:LRA=11:TP=-1.5,atrim=duration=${duration}[a]`,
       ])
       .outputOptions([
         "-map 0:v",
@@ -602,35 +596,12 @@ function mixBGM(
       ])
       .output(outPath)
       .on("end", () => resolve())
-      .on("error", (err) => reject(new Error(`bgm mix: ${err.message}`)))
+      .on("error", (err) => reject(new Error(`bgm: ${err.message}`)))
       .run();
   });
 }
 
 // ─── WebVTT Generator ────────────────────────────────────────────────────
-
-function generateVTT(scenes: Scene[], transitionDurations: number[]): string {
-  let vtt = "WEBVTT\n\n";
-  let currentTime = 0;
-
-  for (let i = 0; i < scenes.length; i++) {
-    const scene = scenes[i];
-    const duration = scene.voice?.duration ?? 6;
-
-    if (scene.dialogue?.trim()) {
-      const start = formatVTTTime(currentTime);
-      const end = formatVTTTime(currentTime + duration);
-      vtt += `${start} --> ${end}\n${scene.dialogue.trim()}\n\n`;
-    }
-
-    if (i < scenes.length - 1) {
-      currentTime += duration - transitionDurations[i];
-    } else {
-      currentTime += duration;
-    }
-  }
-  return vtt;
-}
 
 function formatVTTTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -648,7 +619,21 @@ function formatVTTTime(seconds: number): string {
   return `${h}:${m}:${s}.${ms}`;
 }
 
-// ─── Main pipeline ───────────────────────────────────────────────────────
+function generateVTT(scenes: Scene[], transitionDurations: number[]): string {
+  let vtt = "WEBVTT\n\n";
+  let currentTime = 0;
+  for (let i = 0; i < scenes.length; i++) {
+    const duration = scenes[i].voice?.duration ?? 6;
+    if (scenes[i].dialogue?.trim()) {
+      vtt += `${formatVTTTime(currentTime)} --> ${formatVTTTime(currentTime + duration)}\n${scenes[i].dialogue!.trim()}\n\n`;
+    }
+    currentTime +=
+      i < scenes.length - 1 ? duration - transitionDurations[i] : duration;
+  }
+  return vtt;
+}
+
+// ─── Keyframe Validation ──────────────────────────────────────────────────
 
 function validateKeyframes(kfs: Keyframe[]): Keyframe[] {
   let validated = (kfs || [])
@@ -657,19 +642,15 @@ function validateKeyframes(kfs: Keyframe[]): Keyframe[] {
         typeof kf.t === "number" &&
         !isNaN(kf.t) &&
         typeof kf.x === "number" &&
-        !isNaN(kf.x) &&
         kf.x >= 0 &&
         kf.x < 1 &&
         typeof kf.y === "number" &&
-        !isNaN(kf.y) &&
         kf.y >= 0 &&
         kf.y < 1 &&
         typeof kf.w === "number" &&
-        !isNaN(kf.w) &&
         kf.w >= 0.6 &&
         kf.w <= 1 &&
         typeof kf.h === "number" &&
-        !isNaN(kf.h) &&
         kf.h >= 0.6 &&
         kf.h <= 1 &&
         kf.x + kf.w <= 1.02 &&
@@ -682,29 +663,24 @@ function validateKeyframes(kfs: Keyframe[]): Keyframe[] {
       w: Math.min(kf.w, 1),
       h: Math.min(kf.h, 1),
     }))
-    .sort((a, b) => a.t - b.t);
+    .sort((a, b) => a.t - b.t)
+    .filter((kf, i, arr) => i === 0 || Math.abs(kf.t - arr[i - 1].t) > 0.1);
 
-  validated = validated.filter(
-    (kf, i, arr) => i === 0 || Math.abs(kf.t - arr[i - 1].t) > 0.1,
-  );
-
-  if (validated.length === 0 || validated[0].t > 0.1) {
+  if (validated.length === 0 || validated[0].t > 0.1)
     validated.unshift({ t: 0, x: 0, y: 0, w: 1, h: 1 });
-  } else {
-    validated[0].t = 0;
-  }
+  else validated[0].t = 0;
 
-  if (validated.length < 2) validated = getDefaultKeyframes();
+  if (validated.length < 2) {
+    return [
+      { t: 0, x: 0, y: 0, w: 1, h: 1 },
+      { t: 2.5, x: 0.02, y: 0.02, w: 0.92, h: 0.92 },
+      { t: 6.0, x: 0.04, y: 0.03, w: 0.88, h: 0.88 },
+    ];
+  }
   return validated;
 }
 
-function getDefaultKeyframes(): Keyframe[] {
-  return [
-    { t: 0, x: 0, y: 0, w: 1, h: 1 },
-    { t: 2.5, x: 0.02, y: 0.02, w: 0.92, h: 0.92 },
-    { t: 6.0, x: 0.04, y: 0.03, w: 0.88, h: 0.88 },
-  ];
-}
+// ─── Main Pipeline ───────────────────────────────────────────────────────
 
 async function runRenderPipeline(
   videoId: string,
@@ -718,114 +694,106 @@ async function runRenderPipeline(
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), `mm-${videoId}-`));
 
   try {
-    const sceneResults = await Promise.all(
-      scenes.map(async (scene, i) => {
-        const prefix = path.join(tmpDir, `s${scene.index}`);
-        const finalPath = `${prefix}-final.mp4`;
-        const imagePath = `${prefix}-panel.jpg`;
+    const sceneTasks = scenes.map(
+      (scene, i) => () =>
+        (async () => {
+          const prefix = path.join(tmpDir, `s${scene.index}`);
+          const finalPath = `${prefix}-final.mp4`;
+          const imagePath = `${prefix}-panel.jpg`;
 
-        await downloadToFile(scene.imageUrl, imagePath);
+          await downloadToFile(scene.imageUrl, imagePath);
+          const img =
+            scene.imageWidth && scene.imageHeight
+              ? { w: scene.imageWidth, h: scene.imageHeight }
+              : await probeSize(imagePath);
 
-        const img =
-          scene.imageWidth && scene.imageHeight
-            ? { w: scene.imageWidth, h: scene.imageHeight }
-            : await probeSize(imagePath);
+          let duration = 6;
+          let audioPath: string | null = null;
 
-        let duration = 6;
-        let audioPath: string | null = null;
+          if (scene.voice?.audioUrl) {
+            audioPath = `${prefix}-voice.mp3`;
+            await downloadToFile(scene.voice.audioUrl, audioPath);
+            const measured = await probeDuration(audioPath);
+            duration = measured > 0.2 ? measured : (scene.voice.duration ?? 6);
+          }
+          duration = Math.max(2, duration);
 
-        if (scene.voice?.audioUrl) {
-          audioPath = `${prefix}-voice.mp3`;
-          await downloadToFile(scene.voice.audioUrl, audioPath);
-          const measured = await probeDuration(audioPath);
-          duration = measured > 0.2 ? measured : (scene.voice.duration ?? 6);
-        }
+          const isLastScene = i === scenes.length - 1;
+          const effectiveDuration = isLastScene
+            ? duration
+            : duration + CROSSFADE_AUDIO_PAD;
 
-        duration = Math.max(2, duration);
+          let keyframes =
+            (scene.keyframes?.length ?? 0) >= 2
+              ? scene.keyframes
+              : [
+                  { t: 0, x: 0, y: 0, w: 1, h: 1 },
+                  { t: duration * 0.3, x: 0.03, y: 0.02, w: 0.92, h: 0.92 },
+                  { t: duration * 0.7, x: 0.06, y: 0.04, w: 0.85, h: 0.85 },
+                  { t: duration, x: 0.08, y: 0.05, w: 0.78, h: 0.78 },
+                ];
+          keyframes = validateKeyframes(keyframes);
 
-        // The final assembly crossfades adjacent scenes' audio with
-        // acrossfade. Without this pad, that 0.3s crossfade overlaps real
-        // speech at both ends of the cut — the tail of this scene's
-        // narration gets faded under the start of the next scene's
-        // narration, which is what was reading as a rushed/clipped
-        // narrator. Padding every non-final scene with a bit of trailing
-        // silence means the crossfade blends silence, not speech.
-        const isLastScene = i === scenes.length - 1;
-        const effectiveDuration = isLastScene
-          ? duration
-          : duration + CROSSFADE_AUDIO_PAD;
+          const emotion = scene.narration
+            ? detectEmotion(scene.narration)
+            : "drama";
+          const silentPath = `${prefix}-silent.mp4`;
 
-        let keyframes: Keyframe[] =
-          (scene.keyframes?.length ?? 0) >= 2
-            ? scene.keyframes
-            : [
-                { t: 0, x: 0, y: 0, w: 1, h: 1 },
-                { t: duration * 0.3, x: 0.03, y: 0.02, w: 0.92, h: 0.92 },
-                { t: duration * 0.7, x: 0.06, y: 0.04, w: 0.85, h: 0.85 },
-                { t: duration, x: 0.08, y: 0.05, w: 0.78, h: 0.78 },
-              ];
-
-        keyframes = validateKeyframes(keyframes);
-
-        const emotion = scene.narration
-          ? detectEmotion(scene.narration)
-          : "drama";
-        const silentPath = `${prefix}-silent.mp4`;
-
-        await renderSceneClip(
-          imagePath,
-          img,
-          keyframes,
-          effectiveDuration,
-          silentPath,
-          tmpDir,
-          scene.index,
-          OUT_W,
-          OUT_H,
-          scene.effects || [],
-          emotion,
-        );
-
-        const selectedSFX = autoSelectSoundEffects(
-          scene.narration ?? "",
-          scene.effects || [],
-          emotion,
-        );
-
-        const sfxPaths: string[] = [];
-        await Promise.all(
-          selectedSFX.map(async (sfx) => {
-            const sfxDest = path.join(tmpDir, `s${scene.index}-${sfx.id}.mp3`);
-            try {
-              await resolveMedia(sfx.url, sfxDest);
-              sfxPaths.push(sfxDest);
-            } catch (err) {
-              console.warn(
-                `[render:${videoId}] SFX missing (${sfx.url}), skipping`,
-              );
-            }
-          }),
-        );
-
-        if (audioPath) {
-          await muxVideoAudio(
-            silentPath,
-            audioPath,
+          await renderSceneClip(
+            imagePath,
+            img,
+            keyframes,
             effectiveDuration,
-            finalPath,
-            sfxPaths.length > 0 ? sfxPaths : undefined,
+            silentPath,
+            tmpDir,
+            scene.index,
+            OUT_W,
+            OUT_H,
+            scene.effects || [],
+            emotion,
           );
-        } else {
-          await addSilentAudio(silentPath, effectiveDuration, finalPath);
-        }
 
-        return {
-          path: finalPath,
-          duration: effectiveDuration,
-          updatedScene: { ...scene },
-        };
-      }),
+          const selectedSFX = autoSelectSoundEffects(
+            scene.narration ?? "",
+            scene.effects || [],
+            emotion,
+          );
+          const sfxPaths: string[] = [];
+          await Promise.all(
+            selectedSFX.map(async (sfx) => {
+              const sfxDest = path.join(
+                tmpDir,
+                `s${scene.index}-${sfx.id}.mp3`,
+              );
+              try {
+                await resolveMedia(sfx.url, sfxDest);
+                sfxPaths.push(sfxDest);
+              } catch {
+                console.warn(`[render:${videoId}] SFX missing: ${sfx.url}`);
+              }
+            }),
+          );
+
+          if (audioPath)
+            await muxVideoAudio(
+              silentPath,
+              audioPath,
+              effectiveDuration,
+              finalPath,
+              sfxPaths.length ? sfxPaths : undefined,
+            );
+          else await addSilentAudio(silentPath, effectiveDuration, finalPath);
+
+          return {
+            path: finalPath,
+            duration: effectiveDuration,
+            updatedScene: { ...scene },
+          };
+        })(),
     );
+
+    // Bounded scene rendering
+    const sceneResults = await pLimit(sceneTasks, MAX_CONCURRENT_RENDERS);
 
     const sceneClips = sceneResults.map((r) => ({
       path: r.path,
@@ -858,11 +826,8 @@ async function runRenderPipeline(
           finalVideoDuration,
         );
         videoForUpload = bgmOutPath;
-        console.log(`[render:${videoId}] BGM mixed: ${bgmTrack.id}`);
-      } catch (err) {
-        console.warn(
-          `[render:${videoId}] BGM track "${bgmTrack.id}" unavailable (${bgmTrack.url}), skipping music`,
-        );
+      } catch {
+        console.warn(`[render:${videoId}] BGM unavailable: ${bgmTrack.url}`);
       }
     }
 
@@ -893,11 +858,11 @@ async function runRenderPipeline(
           Math.min(t.duration, durA * 0.4, durB * 0.4, 1.0),
         );
       }
-
-      const vttContent = generateVTT(updatedScenes, transitionDurations);
       const vttPath = path.join(tmpDir, "subtitles.vtt");
-      await fs.writeFile(vttPath, vttContent);
-
+      await fs.writeFile(
+        vttPath,
+        generateVTT(updatedScenes, transitionDurations),
+      );
       const vttBlob = await put(
         `subtitles/${userId}/${videoId}/subs-${Date.now()}.vtt`,
         await fs.readFile(vttPath),
@@ -915,18 +880,18 @@ async function runRenderPipeline(
       .set({
         status: "completed",
         videoUrl: blob.url,
-        subtitleUrl: subtitleUrl,
+        subtitleUrl,
         duration: Math.round(finalVideoDuration),
         timeline: JSON.stringify(updatedScenes),
       })
       .where(and(eq(videos.id, videoId), eq(videos.userId, userId)));
 
-    // Usage is only counted once the render actually succeeds — a failed
-    // or aborted render shouldn't burn the user's quota.
     await recordRenderUsage(userId, finalVideoDuration);
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error(`[render:${videoId}] ❌ Failed:`, errorMsg);
+    console.error(
+      `[render:${videoId}] ❌ Failed:`,
+      err instanceof Error ? err.message : err,
+    );
     await db
       .update(videos)
       .set({ status: "failed" })
@@ -936,7 +901,7 @@ async function runRenderPipeline(
   }
 }
 
-// ─── Route ────────────────────────────────────────────────────────────────
+// ─── Route Handler ────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
@@ -949,22 +914,21 @@ export async function POST(request: NextRequest) {
       timeline: incomingTimeline,
       aspectRatio,
       subtitlesEnabled,
-      isIncremental = false, // NEW: flag for incremental rendering
+      isIncremental = false,
     } = await request.json();
     if (!videoId)
       return NextResponse.json({ error: "videoId required" }, { status: 400 });
 
-    // ── Quota check BEFORE we spend any FFmpeg time ──
     const quota = await checkRenderQuota(session.user.id);
     if (!quota.allowed) {
       return NextResponse.json(
         {
-          error: "Render quota exceeded for your current plan",
+          error: "Render quota exceeded",
           tier: quota.tier,
           limitMinutes: quota.limitMinutes,
           usedMinutes: quota.usedMinutes,
         },
-        { status: 402 }, // Payment Required
+        { status: 402 },
       );
     }
 
@@ -990,7 +954,6 @@ export async function POST(request: NextRequest) {
         scenes = [];
       }
     }
-
     if (!scenes.length)
       return NextResponse.json(
         { error: "Add at least one scene" },
@@ -1010,32 +973,18 @@ export async function POST(request: NextRequest) {
     const finalSubtitlesEnabled =
       subtitlesEnabled ?? video.subtitlesEnabled ?? true;
 
-    if (!RESOLUTIONS[finalAspectRatio]) {
+    if (!RESOLUTIONS[finalAspectRatio])
       return NextResponse.json(
         { error: "Invalid aspect ratio" },
         { status: 400 },
       );
-    }
 
-    // 4K is a Pro-only entitlement — everyone else renders at 1080p
-    // regardless of what the client requests. This used to be ignored
-    // entirely (RESOLUTIONS had no 4K entries at all), so Pro users were
-    // silently capped at 1080p.
     const resolutionTier: "1080p" | "4k" =
       quota.tier === "pro" ? "4k" : "1080p";
 
-    // For incremental rendering, only render new scenes
-    const scenesToRender = isIncremental && (video.lastRenderedUpToScene ?? 0) > 0
-      ? scenes.filter(s => s.index > (video.lastRenderedUpToScene ?? 0))
-      : scenes;
-
-    if (isIncremental && scenesToRender.length === 0) {
-      return NextResponse.json({ 
-        success: true, 
-        status: "completed",
-        message: "No new scenes to render" 
-      });
-    }
+    // NOTE: Incremental rendering requires a separate merge step not implemented here.
+    // For safety, we always render all scenes to ensure consistent color grading & audio normalization.
+    const scenesToRender = scenes;
 
     await db
       .update(videos)
@@ -1047,14 +996,15 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(videos.id, videoId));
 
+    // Fire-and-forget with proper error boundary
     runRenderPipeline(
       videoId,
       session.user.id,
-      scenesToRender.length > 0 ? scenesToRender : scenes,
+      scenesToRender,
       finalAspectRatio,
       finalSubtitlesEnabled,
       resolutionTier,
-    ).catch((err) => console.error("[render] Unhandled:", err));
+    ).catch((err) => console.error("[render] Unhandled pipeline error:", err));
 
     return NextResponse.json({ success: true, status: "processing" });
   } catch (error) {

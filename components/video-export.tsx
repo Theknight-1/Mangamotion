@@ -76,11 +76,11 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
 
   async function startRender(isFullRender = false) {
     if (scenes.length === 0) {
-      toast.error('Add at least one scene to render')
-      return
+      toast.error("Add at least one scene to render");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await fetch("/api/render-video", {
         method: "POST",
@@ -90,23 +90,98 @@ export function VideoExport({ videoId, scenes, aspectRatio, subtitlesEnabled, on
           timeline: scenes,
           aspectRatio,
           subtitlesEnabled,
-          // Send incremental if we have a previously rendered video and it's not a full re-render
           isIncremental: !!status?.videoUrl && !isFullRender,
-          // Force full render if user explicitly requests it
           forceFullRender: isFullRender,
         }),
       });
 
-      if (!response.ok) throw new Error("Render request failed");
+      // ── Parse error responses properly ──────────────────────────────────────
+      if (!response.ok) {
+        let errorMessage = "Render request failed";
+        let errorDetails: any = {};
 
-      toast.success(isFullRender ? "Re-rendering all scenes..." : "Rendering started! Preparing your video...");
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+          errorDetails = errorData;
+        } catch {
+          // If response isn't JSON, use status text
+          errorMessage = response.statusText || `Error ${response.status}`;
+        }
+
+        // ── Handle specific error codes with user-friendly messages ───────────
+        switch (response.status) {
+          case 401:
+            toast.error("Session expired. Please log in again.");
+            // Optionally redirect to login
+            // router.push('/login');
+            break;
+
+          case 402:
+            // Quota exceeded — show upgrade prompt
+            const used = errorDetails.usedMinutes ?? 0;
+            const limit = errorDetails.limitMinutes ?? 0;
+            const tier = errorDetails.tier ?? "free";
+            toast.error(
+              `Render quota exceeded. You've used ${used.toFixed(1)} of ${limit} minutes on your ${tier} plan. Upgrade to render more.`,
+              {
+                duration: 6000,
+                // If you use a custom toast with action buttons:
+                // action: { label: 'Upgrade', onClick: () => router.push('/pricing') }
+              },
+            );
+            break;
+
+          case 409:
+            toast.error(
+              "This video is already rendering. Please wait for it to finish.",
+            );
+            break;
+
+          case 404:
+            toast.error("Video not found. It may have been deleted.");
+            break;
+
+          case 400:
+            toast.error(
+              errorMessage ||
+                "Invalid request. Check your scenes and try again.",
+            );
+            break;
+
+          case 500:
+            toast.error(
+              "Server error during render. Please try again in a moment.",
+            );
+            break;
+
+          default:
+            toast.error(`${errorMessage} (${response.status})`);
+        }
+
+        console.error("[render] API error:", response.status, errorDetails);
+        return; // Exit early — don't set polling or show success
+      }
+
+      // ── Success path ────────────────────────────────────────────────────────
+      toast.success(
+        isFullRender
+          ? "Re-rendering all scenes..."
+          : "Rendering started! Preparing your video...",
+      );
       setPolling(true);
       onExportStart?.();
     } catch (error) {
-      console.error('[v0] Render error:', error)
-      toast.error('Failed to start rendering')
+      console.error("[render] Network/client error:", error);
+
+      // Distinguish network errors from API errors
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        toast.error("Network error. Check your connection and try again.");
+      } else {
+        toast.error("Failed to start rendering. Please try again.");
+      }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

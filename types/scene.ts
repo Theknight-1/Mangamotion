@@ -31,7 +31,10 @@
     | "horror"
     | "comedy"
     | "romance"
-    | "mystery";
+    | "mystery"
+    | "tension"
+    | "awe"
+    | "melancholy";
 
   export interface Scene {
     id: string;
@@ -55,6 +58,7 @@
 
     // Extracted dialogue text for on-screen subtitles / VTT generation
     dialogue?: string;
+    beats?: number[];
   }
 
   export interface Video {

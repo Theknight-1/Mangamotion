@@ -89,25 +89,14 @@ async function createPlan(accessToken, productId, name, price) {
 
 (async () => {
   try {
-    console.log("→ Getting access token...");
     const accessToken = await getAccessToken();
-    console.log("  ✓ token acquired");
 
-    console.log("→ Creating product...");
     const productId = await createProduct(accessToken);
-    console.log(`  ✓ product_id: ${productId}`);
 
-    console.log("→ Creating Creator plan ($19/mo)...");
     const creatorPlanId = await createPlan(accessToken, productId, "Creator", "19.00");
-    console.log(`  ✓ PAYPAL_PLAN_CREATOR=${creatorPlanId}`);
 
-    console.log("→ Creating Pro plan ($49/mo)...");
     const proPlanId = await createPlan(accessToken, productId, "Pro", "49.00");
-    console.log(`  ✓ PAYPAL_PLAN_PRO=${proPlanId}`);
 
-    console.log("\nAdd these to your .env:");
-    console.log(`PAYPAL_PLAN_CREATOR=${creatorPlanId}`);
-    console.log(`PAYPAL_PLAN_PRO=${proPlanId}`);
   } catch (err) {
     console.error("\n✗ Failed:", err.message);
     process.exit(1);
