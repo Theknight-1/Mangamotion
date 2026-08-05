@@ -27,6 +27,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Upload,
+  Flower,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -40,7 +41,7 @@ import ProjectList from "@/components/sidebar/project-list";
 import { Button } from "@/components/loader-button";
 import { CopyrightForm } from "@/components/copyright-form";
 import { ProfileMenu } from "@/components/user/profile-menu";
-import { IconRail, type RailKey } from "@/components/icon-rail";
+import Link from "next/link";
 
 // ─── Status config ─────────────────────────────────────────────────────────
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -250,7 +251,6 @@ export default function DashboardPage() {
   const session = useStore(useSession);
   const user = session?.data?.user;
 
-  const [railActive, setRailActive] = useState<RailKey>("home");
   const [panelOpen, setPanelOpen] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
@@ -408,16 +408,6 @@ export default function DashboardPage() {
   // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen overflow-hidden bg-[#060e06] text-white">
-      {/* ── Icon rail ── */}
-      <IconRail
-        active={railActive}
-        onSelect={(k) => {
-          setRailActive(k);
-          if (k === "projects") setPanelOpen(true);
-        }}
-      >
-        <ProfileMenu email={user?.email} name={user?.name} variant="rail" />
-      </IconRail>
 
       {/* ── Collapsible projects panel ── */}
       {panelOpen && (
@@ -487,7 +477,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : projects.length === 0 ? (
-              <p className="px-1 py-2 text-xs text-white/25">No projects yet</p>
+              <p className="px-1 py-2 text-xs text-white/25 text-center">No projects yet</p>
             ) : (
               <ProjectList
                 projects={projects}
@@ -515,6 +505,12 @@ export default function DashboardPage() {
               </button>
             )}
             <div className="flex-1" />
+            <Link
+              href="/how-to-use"
+              className="flex cursor-pointer items-center gap-1.5 rounded-md border border-[#4cc94cde] bg-[#c9a84c]/10 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[#c9a84c]/20 mr-1.5"
+            >
+              <Flower size={13} /> How to use
+            </Link>
             <button
               onClick={() => router.push("/pricing")}
               className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[#c9a84c]/40 bg-[#c9a84c]/10 px-4 py-1.5 text-xs font-semibold text-[#e8d5a3] transition hover:bg-[#c9a84c]/20"

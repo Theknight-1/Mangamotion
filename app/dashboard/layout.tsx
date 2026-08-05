@@ -1,17 +1,18 @@
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 
+import { IconRail } from "@/components/icon-rail";
+
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -28,9 +29,7 @@ export default async function DashboardLayout({
     },
   });
 
-  if (!dbUser) {
-    redirect("/login");
-  }
+  if (!dbUser) redirect("/login");
 
   if (!dbUser.emailVerified) {
     redirect("/verify-email");
@@ -40,5 +39,16 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  return children;
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#080b08]">
+      <IconRail
+        name={session.user.name}
+        email={session.user.email}
+      />
+
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+    </div>
+  );
 }

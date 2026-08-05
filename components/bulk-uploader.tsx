@@ -201,7 +201,7 @@ export function BulkUploader({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-sm border border-[#4a8a42]/30 bg-[#212920] px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-[#4a8a42]/20"
+        className="flex items-center gap-2 cursor-pointer rounded-sm border border-[#4a8a42]/30 bg-[#212920] px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-[#4a8a42]/20"
       >
         <Upload size={14} /> Bulk Upload
       </button>

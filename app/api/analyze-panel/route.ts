@@ -335,46 +335,57 @@ export async function POST(request: NextRequest) {
     const framingGuide = getAspectFramingGuide(aspectRatio);
 
     const prompt = `You are a manga story narrator for YouTube recap videos.
-Your voice is engaging, dramatic, immersive — like a storyteller reading aloud.
 ${contextBlock}
 Analyze this manga/comic panel and return ONLY valid JSON.
 
 OUTPUT SCHEMA:
 {
   "narration": "string (2-4 sentences, 150-400 chars)",
-  "emotion": "one of: drama|action|horror|romance|comedy|melancholy|tension|awe",
-  "effects": ["optional array of: shake|flash|fade_in"],
+  "emotion": "drama|action|horror|romance|comedy|melancholy|tension|awe",
+  "effects": ["shake"|"flash"|"fade_in"],
+  "bubbles": [
+    { "x": 0.1, "y": 0.05, "w": 0.35, "h": 0.15, "type": "speech", "text": "...", "appearAt": 0.2 }
+  ],
+  "beats": [0.3, 0.7],
+  "focusPoints": [
+    { "x": 0.4, "y": 0.3, "w": 0.25, "h": 0.3, "reason": "face", "priority": 9 }
+  ],
   "keyframes": [
     { "t": 0.0, "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0 },
-    { "t": 0.5, "x": 0.05, "y": 0.03, "w": 0.85, "h": 0.85 },
-    { "t": 1.0, "x": 0.08, "y": 0.05, "w": 0.78, "h": 0.78 }
+    { "t": 0.5, "x": 0.1, "y": 0.05, "w": 0.4, "h": 0.2 },
+    { "t": 1.0, "x": 0.35, "y": 0.25, "w": 0.3, "h": 0.35 }
   ]
 }
 
-═══ NARRATION RULES ═══
-• READ every speech/thought bubble carefully
-• QUOTE or PARAPHRASE dialogue naturally into narration
-• DESCRIBE action and emotional weight
-• PRESENT TENSE, ACTIVE VOICE
-• 2-4 sentences, 150–400 characters
-• NEVER write: "In this panel..." / "The image shows..." / "Here we see..."
+═══ BUBBLE DETECTION ═══
+• Find EVERY speech bubble, thought bubble, and shout box in the panel
+• x,y = top-left corner, w,h = size (all 0-1 normalized to full image)
+• type: "speech" (round), "thought" (cloud), "shout" (spiky/jagged)
+• text: exact text inside the bubble
+• appearAt: normalized time (0-1) when narration reaches this bubble's content
+• Order bubbles by reading order (top→bottom, right→left for manga)
 
-═══ EMOTION & EFFECTS ═══
-• Classify emotion from VISUAL CONTENT (expressions, lighting, composition), not just text
-• "shake": impact hits, explosions, sudden violence, shock reveals
-• "flash": bright attacks, lightning, divine power, memory transitions  
-• "fade_in": dream sequences, flashbacks, gentle scene openings
-• Use 0-2 effects max. Most panels need NONE. Less is more.
+═══ BEAT DETECTION ═══
+• beats: array of normalized timestamps (0-1) where emotional intensity peaks
+• Examples: reveal moment, impact hit, realization, cliffhanger
+• 0-3 beats per panel. Most panels have 1-2.
 
-═══ KEYFRAME RULES ═══
+═══ FOCUS POINTS ═══
+• Identify 1-3 areas of visual interest BEYOND bubbles
+• Faces showing emotion, hands holding objects, background details that matter
+• priority 1-10: 10 = must-show, 1 = optional detail
+
+═══ KEYFRAME RULES (RECAP STYLE) ═══
 ${framingGuide}
-• t values are NORMALIZED 0.0 → 1.0 (renderer scales to actual audio duration)
-• First keyframe MUST have t=0.0, last MUST have t=1.0
-• x+w ≤ 1.0, y+h ≤ 1.0 always
-• Minimum w=0.5, h=0.5 (renderer clamps to safe bounds)
-• 3-4 keyframes with SMOOTH motion (max 0.15 change in x/y between adjacent)
-• Motion should FOLLOW the visual focus: pan toward faces, action, or speech bubbles
-• Start wide (full panel), then gently move to area of interest
+• RECAP VIDEOS USE AGGRESSIVE CAMERA WORK, not gentle pans
+• Start wide (full panel) at t=0
+• SNAP to first bubble at its appearAt time (tight crop: w=0.3-0.5, h=0.2-0.3)
+• Hold on bubble for 0.1-0.2 normalized time
+• SNAP to next bubble or focus point
+• End on most dramatic element (face close-up or reveal) at t=1.0
+• Between snaps, use FAST motion (0.05-0.1 normalized time transition)
+• Minimum w=0.25, h=0.2 for extreme close-ups on eyes/mouths
+• Maximum 5 keyframes for fast-paced panels, 3 for slow dramatic ones
 
 Return ONLY the JSON object.`;
 
