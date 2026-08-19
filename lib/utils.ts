@@ -40,3 +40,21 @@ export async function mapWithConcurrency<T, R>(
   await Promise.all(workers);
   return results;
 }
+
+
+// Add this helper function outside your component, or at the top of your render logic
+export const getAspectRatioClass = (ratio?: string | null) => {
+  switch (ratio) {
+    case "9:16":
+      return "aspect-[9/16]"; // Vertical / Portrait
+    case "1:1":
+      return "aspect-square"; // Square
+    case "4:5":
+      return "aspect-[4/5]"; // Social Portrait
+    case "2.39:1":
+      return "aspect-[2.39/1]"; // Ultra-wide Anamorphic
+    case "16:9":
+    default:
+      return "aspect-video"; // Standard Widescreen (Fallback)
+  }
+};

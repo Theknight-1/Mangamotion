@@ -162,6 +162,106 @@ export const subscriptions = pgTable("subscriptions", {
     .defaultNow(),
 });
 
+// --- Storyboard Studio (isolated module) ------------
+export const storyboardProjects = pgTable("storyboardProjects", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull(),
+  title: text("title").notNull(),
+  coverImage: text("coverImage"),
+  genre: text("genre"), // "Action" | "Animation" | "Comedy" | "Commercial" | ...
+  artStyle: text("artStyle").notNull().default("anime"), // "comic" | "cinematic" | "anime" | ...
+  aspectRatio: text("aspectRatio").notNull().default("16:9"), // "16:9" | "9:16" | "1:1" | "4:5" | "2.39:1"
+  status: text("status").notNull().default("draft"),
+  // "draft" | "breakdown_ready" | "style_selected" | "shot_list" | "storyboard" | "ready" | "animatic" | "exported"
+  scriptText: text("scriptText"), // raw parsed script text
+  animaticUrl: text("animaticUrl"), // rough preview render, set by /animatic
+  animaticStatus: text("animaticStatus").notNull().default("none"),
+  // "none" | "building" | "ready" | "failed"
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const storyboardScenes = pgTable("storyboardScenes", {
+  id: text("id").primaryKey(),
+  projectId: text("projectId")
+    .notNull()
+    .references(() => storyboardProjects.id, { onDelete: "cascade" }),
+  orderIndex: integer("orderIndex").notNull().default(0),
+  title: text("title").notNull().default(""),
+  description: text("description"),
+  narrationText: text("narrationText"),
+  durationEstimate: real("durationEstimate").default(3),
+  voiceAudioUrl: text("voiceAudioUrl"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const storyboardCharacters = pgTable("storyboardCharacters", {
+  id: text("id").primaryKey(),
+  projectId: text("projectId")
+    .notNull()
+    .references(() => storyboardProjects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  clothing: text("clothing"),
+  consistencyNotes: text("consistencyNotes"),
+  referenceImageUrls: jsonb("referenceImageUrls").$type<string[]>().default([]),
+  pendingSheetUrl: text("pendingSheetUrl"), // freshly generated, not yet approved
+  approvedSheetUrl: text("approvedSheetUrl"), // locked-in reference used for conditioning
+  conditioningMode: text("conditioningMode").notNull().default("description"),
+  // "description" | "image" | "both" — how this character should be conditioned
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const storyboardShots = pgTable("storyboardShots", {
+  id: text("id").primaryKey(),
+  projectId: text("projectId")
+    .notNull()
+    .references(() => storyboardProjects.id, { onDelete: "cascade" }),
+  sceneId: text("sceneId").references(() => storyboardScenes.id, {
+    onDelete: "cascade",
+  }),
+  order: integer("order").notNull().default(0),
+  orderIndex: integer("orderIndex").notNull().default(0),
+  description: text("description").notNull().default(""),
+  shotType: text("shotType"), // "wide" | "close-up" | "action" | "reaction" | "establishing" | "extreme-close-up" | "medium" | "pov"
+  cameraAngle: text("cameraAngle"), // "eye-level" | "low-angle" | "high-angle" | "birds-eye" | "dutch-angle" | "over-the-shoulder"
+  perspective: text("perspective"), // "1-point" | "2-point" | "3-point" | "isometric" | "panoramic"
+  movement: text("movement"), // "static" | "pan-left" | "pan-right" | "tilt-up" | "tilt-down" | "zoom-in" | "zoom-out" | "tracking" | "handheld"
+  duration: real("duration").default(3),
+  dialogue: text("dialogue"),
+  characterIds: jsonb("characterIds").$type<string[]>().default([]),
+  draftNarration: text("draftNarration").default(""),
+  estDuration: real("estDuration").default(3), // seconds
+
+  generatedImageUrl: text("generatedImageUrl"),
+  generationStatus: text("generationStatus").notNull().default("pending"),
+  // "pending" | "generating" | "complete" | "failed"
+  regenerateCount: integer("regenerateCount").notNull().default(0),
+  modelUsed: text("modelUsed"), // "flux" | "nano-banana"
+
+  consistencyScore: real("consistencyScore"),
+  consistencyFlagged: boolean("consistencyFlagged").notNull().default(false),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const storyboardUsage = pgTable("storyboardUsage", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull(),
+  periodStart: timestamp("periodStart", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  periodEnd: timestamp("periodEnd", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  generationsThisPeriod: integer("generationsThisPeriod").notNull().default(0),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
 export const paymentEvents = pgTable("payment_events", {
   id: text("id").primaryKey(),
   userId: text("user_id")

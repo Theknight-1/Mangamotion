@@ -297,7 +297,6 @@ export function TimelineEditor({
             allScenes={scenes}
             onUpdate={updateScene}
             onDelete={() => deleteScene(activeScene.id)}
-            isExpandedInPanel={true}
           />
         )}
       </div>

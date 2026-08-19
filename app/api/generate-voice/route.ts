@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // CVoice API — correct endpoint from docs
     // Language mapping for cvoice.ai
-    const cvoiceRes = await fetch('https://cvoice.ai/api/tts', {
+    const cvoiceRes = await fetch(process.env.CVOICE_API_URL || 'https://cvoice.ai/api/tts', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

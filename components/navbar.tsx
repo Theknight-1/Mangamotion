@@ -8,6 +8,7 @@ import { IconLogo } from "./icon-logo";
 import { Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
+  { label: "Storyboard AI", href: "/storyboard" },
   { label: "Features", href: "/#features" },
   { label: "How it works", href: "/#how-it-works" },
   { label: "Pricing", href: "/pricing" },

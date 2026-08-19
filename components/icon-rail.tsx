@@ -64,9 +64,8 @@ export function IconRail({ name, email }: Props) {
                 )}
 
                 <div
-                  className={`relative flex h-13 w-16 flex-col items-center justify-center rounded-md transition-all duration-200 ${
-                    active ? "text-[#88e66e]" : "text-white/40 hover:text-white"
-                  }`}
+                  className={`relative flex h-13 w-16 flex-col items-center justify-center rounded-md transition-all duration-200 ${active ? "text-[#88e66e]" : "text-white/40 hover:text-white"
+                    }`}
                 >
                   <Icon
                     size={19}
@@ -87,11 +86,10 @@ export function IconRail({ name, email }: Props) {
 
         <Link
           href="/settings"
-          className={`mb-3 rounded-xl p-3 transition ${
-            pathname.startsWith("/settings")
-              ? "bg-white/8 text-white"
-              : "text-white/40 hover:bg-white/5 hover:text-white"
-          }`}
+          className={`mb-3 rounded-xl p-3 transition ${pathname.startsWith("/settings")
+            ? "bg-white/8 text-white"
+            : "text-white/40 hover:bg-white/5 hover:text-white"
+            }`}
         >
           <Settings size={18} />
         </Link>
