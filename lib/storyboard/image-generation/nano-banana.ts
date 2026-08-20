@@ -1,12 +1,10 @@
 // lib/storyboard/image-generation/nano-banana.ts
 //
-// Image generation through our Cloudflare Worker.
-//
-// The Worker is responsible for talking to the underlying image model.
-// This adapter only:
+// Image generation via Google's Gemini API (model: gemini-2.5-flash-image,
+// codenamed "nano-banana"). This adapter:
 //   1. validates configuration
-//   2. sends the prompt/reference images to the Worker
-//   3. converts the Worker response into GenerateImageResult
+//   2. sends the prompt/reference images to the Gemini API
+//   3. converts the Gemini response into GenerateImageResult
 
 import {
   GenerateImageInput,
@@ -14,24 +12,83 @@ import {
   ImageGenerationError,
 } from "./types";
 
-const CLOUDFLARE_WORKER_URL = process.env.CLOUDFLARE_IMAGE_WORKER_URL;
-const CLOUDFLARE_WORKER_SECRET = process.env.CLOUDFLARE_IMAGE_WORKER_SECRET;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_IMAGE_MODEL =
+  process.env.GEMINI_IMAGE_MODEL ?? "gemini-3.1-flash-lite-image";
+const GEMINI_API_BASE =
+  process.env.GEMINI_API_BASE_URL ??
+  "https://generativelanguage.googleapis.com/v1beta";
 
 const MAX_REFERENCE_IMAGES = 10;
 
-export async function generateWithNanoBanana(
-  input: GenerateImageInput,
-): Promise<GenerateImageResult> {
-  if (!CLOUDFLARE_WORKER_URL) {
+// Aspect ratios currently accepted by Gemini's image_config.aspect_ratio.
+// Anything outside this set is dropped rather than sent, so we don't get a
+// 400 from an unsupported value.
+const SUPPORTED_ASPECT_RATIOS = new Set([
+  "1:1",
+  "2:3",
+  "3:2",
+  "3:4",
+  "4:3",
+  "4:5",
+  "5:4",
+  "9:16",
+  "16:9",
+  "21:9",
+]);
+
+interface GeminiInlineDataPart {
+  inline_data: {
+    mime_type: string;
+    data: string; // base64
+  };
+}
+
+interface GeminiTextPart {
+  text: string;
+}
+
+type GeminiPart = GeminiTextPart | GeminiInlineDataPart;
+
+async function fetchReferenceImageAsInlinePart(
+  url: string,
+): Promise<GeminiInlineDataPart> {
+  let res: Response;
+
+  try {
+    res = await fetch(url);
+  } catch (error) {
     throw new ImageGenerationError(
-      "CLOUDFLARE_IMAGE_WORKER_URL not configured",
+      `Failed to fetch reference image: ${url}`,
+      "nano-banana",
+      error,
+    );
+  }
+
+  if (!res.ok) {
+    throw new ImageGenerationError(
+      `Reference image fetch returned ${res.status}: ${url}`,
       "nano-banana",
     );
   }
 
-  if (!CLOUDFLARE_WORKER_SECRET) {
+  const mimeType = res.headers.get("content-type")?.split(";")[0] ?? "image/png";
+  const buffer = Buffer.from(await res.arrayBuffer());
+
+  return {
+    inline_data: {
+      mime_type: mimeType,
+      data: buffer.toString("base64"),
+    },
+  };
+}
+
+export async function generateWithNanoBanana(
+  input: GenerateImageInput,
+): Promise<GenerateImageResult> {
+  if (!GEMINI_API_KEY) {
     throw new ImageGenerationError(
-      "CLOUDFLARE_IMAGE_WORKER_SECRET not configured",
+      "GEMINI_API_KEY not configured",
       "nano-banana",
     );
   }
@@ -41,59 +98,129 @@ export async function generateWithNanoBanana(
     MAX_REFERENCE_IMAGES,
   );
 
-  let response: Response;
+  let referenceParts: GeminiInlineDataPart[];
 
   try {
-    response = await fetch(CLOUDFLARE_WORKER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${CLOUDFLARE_WORKER_SECRET}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: input.prompt,
-        referenceImageUrls,
-        aspectRatio: input.aspectRatio,
-        aspect_ratio: input.aspectRatio,
-      }),
-    });
+    referenceParts = await Promise.all(
+      referenceImageUrls.map(fetchReferenceImageAsInlinePart),
+    );
   } catch (error) {
+    if (error instanceof ImageGenerationError) throw error;
     throw new ImageGenerationError(
-      "Cloudflare image generation request failed to send",
+      "Failed to prepare reference images",
       "nano-banana",
       error,
     );
   }
 
+  const parts: GeminiPart[] = [{ text: input.prompt }, ...referenceParts];
+
+  const generationConfig: Record<string, unknown> = {
+    responseModalities: ["IMAGE"],
+  };
+
+  if (input.aspectRatio && SUPPORTED_ASPECT_RATIOS.has(input.aspectRatio)) {
+    generationConfig.imageConfig = { aspectRatio: input.aspectRatio };
+  }
+
+  const endpoint = `${GEMINI_API_BASE}/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+  let response: Response;
+
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts }],
+        generationConfig,
+      }),
+    });
+  } catch (error) {
+    throw new ImageGenerationError(
+      "Gemini image generation request failed to send",
+      "nano-banana",
+      error,
+    );
+  }
+
+  const rawText = await response.text();
+
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
     const isSafety =
-      text.includes("3030") ||
-      /flagged|safety|nsfw|moderation|content policy|policy violation/i.test(text);
-    const isRateLimit = response.status === 429 || /rate limit|quota/i.test(text);
+      /safety|blocked|flagged|prohibited|policy/i.test(rawText);
+    const isRateLimit =
+      response.status === 429 || /rate limit|quota|resource_exhausted/i.test(rawText);
 
     throw new ImageGenerationError(
-      `Cloudflare image Worker API error ${response.status}: ${text.slice(
-        0,
-        300,
-      )}`,
+      `Gemini image API error ${response.status}: ${rawText.slice(0, 300)}`,
       "nano-banana",
       undefined,
       { isSafetyFlag: isSafety, isRateLimit },
     );
   }
 
-  const imageBuffer = Buffer.from(await response.arrayBuffer());
+  let json: any;
 
-  if (!imageBuffer.length) {
+  try {
+    json = JSON.parse(rawText);
+  } catch (error) {
     throw new ImageGenerationError(
-      "Cloudflare image Worker returned an empty response",
+      "Gemini image API returned non-JSON response",
+      "nano-banana",
+      error,
+    );
+  }
+
+  // Prompt-level block (e.g. safety filter tripped before generation even ran)
+  const blockReason = json?.promptFeedback?.blockReason;
+  if (blockReason) {
+    throw new ImageGenerationError(
+      `Gemini blocked the prompt: ${blockReason}`,
+      "nano-banana",
+      undefined,
+      { isSafetyFlag: true },
+    );
+  }
+
+  const candidate = json?.candidates?.[0];
+  const finishReason = candidate?.finishReason;
+
+  if (finishReason && finishReason !== "STOP") {
+    const isSafety = /SAFETY|PROHIBITED|BLOCKED/i.test(finishReason);
+    throw new ImageGenerationError(
+      `Gemini did not complete generation: ${finishReason}`,
+      "nano-banana",
+      undefined,
+      { isSafetyFlag: isSafety },
+    );
+  }
+
+  const imagePart = candidate?.content?.parts?.find(
+    (part: any) => part.inlineData || part.inline_data,
+  );
+
+  const inlineData = imagePart?.inlineData ?? imagePart?.inline_data;
+
+  if (!inlineData?.data) {
+    throw new ImageGenerationError(
+      "Gemini response did not contain image data",
       "nano-banana",
     );
   }
 
-  const contentType =
-    response.headers.get("content-type")?.split(";")[0] ?? "image/png";
+  const imageBuffer = Buffer.from(inlineData.data, "base64");
+
+  if (!imageBuffer.length) {
+    throw new ImageGenerationError(
+      "Gemini returned an empty image buffer",
+      "nano-banana",
+    );
+  }
+
+  const contentType = inlineData.mimeType ?? inlineData.mime_type ?? "image/png";
 
   return {
     imageBuffer,

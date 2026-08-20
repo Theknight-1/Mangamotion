@@ -1,6 +1,5 @@
 import { PDFDocument } from "pdf-lib";
-// @ts-ignore
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
+import { PDFParse } from "pdf-parse";
 
 export interface ParsedScriptResult {
   text: string;
@@ -43,31 +42,28 @@ export async function parseScriptBuffer(
  * Parses PDF text and extracts accurate page count.
  */
 export async function parsePdfScript(buffer: Buffer): Promise<ParsedScriptResult> {
+  let pageCount: number | undefined;
+
   try {
     const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
-    const pageCount = pdfDoc.getPageCount();
+    pageCount = pdfDoc.getPageCount();
+  } catch (pdfLibError: any) {
+    console.warn("[parsePdfScript] pdf-lib page count warning:", pdfLibError);
+  }
 
-    const data = await pdfParse(buffer);
-    const text = data.text || "";
+  try {
+    const parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
+    await parser.destroy();
 
     return {
-      text,
-      pageCount,
+      text: result.text || "",
+      pageCount: pageCount ?? result.total,
       format: "pdf",
     };
   } catch (error: any) {
     console.error("[parsePdfScript] Error:", error);
-    // Fallback: try raw pdfParse
-    try {
-      const data = await pdfParse(buffer);
-      return {
-        text: data.text,
-        pageCount: data.numpages,
-        format: "pdf",
-      };
-    } catch (fallbackError: any) {
-      throw new Error(`Failed to parse PDF: ${fallbackError.message}`);
-    }
+    throw new Error(`Failed to parse PDF: ${error.message}`);
   }
 }
 

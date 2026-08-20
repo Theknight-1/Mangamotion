@@ -6,6 +6,8 @@ import {
   storyboardShots,
   storyboardScenes,
   storyboardCharacters,
+  storyboardLocations,
+  storyboardObjects,
 } from "@/lib/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -93,6 +95,16 @@ export async function POST(request: Request, { params }: Params) {
       .from(storyboardCharacters)
       .where(eq(storyboardCharacters.projectId, projectId));
 
+    const locations = await db
+      .select()
+      .from(storyboardLocations)
+      .where(eq(storyboardLocations.projectId, projectId));
+
+    const objects = await db
+      .select()
+      .from(storyboardObjects)
+      .where(eq(storyboardObjects.projectId, projectId));
+
     // Update status to generating
     await db
       .update(storyboardProjects)
@@ -157,6 +169,16 @@ export async function POST(request: Request, { params }: Params) {
             approvedSheetUrl: c.approvedSheetUrl,
             pendingSheetUrl: c.pendingSheetUrl,
             referenceImageUrls: (c.referenceImageUrls as string[]) || [],
+          })),
+          locations: locations.map((l) => ({
+            name: l.name,
+            description: l.description,
+            lightingNotes: l.lightingNotes,
+          })),
+          objects: objects.map((o) => ({
+            name: o.name,
+            description: o.description,
+            importance: o.importance ?? "recurring",
           })),
         });
 

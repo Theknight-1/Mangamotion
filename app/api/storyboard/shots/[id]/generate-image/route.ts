@@ -6,6 +6,8 @@ import {
   storyboardProjects,
   storyboardScenes,
   storyboardCharacters,
+  storyboardLocations,
+  storyboardObjects,
 } from "@/lib/db/schema";
 import { eq, and, lt, desc, isNotNull } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -131,6 +133,17 @@ export async function POST(request: Request, { params }: Params) {
       dialogue: shot.dialogue,
     });
 
+    // Fetch project locations and objects for environmental/prop consistency
+    const projectLocations = await db
+      .select()
+      .from(storyboardLocations)
+      .where(eq(storyboardLocations.projectId, project.id));
+
+    const projectObjects = await db
+      .select()
+      .from(storyboardObjects)
+      .where(eq(storyboardObjects.projectId, project.id));
+
     // Set generation status to generating
     await db
       .update(storyboardShots)
@@ -163,12 +176,23 @@ export async function POST(request: Request, { params }: Params) {
           pendingSheetUrl: c.pendingSheetUrl,
           referenceImageUrls: (c.referenceImageUrls as string[]) || [],
         })),
+        locations: projectLocations.map((l) => ({
+          name: l.name,
+          description: l.description,
+          lightingNotes: l.lightingNotes,
+        })),
+        objects: projectObjects.map((o) => ({
+          name: o.name,
+          description: o.description,
+          importance: o.importance ?? "recurring",
+        })),
       });
 
       const [updatedShot] = await db
         .update(storyboardShots)
         .set({
           generatedImageUrl: result.imageUrl,
+          characterIds: relevantCharacters.map((c) => c.id),
           generationStatus: "complete",
           modelUsed: result.modelUsed as any,
           consistencyScore: result.consistencyScore,

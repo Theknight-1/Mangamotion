@@ -84,7 +84,7 @@ async function resolveMedia(url: string, destPath: string): Promise<void> {
   if (url.startsWith("http")) {
     await downloadToFile(url, destPath);
   } else {
-    const localPath = path.join(process.cwd(), "public", url);
+    const localPath = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", url);
     await fs.copyFile(localPath, destPath).catch(() => {
       throw new Error(`Local media not found: ${url}`);
     });

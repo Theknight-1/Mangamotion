@@ -22,19 +22,25 @@ export const metadata: Metadata = {
     ? new URL(process.env.SITE_URL)
     : undefined,
   title: {
-    default: "MotionRecap — Turn manga panels into narrated videos",
+    default: "MotionRecap — AI Manga Storyboard Studio & Video Generator",
     template: "%s — MotionRecap",
   },
   description:
-    "Upload manga panels and let AI generate narration, character voices, and a cinematic 9:16 video in minutes. Built for YouTube Shorts and TikTok manga recap creators.",
+    "Turn manga panels and screenplays into cinematic storyboards and narrated videos. AI-powered scene breakdowns, character consistency model sheets, 100+ character voices, and instant animatic video export.",
   keywords: [
+    "AI storyboard generator",
+    "manga storyboard maker",
+    "script to storyboard AI",
     "manga recap video maker",
     "manga to video AI",
-    "manga animation tool",
+    "character consistency model sheet",
+    "anime storyboard studio",
+    "AI animatic generator",
     "anime recap generator",
     "AI voice manga",
     "manga panel to video",
     "youtube shorts manga tool",
+    "visual director AI",
   ],
   authors: [{ name: "MotionRecap" }],
   creator: "MotionRecap",
@@ -48,25 +54,25 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: process.env.SITE_URL,
     siteName: "MotionRecap",
-    title: "MotionRecap — Turn manga panels into narrated videos",
+    title: "MotionRecap — AI Manga Storyboard Studio & Video Generator",
     description:
-      "Upload manga panels and let AI generate narration, character voices, and a cinematic video in minutes.",
+      "Turn manga panels and screenplays into cinematic storyboards, character model sheets, and narrated videos in minutes.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "MotionRecap — manga panels to animated video",
+        alt: "MotionRecap — AI Manga Storyboard Studio and Animated Video Generator",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MotionRecap — Turn manga panels into narrated videos",
+    title: "MotionRecap — AI Manga Storyboard Studio & Video Generator",
     description:
-      "Upload manga panels and let AI generate narration, character voices, and a cinematic video in minutes.",
+      "Turn manga panels and screenplays into cinematic storyboards, character model sheets, and narrated videos in minutes.",
     images: ["/og-image.png"],
-    creator: "@yourhandle",
+    creator: "@MotionRecap",
   },
   robots: {
     index: true,

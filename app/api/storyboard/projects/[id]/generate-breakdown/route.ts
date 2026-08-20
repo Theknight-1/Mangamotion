@@ -6,6 +6,8 @@ import {
   storyboardScenes,
   storyboardShots,
   storyboardCharacters,
+  storyboardLocations,
+  storyboardObjects,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -60,9 +62,11 @@ export async function POST(request: Request, { params }: Params) {
       title: project.title,
     });
 
-    // Delete existing scenes/shots for fresh generation
+    // Delete existing scenes/shots/locations/objects for fresh generation
     await db.delete(storyboardShots).where(eq(storyboardShots.projectId, id));
     await db.delete(storyboardScenes).where(eq(storyboardScenes.projectId, id));
+    await db.delete(storyboardLocations).where(eq(storyboardLocations.projectId, id));
+    await db.delete(storyboardObjects).where(eq(storyboardObjects.projectId, id));
 
     // Also insert detected characters if none exist yet
     const existingCharacters = await db
@@ -89,6 +93,37 @@ export async function POST(request: Request, { params }: Params) {
           conditioningMode: "description",
         });
         characterNameToId.set(charData.name.toLowerCase().trim(), charId);
+      }
+    }
+
+    // Insert extracted locations
+    if (breakdown.locations?.length) {
+      for (const loc of breakdown.locations) {
+        await db.insert(storyboardLocations).values({
+          id: createId(),
+          projectId: id,
+          name: loc.name,
+          description: loc.description || null,
+          lightingNotes: loc.lightingNotes || null,
+        });
+      }
+    }
+
+    // Insert extracted objects/props
+    if (breakdown.objects?.length) {
+      for (const obj of breakdown.objects) {
+        const importance = ["key_prop", "recurring", "background"].includes(
+          obj.importance,
+        )
+          ? obj.importance
+          : "recurring";
+        await db.insert(storyboardObjects).values({
+          id: createId(),
+          projectId: id,
+          name: obj.name,
+          description: obj.description || null,
+          importance,
+        });
       }
     }
 
@@ -119,12 +154,34 @@ export async function POST(request: Request, { params }: Params) {
         const shotData = sceneData.shots[shotIdx];
         const shotId = createId();
 
-        // Resolve character IDs
-        const matchedCharIds: string[] = [];
+        // Resolve character IDs from characterNames, explicit description mentions, or collective group references
+        const matchedCharIdSet = new Set<string>();
         for (const name of shotData.characterNames || []) {
           const matched = characterNameToId.get(name.toLowerCase().trim());
-          if (matched) matchedCharIds.push(matched);
+          if (matched) matchedCharIdSet.add(matched);
         }
+
+        const fullText = `${shotData.description || ""} ${shotData.dialogue || ""}`;
+        for (const [nameKey, charId] of characterNameToId.entries()) {
+          if (nameKey.length > 1) {
+            const escaped = nameKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            if (new RegExp(`\\b${escaped}\\b`, "i").test(fullText)) {
+              matchedCharIdSet.add(charId);
+            }
+          }
+        }
+
+        const hasGroupTerm =
+          /\b(all three|all \d+|the trio|trio|the duo|duo|both of them|both characters|the pair|pair of them|everyone|everybody|all of them|the gang|the group|the team|the crew|the friends|the roommates)\b/i.test(
+            fullText,
+          );
+        if (hasGroupTerm && characterNameToId.size <= 5) {
+          for (const charId of characterNameToId.values()) {
+            matchedCharIdSet.add(charId);
+          }
+        }
+
+        const matchedCharIds = Array.from(matchedCharIdSet);
 
         const [shot] = await db
           .insert(storyboardShots)

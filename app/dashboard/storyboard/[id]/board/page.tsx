@@ -9,34 +9,32 @@ import {
   Pause,
   Download,
   RefreshCw,
-  Edit,
-  Trash2,
-  Plus,
   ArrowLeft,
   Volume2,
   Film,
   Camera,
-  Layers,
-  CheckCircle2,
-  AlertTriangle,
   FileText,
   Video,
   Eye,
   Loader2,
-  Check,
   ChevronRight,
   ChevronLeft,
   X,
-  Sliders,
-  ShieldCheck,
   Zap,
-  Music,
-  Sun,
-  Maximize2,
+  MapPin,
+  Box,
+  Table as TableIcon,
+  LayoutGrid,
+  Layers,
+  Check,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { storyboardApi, swrKeys } from "@/lib/api";
 import { StoryboardUsageIndicator } from "@/components/storyboard/usage-indicator";
+import { AnimaticEditorModal } from "@/components/storyboard/animatic-editor-modal";
+import { LocationsModal } from "@/components/storyboard/locations-modal";
+import { ObjectsModal } from "@/components/storyboard/objects-modal";
+import { ShotListPanel } from "@/components/storyboard/shot-list-panel";
 import {
   STORYBOARD_LIMITS,
   MODEL_LABELS,
@@ -57,6 +55,7 @@ import type {
 } from "@/types/storyboard";
 import { Button } from "@/components/loader-button";
 import { getAspectRatioClass } from "@/lib/utils";
+import Image from "next/image";
 
 const SHOT_TYPES: ShotType[] = [
   "wide",
@@ -118,6 +117,7 @@ export default function StoryboardBoardPage({ params }: Props) {
     new Set(),
   );
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [previewSheetUrl, setPreviewSheetUrl] = useState<string | null>(null);
 
   const addGeneratingShotId = (id: string) => {
     setGeneratingShotIds((prev) => new Set(prev).add(id));
@@ -130,9 +130,14 @@ export default function StoryboardBoardPage({ params }: Props) {
     });
   };
 
-  // Modals
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAnimaticModal, setShowAnimaticModal] = useState(false);
+  const [showLocationsModal, setShowLocationsModal] = useState(false);
+  const [showObjectsModal, setShowObjectsModal] = useState(false);
+  const [activeStudioTab, setActiveStudioTab] = useState<
+    "storyboard" | "shotlist"
+  >("storyboard");
+
   const [exportingType, setExportingType] = useState<
     "slideshow" | "render" | "pdf" | null
   >(null);
@@ -150,7 +155,7 @@ export default function StoryboardBoardPage({ params }: Props) {
     { revalidateOnFocus: false },
   );
 
-  const { data: scenesData } = useSWR(
+  const { data: scenesData, mutate: mutateScenes } = useSWR(
     swrKeys.storyboardScenes(projectId),
     () => storyboardApi.getScenes(projectId),
     { revalidateOnFocus: false },
@@ -159,6 +164,18 @@ export default function StoryboardBoardPage({ params }: Props) {
   const { data: charactersData } = useSWR(
     swrKeys.storyboardCharacters(projectId),
     () => storyboardApi.getCharacters(projectId),
+    { revalidateOnFocus: false },
+  );
+
+  const { data: locationsData } = useSWR(
+    swrKeys.storyboardLocations(projectId),
+    () => storyboardApi.getLocations(projectId),
+    { revalidateOnFocus: false },
+  );
+
+  const { data: objectsData } = useSWR(
+    swrKeys.storyboardObjects(projectId),
+    () => storyboardApi.getObjects(projectId),
     { revalidateOnFocus: false },
   );
 
@@ -444,7 +461,7 @@ export default function StoryboardBoardPage({ params }: Props) {
     <div className="min-h-screen bg-[#060e06] text-[#e8d5a3] selection:bg-[#c9a84c] selection:text-black">
       {/* Top Studio Toolbar */}
       <header className="sticky top-0 z-30 border-b border-[#c9a84c]/15 bg-[#080e08]/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-3.5">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() =>
@@ -467,12 +484,68 @@ export default function StoryboardBoardPage({ params }: Props) {
                 {project?.title || "Storyboard Canvas"}
               </h1>
             </div>
+
+            {/* Studio View Switcher Tabs */}
+            <div className="ml-2 flex items-center rounded-md border border-white/10 bg-black/40 p-0.5">
+              <button
+                type="button"
+                onClick={() => setActiveStudioTab("storyboard")}
+                className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition ${
+                  activeStudioTab === "storyboard"
+                    ? "bg-[#c9a84c] text-black shadow"
+                    : "text-white/50 hover:text-white"
+                }`}
+              >
+                <LayoutGrid size={12} />
+                Storyboard
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveStudioTab("shotlist")}
+                className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition ${
+                  activeStudioTab === "shotlist"
+                    ? "bg-[#c9a84c] text-black shadow"
+                    : "text-white/50 hover:text-white"
+                }`}
+              >
+                <TableIcon size={12} />
+                Shotlist
+              </button>
+            </div>
           </div>
 
           {/* Center/Right Toolbar */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            {/* Locations Button */}
+            <button
+              onClick={() => setShowLocationsModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+            >
+              <MapPin size={12} className="text-[#c9a84c]" />
+              <span>Locations</span>
+              {(locationsData?.locations?.length ?? 0) > 0 && (
+                <span className="rounded bg-[#c9a84c]/20 px-1.5 py-0.2 text-[10px] font-bold text-[#e8d5a3]">
+                  {locationsData?.locations.length}
+                </span>
+              )}
+            </button>
+
+            {/* Objects & Props Button */}
+            <button
+              onClick={() => setShowObjectsModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+            >
+              <Box size={12} className="text-[#c9a84c]" />
+              <span>Objects</span>
+              {(objectsData?.objects?.length ?? 0) > 0 && (
+                <span className="rounded bg-[#c9a84c]/20 px-1.5 py-0.2 text-[10px] font-bold text-[#e8d5a3]">
+                  {objectsData?.objects.length}
+                </span>
+              )}
+            </button>
+
             {/* Model Selector */}
-            <div className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs">
+            <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs">
               <Sparkles size={12} className="text-[#c9a84c]" />
               <select
                 value={selectedModel}
@@ -498,19 +571,18 @@ export default function StoryboardBoardPage({ params }: Props) {
               }}
               className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-white transition hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
             >
-              <Play size={12} /> Play Animatic
+              <Play size={12} /> Animatic
             </button>
 
             {/* Generate All Shots */}
             <button
               onClick={handleGenerateAllShots}
               disabled={isGeneratingAll}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 px-3.5 py-1.5 text-xs font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 px-3 py-1.5 text-xs font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition disabled:opacity-50"
             >
               {isGeneratingAll ? (
                 <>
-                  <Loader2 size={12} className="animate-spin" /> Batch
-                  Generating...
+                  <Loader2 size={12} className="animate-spin" /> Batch...
                 </>
               ) : (
                 <>
@@ -522,7 +594,7 @@ export default function StoryboardBoardPage({ params }: Props) {
             {/* Export */}
             <button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] px-4 py-1.5 text-xs font-bold text-[#060e06] shadow-md shadow-[#c9a84c]/20 hover:scale-[1.01] transition"
+              className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] px-3.5 py-1.5 text-xs font-bold text-[#060e06] shadow-md shadow-[#c9a84c]/20 hover:scale-[1.01] transition"
             >
               <Download size={12} /> Export
             </button>
@@ -532,24 +604,68 @@ export default function StoryboardBoardPage({ params }: Props) {
         </div>
       </header>
 
-      {/* Main Studio Board Canvas */}
+      {/* Main Studio Board Canvas or Shotlist Table */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {loadingShots ? (
-          <div className="flex flex-col gap-8">
-            {[1, 2].map((i) => (
-              <section className="space-y-4">
-                <div className="space-y-2">
-                  <div className="h-12 w-full animate-pulse rounded bg-white/5" />
+        {activeStudioTab === "shotlist" ? (
+          <ShotListPanel projectId={projectId} />
+        ) : loadingShots ? (
+          <div className="flex flex-col gap-10">
+            {[1, 2].map((sceneIdx) => (
+              <div key={sceneIdx} className="space-y-4">
+                {/* Skeleton Scene Header */}
+                <div className="flex items-center gap-3 rounded-md border border-[#2c2a22]/50 bg-[#0f0e0b]/50 p-4">
+                  <div className="h-6 w-6 animate-pulse rounded bg-[#c9a84c]/20" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 w-48 animate-pulse rounded bg-white/8" />
+                    <div className="h-3 w-80 animate-pulse rounded bg-white/5" />
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-                  {[1, 2, 3, 4].map((i) => (
+                {/* Skeleton Shot Cards Grid */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                  {[1, 2, 3, 4].map((shotIdx) => (
                     <div
-                      key={i}
-                      className="h-64 animate-pulse rounded-md border border-white/[0.05] bg-[#0d120d]/90"
-                    />
+                      key={shotIdx}
+                      className="overflow-hidden rounded-md border border-[#2c2a22]/40 bg-[#22331F]/30"
+                    >
+                      {/* Skeleton Image Area */}
+                      <div className="relative aspect-video w-full bg-[#0d0c0a]">
+                        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-white/[0.03] via-white/[0.06] to-white/[0.03]" />
+                        {/* Skeleton timecode badge */}
+                        <div className="absolute left-2 top-2 h-5 w-20 animate-pulse rounded bg-black/40" />
+                        {/* Skeleton viewfinder brackets */}
+                        <div className="pointer-events-none absolute inset-2.5 opacity-30">
+                          <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-[#e08a3e]/30" />
+                          <span className="absolute right-0 top-0 h-3 w-3 border-r-2 border-t-2 border-[#e08a3e]/30" />
+                          <span className="absolute bottom-0 left-0 h-3 w-3 border-b-2 border-l-2 border-[#e08a3e]/30" />
+                          <span className="absolute bottom-0 right-0 h-3 w-3 border-b-2 border-r-2 border-[#e08a3e]/30" />
+                        </div>
+                      </div>
+                      {/* Skeleton Card Content */}
+                      <div className="p-3 space-y-2.5">
+                        {/* Skeleton character tags */}
+                        <div className="flex gap-1.5">
+                          <div className="h-5 w-14 animate-pulse rounded-[3px] bg-[#7c8f96]/10" />
+                          <div className="h-5 w-12 animate-pulse rounded-[3px] bg-[#7c8f96]/10" />
+                        </div>
+                        {/* Skeleton description lines */}
+                        <div className="space-y-1.5">
+                          <div className="h-3.5 w-full animate-pulse rounded bg-white/8" />
+                          <div className="h-3.5 w-4/5 animate-pulse rounded bg-white/6" />
+                          <div className="h-3.5 w-3/5 animate-pulse rounded bg-white/4" />
+                        </div>
+                        {/* Skeleton bottom bar */}
+                        <div className="flex items-center justify-between border-t border-white/[0.04] pt-2.5">
+                          <div className="h-7 w-20 animate-pulse rounded bg-white/5" />
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="h-3 w-12 animate-pulse rounded bg-white/5" />
+                            <div className="h-3 w-16 animate-pulse rounded bg-white/4" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </section>
+              </div>
             ))}
           </div>
         ) : shots.length === 0 ? (
@@ -572,7 +688,7 @@ export default function StoryboardBoardPage({ params }: Props) {
                   {/* Scene Header Strip */}
                   <div className="flex flex-wrap items-center justify-between rounded-md border border-[#2c2a22] bg-[#0f0e0b] p-4">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] font-mono text-xs font-bold text-[#121210]">
+                      <span className="flex h-6 max-w-6 w-full items-center justify-center rounded bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] font-mono text-xs font-bold text-[#121210]">
                         {sceneIndex + 1}
                       </span>
                       <div>
@@ -616,7 +732,41 @@ export default function StoryboardBoardPage({ params }: Props) {
                       const hasImage = Boolean(shot.generatedImageUrl);
                       const isFlagged = shot.consistencyFlagged;
 
-                      const taggedChars = (shot.characterIds || [])
+                      const resolvedCharIdSet = new Set<string>(
+                        shot.characterIds || [],
+                      );
+                      const fullShotText = `${shot.description ?? ""} ${shot.dialogue ?? ""}`;
+
+                      // Match character names in description/dialogue
+                      if (characters.length > 0) {
+                        for (const char of characters) {
+                          if (char.name && char.name.trim().length > 1) {
+                            const escaped = char.name
+                              .trim()
+                              .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                            if (
+                              new RegExp(`\\b${escaped}\\b`, "i").test(
+                                fullShotText,
+                              )
+                            ) {
+                              resolvedCharIdSet.add(char.id);
+                            }
+                          }
+                        }
+
+                        // Match group keywords like trio, all three, both, everyone
+                        const hasGroupWord =
+                          /\b(all three|all \d+|the trio|trio|the duo|duo|both of them|both characters|the pair|pair of them|everyone|everybody|all of them|the gang|the group|the team|the crew|the friends|the roommates)\b/i.test(
+                            fullShotText,
+                          );
+                        if (hasGroupWord && characters.length <= 5) {
+                          for (const char of characters) {
+                            resolvedCharIdSet.add(char.id);
+                          }
+                        }
+                      }
+
+                      const taggedChars = Array.from(resolvedCharIdSet)
                         .map((cId) => characterMap.get(cId))
                         .filter(Boolean) as StoryboardCharacter[];
 
@@ -637,7 +787,16 @@ export default function StoryboardBoardPage({ params }: Props) {
                                   alt={shot.description}
                                   className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"
                                 />
-
+                                <button
+                                  onClick={() =>
+                                    setPreviewSheetUrl(
+                                      shot.generatedImageUrl ?? null,
+                                    )
+                                  }
+                                  className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/80 text-white backdrop-blur-sm hover:bg-black"
+                                >
+                                  <Eye size={12} />
+                                </button>
                                 {/* Viewfinder corner brackets */}
                                 <div className="pointer-events-none absolute inset-2.5 opacity-50 transition-opacity duration-300 group-hover:opacity-90">
                                   <span className="absolute left-0 top-0 h-3 w-3 border-l-2 border-t-2 border-[#e08a3e]/70" />
@@ -837,8 +996,8 @@ export default function StoryboardBoardPage({ params }: Props) {
                             <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-2.5">
                               <Button
                                 onClick={() => setActiveShotForEdit(shot)}
-                               variant="secondary"
-                               className="px-2 py-1.5"
+                                variant="secondary"
+                                className="px-2 py-1.5"
                               >
                                 Edit shot
                               </Button>
@@ -862,355 +1021,381 @@ export default function StoryboardBoardPage({ params }: Props) {
         )}
       </main>
 
-      {/* Comprehensive Shot Detail / Edit Modal with Lens & Sound Controls */}
+      {/* Comprehensive Shot Detail / Edit Modal with Split-Pane Layout */}
       {activeShotForEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl overflow-hidden rounded-md border border-[#c9a84c]/20 bg-[#0a120a] p-6 shadow-2xl shadow-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
+          <div className="flex flex-col w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-md border border-[#c9a84c]/25 bg-[#090f09] shadow-2xl shadow-black/80">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-[#080d08]">
               <div className="flex items-center gap-3">
-                <div className="rounded-md bg-[#c9a84c]/10 p-2">
-                  <svg
-                    className="h-4 w-4 text-[#c9a84c]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
+                <div className="rounded-md bg-[#c9a84c]/10 p-2 text-[#e8d5a3] border border-[#c9a84c]/30">
+                  <Camera size={16} />
                 </div>
-                <h3 className="text-xl font-semibold tracking-tight text-white">
-                  Shot Details <span className="text-[#c9a84c]/60">·</span>{" "}
-                  Director Blocking
-                </h3>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    Shot Details &amp; Director Blocking
+                  </h3>
+                  <p className="text-xs text-white/50">
+                    Fine-tune composition, camera angle, dialogue, and character
+                    tagging
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setActiveShotForEdit(null)}
-                className="rounded-md p-1.5 text-white/30 transition-colors hover:bg-white/5 hover:text-white"
+                className="rounded-md p-1.5 text-white/40 hover:text-white hover:bg-white/5 transition"
               >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <X size={18} />
               </button>
             </div>
 
-            {/* Body */}
-            <div className="mt-5 space-y-5">
-              {/* Visual Description */}
-              <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/50">
-                  Visual Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={activeShotForEdit.description}
-                  onChange={(e) =>
-                    setActiveShotForEdit({
-                      ...activeShotForEdit,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full rounded-md border border-white/10 bg-black/30 px-3.5 py-2.5 text-sm text-white/90 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:ring-1 focus:ring-[#c9a84c]/30 focus:outline-none"
-                />
-              </div>
-
-              {/* Dialogue */}
-              <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/50">
-                  Spoken Dialogue / Audio
-                </label>
-                <input
-                  type="text"
-                  value={activeShotForEdit.dialogue || ""}
-                  onChange={(e) =>
-                    setActiveShotForEdit({
-                      ...activeShotForEdit,
-                      dialogue: e.target.value,
-                    })
-                  }
-                  placeholder="Spoken line in this shot…"
-                  className="w-full rounded-md border border-white/10 bg-black/30 px-3.5 py-2.5 text-sm text-white/90 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:ring-1 focus:ring-[#c9a84c]/30 focus:outline-none"
-                />
-              </div>
-
-              {/* Camera Controls */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {/* Split-Pane Body */}
+            <div className="grid flex-1 grid-cols-1 md:grid-cols-12 overflow-hidden">
+              {/* Left Pane: Shot Visual Preview (5 cols) */}
+              <div className="flex flex-col justify-between border-b md:border-b-0 md:border-r border-white/10 bg-black/60 p-5 md:col-span-5 overflow-y-auto">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80">
-                    Framing
-                  </label>
-                  <select
-                    value={activeShotForEdit.shotType || "medium"}
-                    onChange={(e) =>
-                      setActiveShotForEdit({
-                        ...activeShotForEdit,
-                        shotType: e.target.value as ShotType,
-                      })
-                    }
-                    className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white capitalize focus:border-[#c9a84c]/50 focus:ring-1 focus:ring-[#c9a84c]/30 focus:outline-none"
-                  >
-                    {SHOT_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative aspect-video w-full overflow-hidden rounded-md border border-white/15 bg-black shadow-lg">
+                    {activeShotForEdit.generatedImageUrl ? (
+                      <img
+                        src={activeShotForEdit.generatedImageUrl}
+                        alt="Shot preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full flex-col items-center justify-center p-4 text-center text-white/30">
+                        <Film size={28} className="text-white/20 mb-1.5" />
+                        <span className="text-xs font-semibold text-white/50">
+                          Not Generated Yet
+                        </span>
+                        <span className="text-[10px] text-white/30 mt-0.5">
+                          Save changes and generate frame in board
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Overlay Badges */}
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      <span className="rounded bg-black/75 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[#c9a84c] border border-white/10 backdrop-blur-sm">
+                        {activeShotForEdit.shotType || "Medium"}
+                      </span>
+                      <span className="rounded bg-black/75 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white/70 border border-white/10 backdrop-blur-sm">
+                        {activeShotForEdit.cameraAngle || "Eye-level"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Shot Meta Info */}
+                  <div className="mt-4 space-y-2 text-xs">
+                    <div className="flex justify-between border-b border-white/5 pb-1 text-white/50">
+                      <span>Framing:</span>
+                      <span className="font-semibold text-white capitalize">
+                        {activeShotForEdit.shotType || "Medium"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/5 pb-1 text-white/50">
+                      <span>Camera Angle:</span>
+                      <span className="font-semibold text-white capitalize">
+                        {activeShotForEdit.cameraAngle || "Eye-level"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/5 pb-1 text-white/50">
+                      <span>Perspective:</span>
+                      <span className="font-semibold text-white capitalize">
+                        {activeShotForEdit.perspective || "1-point"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-white/50">
+                      <span>Movement:</span>
+                      <span className="font-semibold text-white capitalize">
+                        {activeShotForEdit.movement || "Static"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80">
-                    Angle
-                  </label>
-                  <select
-                    value={activeShotForEdit.cameraAngle || "eye-level"}
-                    onChange={(e) =>
-                      setActiveShotForEdit({
-                        ...activeShotForEdit,
-                        cameraAngle: e.target.value as CameraAngle,
-                      })
-                    }
-                    className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white capitalize focus:border-[#c9a84c]/50 focus:ring-1 focus:ring-[#c9a84c]/30 focus:outline-none"
-                  >
-                    {CAMERA_ANGLES.map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80">
-                    Perspective
-                  </label>
-                  <select
-                    value={activeShotForEdit.perspective || "1-point"}
-                    onChange={(e) =>
-                      setActiveShotForEdit({
-                        ...activeShotForEdit,
-                        perspective: e.target.value as Perspective,
-                      })
-                    }
-                    className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white capitalize focus:border-[#c9a84c]/50 focus:ring-1 focus:ring-[#c9a84c]/30 focus:outline-none"
-                  >
-                    {PERSPECTIVES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80">
-                    Movement
-                  </label>
-                  <select
-                    value={activeShotForEdit.movement || "static"}
-                    onChange={(e) =>
-                      setActiveShotForEdit({
-                        ...activeShotForEdit,
-                        movement: e.target.value as CameraMovement,
-                      })
-                    }
-                    className="mt-1.5 w-full rounded-md border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white capitalize focus:border-[#c9a84c]/50 focus:ring-1 focus:ring-[#c9a84c]/30 focus:outline-none"
-                  >
-                    {CAMERA_MOVEMENTS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
+                <div className="mt-4 rounded border border-[#c9a84c]/20 bg-[#c9a84c]/5 p-2.5 text-xs tracking-wide text-[#e8d5a3]">
+                  💡 Tagging characters ensures their locked reference sheet is
+                  injected during image generation.
                 </div>
               </div>
 
-              {/* Sound & Music Cues */}
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80">
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-                    />
-                  </svg>
-                  Sound FX &amp; Musical Tension Cues
+              {/* Right Pane: Edit Controls (7 cols) */}
+              <div className="flex flex-col p-6 md:col-span-7 overflow-y-auto space-y-4 text-xs">
+                {/* Visual Description */}
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-white/60">
+                    Shot Action &amp; Visual Description *
+                  </label>
+                  <textarea
+                    rows={5}
+                    value={activeShotForEdit.description}
+                    onChange={(e) =>
+                      setActiveShotForEdit({
+                        ...activeShotForEdit,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Describe character poses, background details, action beats..."
+                    className="w-full rounded border border-white/10 bg-black/40 p-2.5 text-sm text-white/90 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:outline-none"
+                  />
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {AUDIO_CUE_PRESETS.map((cue) => (
-                    <button
-                      key={cue}
-                      type="button"
-                      onClick={() => {
-                        const currentDesc = activeShotForEdit.description || "";
-                        if (!currentDesc.includes(cue)) {
-                          setActiveShotForEdit({
-                            ...activeShotForEdit,
-                            description: `${currentDesc} ${cue}`,
-                          });
-                        }
-                      }}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium text-white/70 transition-all hover:border-[#c9a84c]/40 hover:bg-[#c9a84c]/10 hover:text-[#e8d5a3]"
+
+                {/* Dialogue */}
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-white/60">
+                    Spoken Dialogue / Audio Line
+                  </label>
+                  <input
+                    type="text"
+                    value={activeShotForEdit.dialogue || ""}
+                    onChange={(e) =>
+                      setActiveShotForEdit({
+                        ...activeShotForEdit,
+                        dialogue: e.target.value,
+                      })
+                    }
+                    placeholder="Character spoken dialogue line..."
+                    className="w-full rounded border border-white/10 bg-black/40 px-3 py-2 text-sm text-white/90 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:outline-none"
+                  />
+                </div>
+
+                {/* Camera Blocking Controls Grid */}
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80 mb-1">
+                      Framing
+                    </label>
+                    <select
+                      value={activeShotForEdit.shotType || "medium"}
+                      onChange={(e) =>
+                        setActiveShotForEdit({
+                          ...activeShotForEdit,
+                          shotType: e.target.value as ShotType,
+                        })
+                      }
+                      className="w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white capitalize focus:border-[#c9a84c]/50 focus:outline-none"
                     >
-                      {cue}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                      {SHOT_TYPES.map((t) => (
+                        <option key={t} value={t} className="bg-[#090f09]">
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Tagged Characters */}
-              <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">
-                  Tagged Characters{" "}
-                  <span className="font-normal lowercase text-white/30">
-                    · facial &amp; attire
-                  </span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {characters.map((char) => {
-                    const isTagged = (
-                      activeShotForEdit.characterIds || []
-                    ).includes(char.id);
-                    return (
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80 mb-1">
+                      Angle
+                    </label>
+                    <select
+                      value={activeShotForEdit.cameraAngle || "eye-level"}
+                      onChange={(e) =>
+                        setActiveShotForEdit({
+                          ...activeShotForEdit,
+                          cameraAngle: e.target.value as CameraAngle,
+                        })
+                      }
+                      className="w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white capitalize focus:border-[#c9a84c]/50 focus:outline-none"
+                    >
+                      {CAMERA_ANGLES.map((a) => (
+                        <option key={a} value={a} className="bg-[#090f09]">
+                          {a}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80 mb-1">
+                      Perspective
+                    </label>
+                    <select
+                      value={activeShotForEdit.perspective || "1-point"}
+                      onChange={(e) =>
+                        setActiveShotForEdit({
+                          ...activeShotForEdit,
+                          perspective: e.target.value as Perspective,
+                        })
+                      }
+                      className="w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white capitalize focus:border-[#c9a84c]/50 focus:outline-none"
+                    >
+                      {PERSPECTIVES.map((p) => (
+                        <option key={p} value={p} className="bg-[#090f09]">
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80 mb-1">
+                      Movement
+                    </label>
+                    <select
+                      value={activeShotForEdit.movement || "static"}
+                      onChange={(e) =>
+                        setActiveShotForEdit({
+                          ...activeShotForEdit,
+                          movement: e.target.value as CameraMovement,
+                        })
+                      }
+                      className="w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-[11px] text-white capitalize focus:border-[#c9a84c]/50 focus:outline-none"
+                    >
+                      {CAMERA_MOVEMENTS.map((m) => (
+                        <option key={m} value={m} className="bg-[#090f09]">
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Sound & Music Tension Cues */}
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]/80">
+                    Audio &amp; Musical Atmosphere Presets
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {AUDIO_CUE_PRESETS.map((cue) => (
                       <button
-                        key={char.id}
+                        key={cue}
                         type="button"
                         onClick={() => {
-                          const currentIds =
-                            activeShotForEdit.characterIds || [];
-                          const updatedIds = isTagged
-                            ? currentIds.filter((id) => id !== char.id)
-                            : [...currentIds, char.id];
-                          setActiveShotForEdit({
-                            ...activeShotForEdit,
-                            characterIds: updatedIds,
-                          });
+                          const currentDesc =
+                            activeShotForEdit.description || "";
+                          if (!currentDesc.includes(cue)) {
+                            setActiveShotForEdit({
+                              ...activeShotForEdit,
+                              description: `${currentDesc} ${cue}`,
+                            });
+                          }
                         }}
-                        className={`flex items-center gap-1.5 rounded-md border px-3.5 py-1.5 text-xs font-medium transition-all ${
-                          isTagged
-                            ? "border-[#c9a84c] bg-[#c9a84c]/15 text-[#e8d5a3] shadow-[0_0_12px_rgba(201,168,76,0.08)]"
-                            : "border-white/5 bg-white/5 text-white/40 hover:border-white/20 hover:bg-white/10 hover:text-white/70"
-                        }`}
+                        className="rounded border border-white/10 bg-white/5 px-2.5 py-0.5 text-[10px] font-medium text-white/70 transition hover:border-[#c9a84c]/40 hover:bg-[#c9a84c]/10 hover:text-[#e8d5a3]"
                       >
-                        {isTagged && (
-                          <svg
-                            className="h-3 w-3 text-[#c9a84c]"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                        {char.name}
+                        + {cue}
                       </button>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Footer Actions */}
-              <div className="mt-6 flex items-center justify-end gap-3 border-t border-white/5 pt-5">
-                <button
-                  type="button"
-                  onClick={() => setActiveShotForEdit(null)}
-                  className="rounded-lg px-4 py-2.5 text-sm font-medium text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
-                >
-                  Cancel
-                </button>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    await storyboardApi.updateShot(
-                      activeShotForEdit.id,
-                      activeShotForEdit,
-                    );
-                    mutateShots();
-                    setActiveShotForEdit(null);
-                    toast.success("Shot updated");
-                  }}
-                  className="py-2"
-                >
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                {/* Tagged Characters */}
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-white/60">
+                    Tagged Characters (Face &amp; Attire Identity Locking)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {characters.map((char) => {
+                      const isTagged = (
+                        activeShotForEdit.characterIds || []
+                      ).includes(char.id);
+                      return (
+                        <button
+                          key={char.id}
+                          type="button"
+                          onClick={() => {
+                            const currentIds =
+                              activeShotForEdit.characterIds || [];
+                            const updatedIds = isTagged
+                              ? currentIds.filter((id) => id !== char.id)
+                              : [...currentIds, char.id];
+                            setActiveShotForEdit({
+                              ...activeShotForEdit,
+                              characterIds: updatedIds,
+                            });
+                          }}
+                          className={`flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-semibold transition ${
+                            isTagged
+                              ? "border-[#c9a84c] bg-[#c9a84c]/15 text-[#e8d5a3]"
+                              : "border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:text-white"
+                          }`}
+                        >
+                          {isTagged && (
+                            <Check size={11} className="text-[#c9a84c]" />
+                          )}
+                          {char.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer Save Actions */}
+                <div className="flex items-center justify-end gap-2 border-t border-white/10 pt-4 mt-4">
+                  <Button
+                    type="button"
+                    onClick={() => setActiveShotForEdit(null)}
+                    className="py-2 text-white"
+                    variant="ghost"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      await storyboardApi.updateShot(
+                        activeShotForEdit.id,
+                        activeShotForEdit,
+                      );
+                      mutateShots();
+                      setActiveShotForEdit(null);
+                      toast.success("Shot updated");
+                    }}
+                    className="py-2"
+                  >
                     Save Changes
-                  </span>
-                </Button>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Iterate Prompt Modal */}
+      {/* Iterate Prompt Modal with Preview */}
       {activeShotForIterate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
           <div className="w-full max-w-lg rounded-md border border-[#c9a84c]/25 bg-[#090f09] p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-[#c9a84c]" />
-                <h3 className="text-base font-bold text-white">
-                  Iterate &amp; Refine Shot
+                <h3 className="text-lg font-bold text-white">
+                  Iterate &amp; Refine Shot Keyframe
                 </h3>
               </div>
-              <button
+              <Button
                 onClick={() => setActiveShotForIterate(null)}
-                className="rounded-md p-1 text-white/40 hover:text-white"
+                variant="ghost"
               >
-                &times;
-              </button>
+                <X size={16} />
+              </Button>
             </div>
 
-            <p className="mt-2 text-xs text-white/50">
-              Apply prompt adjustments while keeping character identity &amp;
-              clothing locked.
+            {/* Current Shot Preview */}
+            {activeShotForIterate.generatedImageUrl && (
+              <div className="mt-3 relative aspect-video w-full overflow-hidden rounded border border-white/15 bg-black">
+                <img
+                  src={activeShotForIterate.generatedImageUrl}
+                  alt="Current frame"
+                  className="h-full w-full object-cover"
+                />
+                <span className="absolute bottom-2 left-2 rounded bg-black/75 px-2 py-0.5 text-[10px] text-white/80 backdrop-blur-sm border border-white/10">
+                  Current Shot Visual Anchor
+                </span>
+              </div>
+            )}
+
+            <p className="mt-3 text-xs text-white/60">
+              Apply prompt adjustments while maintaining character facial
+              likeness &amp; scene environment.
             </p>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-3">
               <textarea
                 rows={3}
                 value={iterationPrompt}
                 onChange={(e) => setIterationPrompt(e.target.value)}
-                placeholder="e.g. Add intense cyberpunk neon red rim lighting and make the character gaze at the camera..."
-                className="w-full rounded-md border border-white/10 bg-black/40 p-2.5 text-xs text-white focus:border-[#c9a84c]/50 focus:outline-none"
+                placeholder="e.g. Add intense red rim lighting, make character gaze into the camera with shock..."
+                className="w-full rounded border border-white/10 bg-black/40 p-2.5 text-sm text-white focus:border-[#c9a84c]/50 focus:outline-none"
               />
 
               <div className="flex flex-wrap gap-1.5">
@@ -1219,7 +1404,7 @@ export default function StoryboardBoardPage({ params }: Props) {
                   "Close up on eyes",
                   "Action motion blur",
                   "Dark silhouette",
-                  "Cinematic fog & haze",
+                  "Cinematic volumetric fog",
                 ].map((chip) => (
                   <button
                     key={chip}
@@ -1229,28 +1414,28 @@ export default function StoryboardBoardPage({ params }: Props) {
                         prev ? `${prev}, ${chip}` : chip,
                       )
                     }
-                    className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60 hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+                    className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60 hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
                   >
                     + {chip}
                   </button>
                 ))}
               </div>
 
-              <div className="mt-5 flex items-center justify-end gap-2 border-t border-white/5 pt-3">
-                <button
-                  type="button"
+              <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-3">
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveShotForIterate(null)}
-                  className="rounded-md px-3.5 py-1.5 text-xs font-semibold text-white/50 hover:text-white"
+                  className="text-white py-2"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleApplyIteration}
-                  className="rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] px-5 py-1.5 text-xs font-bold text-[#060e06] shadow-md shadow-[#c9a84c]/20"
+                  className="py-2"
                 >
                   Regenerate with Refinement
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1264,7 +1449,7 @@ export default function StoryboardBoardPage({ params }: Props) {
             <div className="flex items-center justify-between border-b border-white/5 pb-4">
               <div>
                 <h3 className="text-lg font-bold text-white">
-                  Export Storyboard
+                  Export Storyboard Studio
                 </h3>
                 <p className="text-xs text-white/50">
                   Choose your desired final export format
@@ -1272,9 +1457,9 @@ export default function StoryboardBoardPage({ params }: Props) {
               </div>
               <button
                 onClick={() => setShowExportModal(false)}
-                className="rounded-md p-1 text-white/40 hover:text-white"
+                className="rounded p-1 text-white/40 hover:text-white"
               >
-                &times;
+                <X size={18} />
               </button>
             </div>
 
@@ -1362,82 +1547,45 @@ export default function StoryboardBoardPage({ params }: Props) {
         </div>
       )}
 
-      {/* Sequential Animatic Player Modal */}
-      {showAnimaticModal && shots.length > 0 && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/95 p-6 backdrop-blur-xl">
-          <div className="flex items-center justify-between text-white">
-            <div className="flex items-center gap-2">
-              <Film size={16} className="text-[#c9a84c]" />
-              <span className="font-bold text-xs">
-                Animatic Player &middot; Shot {animaticIndex + 1} of{" "}
-                {shots.length}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                setIsPlayingAnimatic(false);
-                setShowAnimaticModal(false);
-              }}
-              className="rounded-md p-1.5 text-white/50 hover:text-white"
-            >
-              <X size={18} />
-            </button>
-          </div>
+      {/* Studio Animatic Timeline Editor Modal with Voiceover Studio */}
+      <AnimaticEditorModal
+        isOpen={showAnimaticModal}
+        onClose={() => setShowAnimaticModal(false)}
+        shots={shots}
+        scenes={scenes}
+        projectId={projectId}
+        onSceneUpdated={() => mutateScenes()}
+      />
 
-          <div className="relative my-auto mx-auto flex max-h-[75vh] w-full max-w-4xl items-center justify-center overflow-hidden rounded-md border border-white/10 bg-black shadow-2xl">
-            {shots[animaticIndex]?.generatedImageUrl ? (
-              <img
-                src={shots[animaticIndex].generatedImageUrl!}
-                alt="Animatic shot"
-                className="max-h-[70vh] w-auto object-contain transition duration-500"
-              />
-            ) : (
-              <div className="flex h-64 items-center justify-center text-white/30 text-xs">
-                No illustration generated for this shot
-              </div>
-            )}
+      {/* Locations Management Slide-over / Modal */}
+      <LocationsModal
+        isOpen={showLocationsModal}
+        onClose={() => setShowLocationsModal(false)}
+        projectId={projectId}
+      />
 
-            {(shots[animaticIndex]?.dialogue ||
-              shots[animaticIndex]?.description) && (
-              <div className="absolute bottom-4 inset-x-4 mx-auto max-w-2xl rounded-md bg-black/80 p-3 text-center backdrop-blur-md border border-white/10">
-                {shots[animaticIndex].dialogue ? (
-                  <p className="text-xs font-bold text-[#e8d5a3] italic">
-                    &ldquo;{shots[animaticIndex].dialogue}&rdquo;
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-white/70">
-                    {shots[animaticIndex].description}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+      {/* Story Objects & Key Props Modal */}
+      <ObjectsModal
+        isOpen={showObjectsModal}
+        onClose={() => setShowObjectsModal(false)}
+        projectId={projectId}
+      />
 
-          <div className="mx-auto flex w-full max-w-2xl items-center justify-between rounded-md border border-white/10 bg-[#080d08] p-3 text-white">
-            <button
-              onClick={() => setAnimaticIndex((prev) => Math.max(0, prev - 1))}
-              disabled={animaticIndex === 0}
-              className="rounded-md p-1.5 text-white/40 hover:text-white disabled:opacity-20"
-            >
-              <ChevronLeft size={18} />
-            </button>
-
-            <button
-              onClick={() => setIsPlayingAnimatic(!isPlayingAnimatic)}
-              className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] text-black shadow-md shadow-[#c9a84c]/20"
-            >
-              {isPlayingAnimatic ? <Pause size={16} /> : <Play size={16} />}
-            </button>
-
-            <button
-              onClick={() =>
-                setAnimaticIndex((prev) => Math.min(shots.length - 1, prev + 1))
-              }
-              disabled={animaticIndex === shots.length - 1}
-              className="rounded-md p-1.5 text-white/40 hover:text-white disabled:opacity-20"
-            >
-              <ChevronRight size={18} />
-            </button>
+      {/* Sheet Preview Lightbox */}
+      {previewSheetUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-3 sm:p-6 cursor-pointer"
+          onClick={() => setPreviewSheetUrl(null)}
+        >
+          <div className="relative h-[85vh] w-[90vw] rounded-md overflow-hidden">
+            <Image
+              src={previewSheetUrl}
+              alt="Sheet preview"
+              fill
+              sizes="95vw"
+              className="object-contain"
+              priority
+            />
           </div>
         </div>
       )}

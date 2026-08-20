@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     if (!projectCheck.allowed) {
       return NextResponse.json(
         {
-          error: "Storyboard project limit reached for your plan",
+          error: "Storyboard project limit reached for your plan. Please Upgrade your plan.",
           code: "STORYBOARD_PROJECT_LIMIT",
           limit: projectCheck.limit,
           current: projectCheck.current,

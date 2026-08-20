@@ -161,6 +161,32 @@ export interface StoryboardShot {
   updatedAt: string;
 }
 
+export type ObjectImportance = "key_prop" | "recurring" | "background";
+
+export interface StoryboardLocation {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string | null;
+  lightingNotes?: string | null;
+  referenceImageUrl?: string | null;
+  generatedImageUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StoryboardObject {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string | null;
+  importance: ObjectImportance;
+  referenceImageUrl?: string | null;
+  generatedImageUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface StoryboardUsageSummary {
   tier: "free" | "creator" | "pro";
   used: number;

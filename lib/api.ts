@@ -5,6 +5,8 @@ import type {
   StoryboardScene,
   StoryboardCharacter,
   StoryboardShot,
+  StoryboardLocation,
+  StoryboardObject,
   StoryboardUsageSummary,
 } from "@/types/storyboard";
 
@@ -280,6 +282,58 @@ export const storyboardApi = {
       { method: "POST", body: JSON.stringify({ approvedSheetUrl }) },
     ),
 
+  // Locations
+  getLocations: (projectId: string) =>
+    request<{ locations: StoryboardLocation[] }>(
+      `/api/storyboard/projects/${projectId}/locations`,
+    ),
+  createLocation: (projectId: string, data: Partial<StoryboardLocation>) =>
+    request<{ location: StoryboardLocation }>(
+      `/api/storyboard/projects/${projectId}/locations`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    ),
+  updateLocation: (id: string, data: Partial<StoryboardLocation>) =>
+    request<{ location: StoryboardLocation }>(
+      `/api/storyboard/locations/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
+    ),
+  deleteLocation: (id: string) =>
+    request<{ success: boolean }>(`/api/storyboard/locations/${id}`, {
+      method: "DELETE",
+    }),
+
+  // Objects
+  getObjects: (projectId: string) =>
+    request<{ objects: StoryboardObject[] }>(
+      `/api/storyboard/projects/${projectId}/objects`,
+    ),
+  createObject: (projectId: string, data: Partial<StoryboardObject>) =>
+    request<{ object: StoryboardObject }>(
+      `/api/storyboard/projects/${projectId}/objects`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    ),
+  updateObject: (id: string, data: Partial<StoryboardObject>) =>
+    request<{ object: StoryboardObject }>(
+      `/api/storyboard/objects/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      },
+    ),
+  deleteObject: (id: string) =>
+    request<{ success: boolean }>(`/api/storyboard/objects/${id}`, {
+      method: "DELETE",
+    }),
+
   // Shots
   getShots: (projectId: string) =>
     request<{ shots: StoryboardShot[] }>(
@@ -398,5 +452,9 @@ export const swrKeys = {
     `/api/storyboard/projects/${projectId}/characters`,
   storyboardShots: (projectId: string) =>
     `/api/storyboard/projects/${projectId}/shots`,
+  storyboardLocations: (projectId: string) =>
+    `/api/storyboard/projects/${projectId}/locations`,
+  storyboardObjects: (projectId: string) =>
+    `/api/storyboard/projects/${projectId}/objects`,
   storyboardUsage: () => "/api/storyboard/usage",
 };

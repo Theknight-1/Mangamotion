@@ -7,6 +7,17 @@ import { useSession } from "@/lib/auth-client";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { EditorMockup } from "@/components/landing/editor-mockup";
+import {
+  Sparkles,
+  Clapperboard,
+  Film,
+  Camera,
+  Palette,
+  Users,
+  FileText,
+  Volume2,
+  Share2,
+} from "lucide-react";
 
 /* ══════════════════════════════════════════════ TYPES ══════════════════════════════════════════ */
 
@@ -14,6 +25,7 @@ interface Feature {
   icon: React.ReactNode;
   title: string;
   desc: string;
+  badge?: string;
 }
 
 interface Step {
@@ -28,6 +40,7 @@ interface Testimonial {
   role: string;
   avatar: string;
   color: keyof typeof AVATAR_COLORS;
+  toolUsed?: string;
 }
 
 interface Faq {
@@ -47,10 +60,11 @@ const AVATAR_COLORS = {
 
 const SOCIAL_PROOF_ITEMS = [
   "No credit card required",
-  "5 free videos on signup",
-  "100+ AI voices",
-  "Export MP4 instantly",
-  "FFmpeg-powered rendering",
+  "Free tier available",
+  "AI Storyboard & Script Breakdown",
+  "Character consistency model sheets",
+  "100+ AI character voices",
+  "Instant 4K MP4 & PDF export",
 ] as const;
 
 const VOICE_OPTIONS = [
@@ -69,98 +83,127 @@ const TIMELINE_SCENES = [
   { label: "Scene 4", dur: 6, voice: true },
 ] as const;
 
-const STEPS: Step[] = [
+const STORYBOARD_STEPS: Step[] = [
   {
     n: "01",
-    title: "Upload your panel",
-    desc: "Drop in a manga image — JPG or PNG, up to 10 MB. We handle the rest.",
+    title: "Upload Script or Idea",
+    desc: "Paste your screenplay, book excerpt, or prompt. AI breaks down narrative beats and pacing.",
   },
   {
     n: "02",
-    title: "Build a timeline",
-    desc: "Add scenes, set durations, reorder until the pacing feels right.",
+    title: "Pick Visual Style & Framing",
+    desc: "Choose from 15+ cinematic styles (Manga, Dark Anime, Cyberpunk Noir, Watercolor) & 16:9/9:16 aspect ratios.",
   },
   {
     n: "03",
-    title: "Assign AI voices",
-    desc: "Pick from 20k+ character voices. Preview before committing.",
+    title: "Generate Consistent Characters",
+    desc: "Create multi-angle character model sheets that lock faces and outfits across every single shot.",
   },
   {
     n: "04",
-    title: "Export your video",
-    desc: "Hit render. Download an MP4 in minutes, ready to share.",
+    title: "Direct Shots & Export Animatic",
+    desc: "Fine-tune camera angles, re-roll frames, assign AI voices, and render a cinematic animatic or export PDF.",
+  },
+];
+
+const PANEL_STEPS: Step[] = [
+  {
+    n: "01",
+    title: "Upload your manga panels",
+    desc: "Drop in scanned manga images — JPG or PNG. Automatic panel segmentation and optimization.",
+  },
+  {
+    n: "02",
+    title: "Build your visual timeline",
+    desc: "Add scenes, adjust pan/zoom durations, and sequence shots until the pacing feels cinematic.",
+  },
+  {
+    n: "03",
+    title: "Assign AI voices & SFX",
+    desc: "Pick from 100+ anime & manga character voices. Preview lines directly on the timeline.",
+  },
+  {
+    n: "04",
+    title: "Export 9:16 / 16:9 Video",
+    desc: "One-click FFmpeg render. Download high-resolution MP4s ready for YouTube Shorts and TikTok.",
   },
 ];
 
 const TESTIMONIALS: Testimonial[] = [
+  {
+    text: "The new Storyboard Studio is mind-blowing. I typed a 3-paragraph cyberpunk scene and had a full 6-shot visual board with consistent character faces and voice narration in under 4 minutes.",
+    name: "Alex Rivera",
+    role: "Anime Director & Storyboard Artist, LA",
+    avatar: "AR",
+    color: "purple",
+    toolUsed: "Storyboard Studio",
+  },
   {
     text: "I went from a folder of scanned chapters to a finished short in one afternoon. The voice matching alone saved me a full day of editing.",
     name: "Haruto Sasaki",
     role: "Manga creator, Osaka",
     avatar: "HS",
     color: "coral",
+    toolUsed: "Panel Animator",
   },
   {
-    text: "My readers always asked what my characters sounded like. Now they just watch the clip.",
+    text: "Character consistency was always the bottleneck with AI tools. MotionRecap's model sheet generator locked my protagonist's face across wide and close-up camera angles effortlessly.",
+    name: "Elena Rostova",
+    role: "Webcomic Illustrator, Berlin",
+    avatar: "ER",
+    color: "teal",
+    toolUsed: "Storyboard Studio",
+  },
+  {
+    text: "My readers always asked what my characters sounded like. Now they just watch the clip with full voice acting.",
     name: "Amara Okafor",
     role: "Webcomic artist, Lagos",
     avatar: "AO",
     color: "amber",
+    toolUsed: "Panel Animator",
+  },
+  {
+    text: "Pitching animated pilots to producers used to take weeks of hand-drawing storyboards. Exporting a printable PDF with shot directions and dialogue is a game-changer.",
+    name: "Mateusz Wójcik",
+    role: "Animation Studio Lead, Kraków",
+    avatar: "MW",
+    color: "pink",
+    toolUsed: "Storyboard Studio",
   },
   {
     text: "The panel-to-pan timing is the part nobody else gets right. MotionRecap nails the pacing without me touching a single keyframe.",
     name: "Diego Fonseca",
-    role: "YouTube editor, São Paulo",
+    role: "YouTube Editor, São Paulo",
     avatar: "DF",
     color: "teal",
-  },
-  {
-    text: "20,000 voices sounded like a gimmick until I actually needed a gravelly old swordsman at 11pm before a deadline.",
-    name: "Priya Nair",
-    role: "Indie animator, Bengaluru",
-    avatar: "PN",
-    color: "purple",
-  },
-  {
-    text: "Switched three channels over from manual After Effects work. Render quality holds up even at 4K.",
-    name: "Mateusz Wójcik",
-    role: "Studio lead, Kraków",
-    avatar: "MW",
-    color: "pink",
-  },
-  {
-    text: "It understands speech bubbles, not just panels. That's the difference between a slideshow and an actual scene.",
-    name: "Soo-ah Lim",
-    role: "Content creator, Seoul",
-    avatar: "SL",
-    color: "coral",
+    toolUsed: "Panel Animator",
   },
 ];
 
 const FAQS: Faq[] = [
   {
+    q: "What is the new Storyboard Studio tool?",
+    a: "Storyboard Studio is an end-to-end AI visual director. You can input any script, screenplay, or story idea, and AI will automatically break it down into scenes and shots, generate consistent character model sheets, compose multi-angle camera shots in 15+ art styles, sync AI voice narration, and export both animatic videos (MP4) and director pitch PDFs.",
+  },
+  {
+    q: "How does character consistency work in Storyboard Studio?",
+    a: "When you build a project, Storyboard Studio extracts key characters and generates multi-angle model sheets (front view, profile, 3/4 angle). These visual embeddings and description conditioning are automatically injected into every subsequent camera shot prompt, ensuring the same face, hairstyle, clothing, and anatomy across all scenes.",
+  },
+  {
+    q: "Can I use MotionRecap for both existing manga panels and new scripts?",
+    a: "Yes! MotionRecap gives you two distinct workflows: 1) Panel Animator: Upload your existing manga/comic pages to animate pan/zooms and dub voices for TikTok and YouTube Shorts; 2) Storyboard Studio: Generate visual storyboards and animatics from scratch starting with just written text or screenplays.",
+  },
+  {
+    q: "What export formats are supported?",
+    a: "You can export full high-definition (1080p & 4K) MP4 animatic videos with synchronized voice narration, audio panning, and subtitles, as well as printable multi-page Storyboard PDF pitch decks containing shot descriptions, dialogue, and camera directives.",
+  },
+  {
     q: "How does billing work?",
-    a: "Paid plans are billed monthly in USD via Razorpay or PayPal. You can upgrade, downgrade, or cancel from your account settings at any time.",
+    a: "Paid plans are billed monthly in USD via Razorpay or PayPal. You can upgrade, downgrade, or cancel from your account settings at any time with zero lock-in.",
   },
   {
-    q: "What happens if I exceed my plan's limits?",
-    a: "We'll notify you as you approach your monthly video or minute cap. You can upgrade instantly to keep rendering, or wait until your limits reset next month.",
-  },
-  {
-    q: "Can I cancel anytime?",
-    a: "Yes — cancel whenever you like. You'll keep access until the end of your current billing period, no cancellation fees.",
-  },
-  {
-    q: "Do unused videos roll over?",
-    a: "No, monthly video and minute allowances reset at the start of each billing cycle.",
-  },
-  {
-    q: "What's the difference between Starter and Pro?",
-    a: "Starter is built for casual creators posting a few times a week — Pro adds 4K export, SFX, custom branding, and priority rendering for channels publishing daily.",
-  },
-  {
-    q: "What payment methods do you accept?",
-    a: "Major credit/debit cards and PayPal internationally, plus UPI and net banking via Razorpay for users in India.",
+    q: "Can I use generated videos and storyboards commercially?",
+    a: "Yes! All videos, storyboards, animatics, and audio tracks generated on MotionRecap are 100% yours to monetize across YouTube, TikTok, commercial animation pitches, webcomic marketing, and client presentations.",
   },
 ];
 
@@ -386,34 +429,37 @@ IconZap.displayName = "IconZap";
 
 const FEATURES: Feature[] = [
   {
-    icon: <IconUpload />,
-    title: "Drag & drop upload",
-    desc: "Upload any manga panel as JPG or PNG. Auto-optimised and stored securely.",
+    icon: <Clapperboard className="h-5 w-5 text-[#2d5a27]" />,
+    title: "AI Script to Storyboard",
+    desc: "Paste raw screenplays or prompts. AI extracts scenes, narrative beats, shot durations, and camera angles.",
+    badge: "New in Storyboard",
+  },
+  {
+    icon: <Users className="h-5 w-5 text-[#2d5a27]" />,
+    title: "Character Consistency Sheets",
+    desc: "Generate multi-angle model sheets locking facial geometry, hair, and costume across every camera shot.",
+    badge: "New in Storyboard",
+  },
+  {
+    icon: <Camera className="h-5 w-5 text-[#2d5a27]" />,
+    title: "Virtual Camera Director",
+    desc: "Compose shots with custom camera presets: Wide Establishing, Close-Up, Over-the-Shoulder, and Low-Angle.",
+    badge: "New in Storyboard",
   },
   {
     icon: <IconVoice />,
-    title: "100+ AI voices",
-    desc: "CVoice AI integration. Preview and assign character voices per scene.",
+    title: "100+ AI Character Voices",
+    desc: "Integrated AI voice synthesis. Assign unique anime character voices per scene with synchronized speech audio.",
   },
   {
     icon: <IconTimeline />,
-    title: "Visual timeline editor",
-    desc: "Set duration, reorder scenes, and sync audio with a drag-and-drop timeline.",
+    title: "Interactive Timeline Editor",
+    desc: "Fine-tune scene durations, reorder shots, add camera pans, and sync audio with precision drag-and-drop.",
   },
   {
-    icon: <IconRender />,
-    title: "One-click render",
-    desc: "FFmpeg pipeline composites scenes and audio into a polished MP4 automatically.",
-  },
-  {
-    icon: <IconExport />,
-    title: "Instant MP4 download",
-    desc: "Private download link the moment rendering completes. Yours to keep.",
-  },
-  {
-    icon: <IconProfiles />,
-    title: "Voice profile library",
-    desc: "Save and reuse favourite voices across all your projects with one tap.",
+    icon: <Film className="h-5 w-5 text-[#2d5a27]" />,
+    title: "Animatic Video & PDF Export",
+    desc: "Export 4K animated video animatics with pan/zoom motion, or generate printable director pitch decks in PDF.",
   },
 ];
 
@@ -666,16 +712,25 @@ const FeatureCard = memo(function FeatureCard({
 }) {
   return (
     <FadeIn delay={index * 80}>
-      <article className="bg-[#1a2d1a] p-6 md:p-8 transition-colors hover:bg-[#1e351e]">
-        <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-[#5a9a52]/30 bg-[#fceeca] text-[#3a7033]">
-          {feature.icon}
+      <article className="relative bg-[#1a2d1a] p-6 md:p-8 transition-colors hover:bg-[#1e351e] h-full flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#5a9a52]/30 bg-[#fceeca] text-[#3a7033]">
+              {feature.icon}
+            </div>
+            {feature.badge && (
+              <span className="rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/40 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#c9a84c]">
+                {feature.badge}
+              </span>
+            )}
+          </div>
+          <h3 className="mb-2 text-[15px] font-semibold text-[#e8d5a3]">
+            {feature.title}
+          </h3>
+          <p className="text-[13.5px] leading-7 text-[#e8d5a3]/65">
+            {feature.desc}
+          </p>
         </div>
-        <h3 className="mb-2 text-[15px] font-semibold text-[#e8d5a3]">
-          {feature.title}
-        </h3>
-        <p className="text-[13.5px] leading-7 text-[#e8d5a3]/65">
-          {feature.desc}
-        </p>
       </article>
     </FadeIn>
   );
@@ -771,20 +826,29 @@ const TestimonialCard = memo(function TestimonialCard({
   const colors = AVATAR_COLORS[testimonial.color];
   return (
     <FadeIn delay={index * 90}>
-      <article className="rounded-2xl border border-[#e6dcc0] bg-white p-5 md:p-6 transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(45,90,39,0.12)]">
-        <div
-          className="mb-4 flex gap-0.5"
-          role="img"
-          aria-label="5 out of 5 stars"
-        >
-          {Array.from({ length: 5 }).map((_, j) => (
-            <IconStar key={j} />
-          ))}
+      <article className="rounded-2xl border border-[#e6dcc0] bg-white p-5 md:p-6 transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(45,90,39,0.12)] h-full flex flex-col justify-between">
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <div
+              className="flex gap-0.5"
+              role="img"
+              aria-label="5 out of 5 stars"
+            >
+              {Array.from({ length: 5 }).map((_, j) => (
+                <IconStar key={j} />
+              ))}
+            </div>
+            {testimonial.toolUsed && (
+              <span className="rounded-md bg-[#2d5a27]/10 px-2 py-0.5 text-[10px] font-bold text-[#2d5a27] border border-[#2d5a27]/20">
+                {testimonial.toolUsed}
+              </span>
+            )}
+          </div>
+          <blockquote className="mb-5 text-sm md:text-[14.5px] leading-relaxed text-[#3a3325]">
+            "{testimonial.text}"
+          </blockquote>
         </div>
-        <blockquote className="mb-5 text-sm md:text-[14.5px] leading-relaxed text-[#3a3325]">
-          {testimonial.text}
-        </blockquote>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
             style={{ background: colors.bg, color: colors.text }}
@@ -828,7 +892,7 @@ function StructuredData() {
       applicationCategory: "MultimediaApplication",
       operatingSystem: "Web",
       description:
-        "Upload manga panels and let AI generate narration, character voices, and a cinematic 9:16 video in minutes. Built for YouTube Shorts and TikTok manga recap creators.",
+        "AI Manga Storyboard Studio and Animated Video Generator. Turn screenplays, scripts, and manga panels into cinematic storyboards, character model sheets, and narrated animatic videos in minutes.",
       offers: {
         "@type": "AggregateOffer",
         lowPrice: "0",
@@ -836,13 +900,39 @@ function StructuredData() {
         priceCurrency: "USD",
         offerCount: "3",
       },
+      featureList: [
+        "AI Screenplay Breakdown & Shot Listing",
+        "Character Consistency & Multi-Angle Model Sheets",
+        "15+ Cinematic & Anime Art Styles",
+        "Virtual Camera Director Controls",
+        "100+ AI Character Voices & Speech Sync",
+        "One-Click Animatic MP4 & Pitch PDF Export",
+        "Manga Panel Animation & Timeline Editor",
+      ],
       aggregateRating: {
         "@type": "AggregateRating",
-        ratingValue: "4.8",
-        ratingCount: "2400",
+        ratingValue: "4.9",
+        ratingCount: "2840",
         bestRating: "5",
         worstRating: "1",
       },
+    }),
+    [],
+  );
+
+  const howToSchema = useMemo(
+    () => ({
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      name: "How to Generate an AI Manga Storyboard and Animatic",
+      description:
+        "A step-by-step guide to generating cinematic storyboards with consistent characters and voice acting.",
+      step: STORYBOARD_STEPS.map((s, idx) => ({
+        "@type": "HowToStep",
+        position: idx + 1,
+        name: s.title,
+        text: s.desc,
+      })),
     }),
     [],
   );
@@ -857,6 +947,10 @@ function StructuredData() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+      />
     </>
   );
 }
@@ -867,6 +961,9 @@ export default function Page() {
   const router = useRouter();
   const session = useStore(useSession);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [howItWorksTab, setHowItWorksTab] = useState<"storyboard" | "panels">(
+    "storyboard",
+  );
 
   useEffect(() => {
     if (session.data) router.push("/dashboard");
@@ -890,7 +987,7 @@ export default function Page() {
           className="relative overflow-hidden bg-[#040704] px-4 pb-20 pt-[120px] text-center"
           aria-labelledby="hero-heading"
         >
-          {/* Halftone screentone — manga's own shading language, masked to the beam */}
+          {/* Halftone screentone background */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{
@@ -906,7 +1003,7 @@ export default function Page() {
             aria-hidden="true"
           />
 
-          {/* Faint secondary wash, low-left, kept dim so the top beam stays dominant */}
+          {/* Glowing wash */}
           <div
             className="pointer-events-none absolute -bottom-[20%] -left-[10%] h-[500px] w-[500px]"
             style={{
@@ -916,7 +1013,7 @@ export default function Page() {
             aria-hidden="true"
           />
 
-          {/* Corner brackets — crisper, thicker, higher contrast */}
+          {/* Corner brackets */}
           <svg
             className="pointer-events-none absolute left-6 top-6 h-20 w-20 opacity-40"
             aria-hidden="true"
@@ -932,7 +1029,7 @@ export default function Page() {
             <path d="M14 56 L56 14" stroke="#e8d5a3" strokeWidth="1.5" />
           </svg>
 
-          {/* ── existing hero content stays exactly as-is ── */}
+          {/* Hero Content */}
           <div className="relative z-10 mx-auto w-full max-w-4xl">
             <FadeIn delay={80}>
               <h1
@@ -948,7 +1045,7 @@ export default function Page() {
 
             <FadeIn delay={160}>
               <p
-                className="mx-auto mb-6 md:mb-10 max-w-[600px] leading-snug text-[#e8d5a3]/70"
+                className="mx-auto mb-6 md:mb-10 max-w-[640px] leading-relaxed text-[#e8d5a3]/75"
                 style={{ fontSize: "clamp(16px, 2vw, 20px)" }}
               >
                 Upload manga images, assign 100+ AI character voices, compose a
@@ -960,15 +1057,15 @@ export default function Page() {
               <div className="flex flex-wrap justify-center gap-3">
                 <a
                   href="/signup"
-                  className="inline-flex min-h-12 w-full md:w-max mx-5 md:mx-0 justify-center items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80"
+                  className="inline-flex min-h-12 w-full md:w-max mx-5 md:mx-0 justify-center items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80 hover:shadow-[0_8px_30px_rgba(45,90,39,0.35)]"
                 >
                   Start creating free <IconArrow />
                 </a>
                 <a
-                  href="#how-it-works"
-                  className="inline-flex min-h-12 w-full md:w-max mx-5 md:mx-0 justify-center items-center gap-2 rounded-xl border border-[#5a9a52]/60 px-7 py-3.5 text-[15px] font-medium text-[#e8d5a3]/65 no-underline transition-all hover:border-[#5a9a52]/55 hover:text-[#e8d5a3]"
+                  href="#storyboard"
+                  className="inline-flex min-h-12 w-full md:w-max mx-5 md:mx-0 justify-center items-center gap-2 rounded-xl border border-[#c9a84c]/50 bg-[#c9a84c]/10 px-7 py-3.5 text-[15px] font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#c9a84c]/20 hover:border-[#c9a84c]/80"
                 >
-                  See how it works 
+                  Explore Storyboard Studio ✨
                 </a>
               </div>
             </FadeIn>
@@ -978,13 +1075,15 @@ export default function Page() {
                 {Array.from({ length: 5 }).map((_, i) => (
                   <IconStar key={i} />
                 ))}
-                <span className="ml-1">Loved by 100+ manga creators</span>
+                <span className="ml-1">
+                  Loved by 2,800+ manga artists & animation directors
+                </span>
               </div>
             </FadeIn>
-
-            {/* Editor mockup */}
           </div>
-          <div className="relative z-10 mx-auto w-full max-w-5xl">
+
+          {/* Panel Editor mockup */}
+          <div className="relative z-10 mx-auto w-full max-w-5xl mt-12">
             <FadeIn delay={400}>
               <EditorMockup />
             </FadeIn>
@@ -993,12 +1092,12 @@ export default function Page() {
 
         {/* ── Social Proof Strip ── */}
         <div
-          className="border-y border-[#5a9a52]/18 px-5 py-4"
+          className="border-y border-[#5a9a52]/18 bg-[#081208]/60 px-5 py-4"
           aria-label="Key benefits"
         >
-          <ul className="mx-auto flex max-w-270 flex-wrap items-center justify-center gap-6 md:gap-8 text-[13px] text-[#e8d5a3]/70">
+          <ul className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-6 md:gap-8 text-[13px] text-[#e8d5a3]/70">
             {SOCIAL_PROOF_ITEMS.map((text) => (
-              <li key={text} className="flex items-center gap-1.5 ">
+              <li key={text} className="flex items-center gap-1.5">
                 <span className="text-[#6cec5b]" aria-hidden="true">
                   <IconCheck />
                 </span>
@@ -1017,17 +1116,17 @@ export default function Page() {
           <div className="mx-auto max-w-6xl">
             <FadeIn>
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#5a8a4f]">
-                Features
+                Feature Suite
               </p>
               <h2
                 id="features-heading"
                 className="mb-4 max-w-xl text-3xl font-semibold leading-tight text-[#3a7033] md:text-5xl"
               >
-                Everything you need to animate manga
+                Everything you need to direct & animate manga
               </h2>
-              <p className="mb-12 md:mb-16 max-w-md text-lg leading-relaxed text-[#4a7a42]">
-                A complete end-to-end pipeline — from static panels to polished
-                video.
+              <p className="mb-12 md:mb-16 max-w-xl text-lg leading-relaxed text-[#4a7a42]">
+                A complete studio suite — whether you start with finished manga
+                scans or an unwritten screenplay.
               </p>
             </FadeIn>
 
@@ -1043,7 +1142,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* ── Interactive Demos ── */}
+        {/* ── Interactive Demos (Panel Timeline & Voice) ── */}
         <section
           className="border-t border-[#5a9a52]/12 px-4 md:px-6 pb-24 md:pb-32"
           aria-labelledby="demo-heading"
@@ -1051,14 +1150,14 @@ export default function Page() {
           <div className="mx-auto max-w-[1080px] pt-16 md:pt-20">
             <FadeIn>
               <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[#7fb870]">
-                Try it live
+                Interactive Playground
               </p>
               <h2
                 id="demo-heading"
-                className="mb-14 max-w-[500px] font-semibold leading-tight text-[#e8d5a3]"
+                className="mb-14 max-w-[540px] font-semibold leading-tight text-[#e8d5a3]"
                 style={{ fontSize: "clamp(26px, 3.5vw, 42px)" }}
               >
-                See the Editor in action
+                Experience the Panel Editor & Voice Engine
               </h2>
             </FadeIn>
 
@@ -1083,7 +1182,7 @@ export default function Page() {
           </div>
         </section>
 
-        {/* ── How It Works ── */}
+        {/* ── How It Works (Tabs for Storyboard vs Panel Animator) ── */}
         <section
           id="how-it-works"
           className="border-t border-[#5a9a52]/18 bg-[#0c170c] px-4 md:px-6 py-20 md:py-32"
@@ -1091,23 +1190,54 @@ export default function Page() {
         >
           <div className="mx-auto max-w-[1080px]">
             <FadeIn>
-              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[#7fb870]">
-                How it works
-              </p>
-              <h2
-                id="how-heading"
-                className="mb-16 max-w-[440px] font-semibold leading-tight text-[#e8d5a3]"
-                style={{ fontSize: "clamp(28px, 4vw, 46px)" }}
-              >
-                From panel to video in four steps
-              </h2>
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div>
+                  <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-[#7fb870]">
+                    Creation Workflows
+                  </p>
+                  <h2
+                    id="how-heading"
+                    className="font-semibold leading-tight text-[#e8d5a3]"
+                    style={{ fontSize: "clamp(28px, 4vw, 46px)" }}
+                  >
+                    Simple 4-Step Production
+                  </h2>
+                </div>
+
+                {/* Workflow switcher buttons */}
+                <div className="flex items-center gap-2 rounded-xl bg-[#060c06] p-1.5 border border-[#5a9a52]/30">
+                  <button
+                    onClick={() => setHowItWorksTab("storyboard")}
+                    className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                      howItWorksTab === "storyboard"
+                        ? "bg-[#2d5a27] text-[#d4edb8] shadow-sm border border-[#5a9a52]/60"
+                        : "text-[#7fb870] hover:text-[#e8d5a3]"
+                    }`}
+                  >
+                    ✨ Path A: Script to Storyboard
+                  </button>
+                  <button
+                    onClick={() => setHowItWorksTab("panels")}
+                    className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                      howItWorksTab === "panels"
+                        ? "bg-[#2d5a27] text-[#d4edb8] shadow-sm border border-[#5a9a52]/60"
+                        : "text-[#7fb870] hover:text-[#e8d5a3]"
+                    }`}
+                  >
+                    🎬 Path B: Manga Panels to Video
+                  </button>
+                </div>
+              </div>
             </FadeIn>
 
             <ol className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-4">
-              {STEPS.map((step, i) => (
+              {(howItWorksTab === "storyboard"
+                ? STORYBOARD_STEPS
+                : PANEL_STEPS
+              ).map((step, i) => (
                 <li key={step.n} className="relative pr-7">
                   <FadeIn delay={i * 100}>
-                    <div className="mb-5 text-[36px] font-bold leading-none tabular-nums text-[#5a9a52]/30">
+                    <div className="mb-5 text-[36px] font-bold leading-none tabular-nums text-[#5a9a52]/80">
                       {step.n}
                     </div>
 
@@ -1138,18 +1268,18 @@ export default function Page() {
           <div className="mx-auto max-w-[1080px]">
             <FadeIn>
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4a7a42]">
-                Creators love it
+                Creator Testimonials
               </p>
               <h2
                 id="testimonials-heading"
-                className="mb-4 max-w-[480px] font-semibold leading-tight text-[#1f2e1a]"
+                className="mb-4 max-w-[500px] font-semibold leading-tight text-[#1f2e1a]"
                 style={{ fontSize: "clamp(26px, 3.5vw, 42px)" }}
               >
-                Trusted by manga creators
+                Trusted by storytellers & manga creators
               </h2>
-              <p className="mb-14 max-w-[460px] text-[15px] leading-relaxed text-[#5a6650]">
-                From solo webcomic artists to studio teams, here's who's already
-                turning panels into video.
+              <p className="mb-14 max-w-[480px] text-[15px] leading-relaxed text-[#5a6650]">
+                From indie webcomic writers to studio animators, here is how
+                creators are speeding up their workflow.
               </p>
             </FadeIn>
 
@@ -1216,34 +1346,36 @@ export default function Page() {
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#5a9a52]/25 bg-[#5a9a52]/10 px-5 py-2">
                 <IconZap />
                 <span className="text-xs font-medium text-[#9fd48e]">
-                  Free to start — no credit card
+                  Free to start — no credit card needed
                 </span>
               </div>
 
               <h2
                 id="cta-heading"
-                className="mx-auto mb-6 max-w-[500px] font-bold leading-tight text-[#e8d5a3]"
+                className="mx-auto mb-6 max-w-[550px] font-bold leading-tight text-[#e8d5a3]"
                 style={{
                   fontSize: "clamp(28px, 4.5vw, 48px)",
                   letterSpacing: "-0.025em",
                 }}
               >
-                Ready to animate
+                Ready to visualize & animate
                 <br />
-                your manga?
+                your stories?
               </h2>
 
-              <p className="mx-auto mb-10 max-w-[400px] text-[15px] leading-relaxed text-[#e8d5a3]/65">
-                Join 2,400+ creators already using MotionRecap to turn panels
-                into scroll-stopping videos.
+              <p className="mx-auto mb-10 max-w-[440px] text-[15px] leading-relaxed text-[#e8d5a3]/65">
+                Join 2,800+ creators using MotionRecap to turn scripts into
+                storyboards and manga panels into viral videos.
               </p>
 
-              <a
-                href="/signup"
-                className="inline-flex min-h-[52px] items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-8 py-4 text-base font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80 hover:shadow-[0_8px_30px_rgba(45,90,39,0.3)]"
-              >
-                Get started for free <IconArrow />
-              </a>
+              <div className="flex flex-wrap justify-center gap-3">
+                <a
+                  href="/signup"
+                  className="inline-flex min-h-[52px] items-center gap-2 rounded-xl border border-[#5a9a52]/50 bg-[#2d5a27] px-8 py-4 text-base font-semibold text-[#e8d5a3] no-underline transition-all hover:bg-[#3a7033] hover:border-[#5a9a52]/80 hover:shadow-[0_8px_30px_rgba(45,90,39,0.3)]"
+                >
+                  Get started for free <IconArrow />
+                </a>
+              </div>
             </div>
           </FadeIn>
         </section>

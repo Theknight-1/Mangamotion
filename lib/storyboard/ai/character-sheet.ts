@@ -21,16 +21,31 @@ export function buildCharacterTurnaroundPrompt(params: {
 }): string {
   const { name, description, clothing, consistencyNotes, artStyle } = params;
 
+  const styleMap: Record<string, string> = {
+    animation_3d: "3D animated studio character design (Pixar/DreamWorks aesthetic)",
+    cinematic: "Cinematic photorealistic 35mm film character design",
+    anime: "High-end anime character model sheet (Makoto Shinkai/Ufotable style)",
+    dark_anime: "Dark seinen anime character model sheet (MAPPA style)",
+    comic: "Western comic book character turnaround sheet",
+    watercolor: "Fluid painterly watercolor character illustration",
+    soft_pencil: "Graphite pencil concept character turnaround sketch",
+    photo_commercial: "Commercial studio fashion & character reference",
+    noir: "Vintage 1940s film noir character reference",
+    graphic_novel: "Gritty graphic novel character design",
+  };
+
+  const styleLabel = styleMap[artStyle.toLowerCase()] || `${artStyle} style`;
+
   const parts = [
-    `Official ${artStyle}-style character model reference sheet for "${name}".`,
+    `Official ${styleLabel} character model turnaround sheet for "${name}".`,
     `Character appearance: ${description || "Expressive character design"}.`,
-    clothing ? `Costume and clothing details: ${clothing}.` : "",
+    clothing ? `Signature outfit & clothing details: ${clothing}.` : "",
     consistencyNotes
       ? `Visual identity anchors: ${consistencyNotes}.`
       : "",
-    "Layout: Multi-angle character model sheet displaying front full-body view, 3/4 angle view, and detailed facial expression portrait side-by-side.",
-    "Clean neutral studio background, pristine linework, consistent anatomy, high resolution, suitable as an identity conditioning reference.",
-    "No text bubbles, no watermarks, masterwork studio character turnaround sheet.",
+    "Layout: Multi-angle character model sheet displaying front full-body view, 3/4 angle view, and detailed facial expression portrait side-by-side on clean neutral background.",
+    "Pristine linework, consistent anatomical proportions, high definition, masterwork production model sheet for identity locking.",
+    "No text, no labels, no speech bubbles, no watermarks.",
   ];
 
   return parts.filter(Boolean).join(" ");

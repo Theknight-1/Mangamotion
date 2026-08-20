@@ -210,7 +210,7 @@ function StoryboardModal({
           <div className="flex items-start justify-between gap-6">
             <div>
               {/* Step / Mode indicator */}
-              <div className="mb-2.5 flex items-center gap-2">
+              <div className="mb-2 flex items-center gap-2">
                 <span className="h-px w-5 bg-[#c9a84c]/50" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#c9a84c]">
                   {isEditMode ? "Storyboard Edit" : "Step 1"}
@@ -253,7 +253,7 @@ function StoryboardModal({
         {/* ───────────────── FORM ───────────────── */}
         <form
           onSubmit={handleSubmit}
-          className="relative flex-1 overflow-y-auto"
+          className="relative flex-1 hide-scrollbar overflow-y-auto"
         >
           <div className="px-6 py-6 md:px-7 space-y-6">
             {/* Project title */}
@@ -350,6 +350,92 @@ function StoryboardModal({
                 </div>
               </div>
             </div>
+
+            {/* ───────── FILE UPLOAD (Only for Create Mode) ───────── */}
+            {!isEditMode && (
+              <div className="space-y-2.5 pt-2 border-t border-white/[0.06]">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-white/60">
+                      Existing Screenplay (Optional)
+                    </label>
+                    <p className="text-xs text-white/50 tracking-wide">
+                      Import a screenplay instead of typing it above.
+                    </p>
+                  </div>
+                </div>
+
+                <input
+                  type="file"
+                  id="script-file-upload"
+                  accept=".pdf,.docx,.txt,.fdx,.fountain"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
+                      setIdeaText("");
+                    }
+                  }}
+                  className="hidden"
+                />
+
+                <label
+                  htmlFor="script-file-upload"
+                  className="
+                  group
+                  relative
+                  flex
+                  min-h-[64px]
+                  cursor-pointer
+                  items-center
+                  gap-4
+                  overflow-hidden
+                  rounded-lg
+                  border
+                  border-dashed
+                  border-white/[0.10]
+                  bg-black/30
+                  px-4
+                  transition-all
+                  duration-200
+                  hover:border-[#c9a84c]/30
+                  hover:bg-[#c9a84c]/[0.025]
+                "
+                >
+                  <div
+                    className="
+                    relative
+                    flex h-9 w-9 shrink-0
+                    items-center justify-center
+                    rounded-lg
+                    border border-[#c9a84c]/15
+                    bg-[#c9a84c]/[0.06]
+                    text-[#c9a84c]
+                    transition-all
+                    group-hover:border-[#c9a84c]/30
+                    group-hover:bg-[#c9a84c]/[0.10]
+                  "
+                  >
+                    <Upload size={16} strokeWidth={1.5} />
+                  </div>
+
+                  <div className="relative min-w-0 flex-1">
+                    <div className="truncate text-xs font-semibold text-white/70 transition-colors group-hover:text-white">
+                      {selectedFile
+                        ? selectedFile.name
+                        : "Upload screenplay or script file"}
+                    </div>
+                    <div className="text-[10px] text-white/40">
+                      PDF, DOCX, TXT, Fountain or FDX
+                    </div>
+                  </div>
+
+                  <div className="text-xs font-medium text-white/50 group-hover:text-[#e8d5a3] transition-colors">
+                    Browse
+                  </div>
+                </label>
+              </div>
+            )}
 
             {/* ───────── COVER IMAGE SECTION ───────── */}
             <div className="space-y-3 pt-2 border-t border-white/[0.06]">
@@ -575,92 +661,6 @@ function StoryboardModal({
                 </div>
               )}
             </div>
-
-            {/* ───────── FILE UPLOAD (Only for Create Mode) ───────── */}
-            {!isEditMode && (
-              <div className="space-y-2.5 pt-2 border-t border-white/[0.06]">
-                <div className="flex items-end justify-between">
-                  <div>
-                    <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-white/60">
-                      Existing Screenplay (Optional)
-                    </label>
-                    <p className="text-xs text-white/50 tracking-wide">
-                      Import a screenplay instead of typing it above.
-                    </p>
-                  </div>
-                </div>
-
-                <input
-                  type="file"
-                  id="script-file-upload"
-                  accept=".pdf,.docx,.txt,.fdx,.fountain"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setSelectedFile(file);
-                      setIdeaText("");
-                    }
-                  }}
-                  className="hidden"
-                />
-
-                <label
-                  htmlFor="script-file-upload"
-                  className="
-                  group
-                  relative
-                  flex
-                  min-h-[64px]
-                  cursor-pointer
-                  items-center
-                  gap-4
-                  overflow-hidden
-                  rounded-lg
-                  border
-                  border-dashed
-                  border-white/[0.10]
-                  bg-black/30
-                  px-4
-                  transition-all
-                  duration-200
-                  hover:border-[#c9a84c]/30
-                  hover:bg-[#c9a84c]/[0.025]
-                "
-                >
-                  <div
-                    className="
-                    relative
-                    flex h-9 w-9 shrink-0
-                    items-center justify-center
-                    rounded-lg
-                    border border-[#c9a84c]/15
-                    bg-[#c9a84c]/[0.06]
-                    text-[#c9a84c]
-                    transition-all
-                    group-hover:border-[#c9a84c]/30
-                    group-hover:bg-[#c9a84c]/[0.10]
-                  "
-                  >
-                    <Upload size={16} strokeWidth={1.5} />
-                  </div>
-
-                  <div className="relative min-w-0 flex-1">
-                    <div className="truncate text-xs font-semibold text-white/70 transition-colors group-hover:text-white">
-                      {selectedFile
-                        ? selectedFile.name
-                        : "Upload screenplay or script file"}
-                    </div>
-                    <div className="text-[10px] text-white/40">
-                      PDF, DOCX, TXT, Fountain or FDX
-                    </div>
-                  </div>
-
-                  <div className="text-xs font-medium text-white/50 group-hover:text-[#e8d5a3] transition-colors">
-                    Browse
-                  </div>
-                </label>
-              </div>
-            )}
           </div>
 
           {/* ───────── FOOTER ───────── */}
@@ -769,8 +769,7 @@ export default function StoryboardHubPage() {
         {/* Sidebar header */}
         <div className="flex h-[64px] items-center justify-between border-b border-white/[0.06] px-4">
           <div>
-            <p className="text-[13px] font-semibold text-[#e8d5a3]">Projects</p>
-            <p className="mt-0.5 text-[10px] text-white/40">Your storyboards</p>
+            <p className="text-lg font-semibold text-[#e8d5a3]">My Storyboards</p>
           </div>
 
           <button
@@ -809,7 +808,7 @@ export default function StoryboardHubPage() {
                 <button
                   key={proj.id}
                   onClick={() => router.push(getStoryboardStepRoute(proj))}
-                  className="group flex w-full items-center gap-3 rounded-md border border-transparent px-2 py-2 text-left transition-all hover:border-white/[0.06] hover:bg-white/[0.035] cursor-pointer"
+                  className="group flex w-full items-center gap-3 rounded-md border border-transparent px-1.5 py-1.5 text-left transition-all hover:border-white/[0.06] hover:bg-white/[0.035] cursor-pointer"
                 >
                   {/* Project thumbnail */}
                   <div className="relative h-10 w-14 shrink-0 overflow-hidden rounded-lg bg-white/5">
@@ -826,19 +825,19 @@ export default function StoryboardHubPage() {
 
                   {/* Project info */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-medium text-white/70 transition-colors group-hover:text-[#e8d5a3]">
+                    <p className="truncate text-[13px] font-medium text-white/80 transition-colors group-hover:text-[#e8d5a3]">
                       {proj.title}
                     </p>
 
                     <div className="mt-1 flex items-center gap-1.5">
-                      <span className="truncate text-[9.5px] capitalize text-white/40">
+                      <span className="truncate text-[10px] capitalize text-white/50">
                         {proj.genre || "Drama"}
                       </span>
 
                       <span className="h-0.5 w-0.5 rounded-full bg-white/15" />
 
-                      <span className="truncate text-[9.5px] capitalize text-white/40">
-                        {proj.status.replace("_", " ")}
+                      <span className="truncate text-[10px] capitalize text-white/50">
+                        {proj.artStyle}
                       </span>
                     </div>
                   </div>
@@ -1004,14 +1003,14 @@ export default function StoryboardHubPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         {/* Genre */}
-                        <div>
+                        <div className="flex items-center gap-1 ">
                           <span className="rounded-md border border-white/10 bg-black/40 px-2.5 py-1 text-xs capitalize tracking-wider text-white/75 backdrop-blur-md">
                             {proj.genre || "Drama"}
                           </span>
 
                           {/* Status */}
-                          <span className="ml-2 rounded-md border border-white/10 bg-black/40 px-2.5 py-1 text-xs capitalize tracking-wider text-white/60 backdrop-blur-md">
-                            {proj.status.replace("_", " ")}
+                          <span className="rounded-md border border-white/10 bg-black/40 px-2.5 py-1 text-xs capitalize tracking-wider text-white/75 backdrop-blur-md">
+                            {proj.artStyle}
                           </span>
                         </div>
 

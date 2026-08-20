@@ -21,13 +21,20 @@ export const Footer = () => {
 
           {/* Links */}
           <div className="flex flex-wrap items-center justify-center gap-6">
-            {["Terms", "Privacy", "Contact"].map((link) => (
+            {[
+              { label: "Storyboard Studio", href: "/#storyboard" },
+              { label: "Features", href: "/#features" },
+              { label: "Pricing", href: "/pricing" },
+              { label: "Terms", href: "/terms" },
+              { label: "Privacy", href: "/privacy" },
+              { label: "Contact", href: "/contact" },
+            ].map((link) => (
               <a
-                key={link}
-                href="#"
+                key={link.label}
+                href={link.href}
                 className="text-[13px] text-[rgba(232,213,163,0.82)] transition-colors duration-200 hover:text-[#e8d5a3]"
               >
-                {link}
+                {link.label}
               </a>
             ))}
           </div>

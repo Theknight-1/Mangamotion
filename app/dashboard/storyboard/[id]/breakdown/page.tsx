@@ -270,11 +270,31 @@ export default function StoryboardBreakdownPage({ params }: Props) {
                   </div>
                 </div>
 
-                {/* Context & Narration Fields */}
-                <div className="mt-4 grid  md:grid-rows-2">
+                {/* Context & Screenplay Fields */}
+                <div className="mt-4 space-y-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase text-[#c9a84c]">
-                      Visual Action &amp; Atmosphere
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#c9a84c]">
+                        Screenplay Narrative &amp; Character Dialogue
+                      </label>
+                    </div>
+
+                    <textarea
+                      rows={10}
+                      defaultValue={scene.narrationText || ""}
+                      onBlur={(e) =>
+                        handleUpdateScene(scene.id, {
+                          narrationText: e.target.value,
+                        })
+                      }
+                      className="mt-1.5 w-full rounded-md border border-white/10 bg-black/40 p-3.5 text-sm leading-relaxed text-white/90 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:outline-none"
+                      placeholder="Full scene narrative with character actions, props, and spoken dialogue in quotes..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#c9a84c]">
+                      Environment, Lighting &amp; Props Continuity Anchors
                     </label>
                     <textarea
                       rows={3}
@@ -284,28 +304,8 @@ export default function StoryboardBreakdownPage({ params }: Props) {
                           description: e.target.value,
                         })
                       }
-                      className="mt-1.5 w-full rounded-md border border-white/10 bg-black/40 p-3 text-base leading-relaxed text-white/80 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:outline-none"
-                      placeholder="Describe the environment, lighting, character positions..."
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold uppercase text-[#c9a84c]">
-                        Voiceover Narration (Audio Track)
-                      </label>
-                    </div>
-
-                    <textarea
-                      rows={3}
-                      defaultValue={scene.narrationText || ""}
-                      onBlur={(e) =>
-                        handleUpdateScene(scene.id, {
-                          narrationText: e.target.value,
-                        })
-                      }
-                      className="mt-1.5 w-full rounded-md border border-white/10 bg-black/40 p-3 text-base leading-relaxed text-white/80 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:outline-none"
-                      placeholder="Spoken narration for this scene..."
+                      className="mt-1.5 w-full rounded-md border border-white/10 bg-black/40 p-3.5 text-sm leading-relaxed text-white/80 placeholder:text-white/20 focus:border-[#c9a84c]/50 focus:outline-none"
+                      placeholder="Exact location layout, key furniture, lighting sources (e.g. leaning floor lamp), color temperature, and key props..."
                     />
                   </div>
                 </div>

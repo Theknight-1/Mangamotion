@@ -71,6 +71,13 @@
       "when": 1786740526613,
       "tag": "0009_dapper_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787212728767,
+      "tag": "0010_luxuriant_inhumans",
+      "breakpoints": true
     }
   ]
 }

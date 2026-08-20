@@ -59,33 +59,31 @@ const PARSE_PROMPT = (
   scriptText: string,
   existingCharacterNames: string[],
 ) => `
-You are a storyboard artist's assistant. Read the following script/story and do two things:
+You are a master storyboard artist and cinematographic director. Read the following script/story and do two things:
 
-1. IDENTIFY every distinct character who appears or is referred to, including
-   unnamed/generic ones (e.g. "Unknown Bystander", "Shop Owner") if they play
-   a visible role in a shot. Do not invent characters who aren't in the text.
+1. IDENTIFY every distinct character who appears or is referred to. For each character, infer a rich visual description (appearance, distinctive hairstyle, exact signature clothing layers, colors, and visual anchors).
    Characters already known in this project: ${
      existingCharacterNames.length ? existingCharacterNames.join(", ") : "(none yet)"
-   } — reuse these exact names for the same character rather than creating
-   a near-duplicate with slightly different wording.
+   } — reuse these exact names for the same character.
 
-2. BREAK the script into a sequence of narrative shot beats for a
-   storyboard — one shot per meaningful visual beat, not one shot per
-   sentence. For each shot, list which characters (by name, matching your
-   list from step 1 exactly) appear in it.
+2. BREAK the script into a granular, progressive sequence of cinematic shot beats for a storyboard (wide establishing, medium action, inserts/close-ups, reactions, over-the-shoulder).
+   - For each shot, "description" MUST describe a concrete, frozen keyframe explicitly naming every character present, their poses, facial expressions, and props.
+   - "characterNames" MUST list EVERY character who appears or is visible in that frame. If the text describes "the trio", "all three", "both of them", "everyone", or "the group", resolve and list EVERY individual character by their exact name.
 
 Return ONLY a JSON object (no markdown, no prose) with this exact shape:
 {
   "characters": [
-    { "name": string, "description": string }
-    // description: brief visual description (appearance, outfit) inferable from the text
+    {
+      "name": string,
+      "description": string // physical appearance, hairstyle, and signature clothing details
+    }
   ],
   "shots": [
     {
-      "description": string,          // what's visually happening in this shot
+      "description": string,          // concrete keyframe visual description explicitly naming characters in frame
       "shotType": one of ${JSON.stringify(SHOT_TYPES)},
-      "characterNames": string[],      // subset of the characters list above, or []
-      "draftNarration": string,        // a short recap narration line for this shot
+      "characterNames": string[],      // MUST list ALL characters present in this shot, or []
+      "draftNarration": string,        // specific dialogue line or action recap
       "estDuration": number             // rough seconds, typically 2-6
     }
   ]
@@ -285,9 +283,34 @@ export async function POST(request: Request, { params }: Params) {
       .where(eq(storyboardShots.projectId, projectId));
 
     const rowsToInsert = parsedShots.map((shot, i) => {
-      const characterIds = (shot.characterNames ?? [])
-        .map((name) => nameToId.get(name.toLowerCase()))
-        .filter((v): v is string => Boolean(v));
+      const charIdSet = new Set<string>();
+
+      for (const name of shot.characterNames ?? []) {
+        const id = nameToId.get(name.toLowerCase());
+        if (id) charIdSet.add(id);
+      }
+
+      const fullText = `${shot.description ?? ""} ${shot.draftNarration ?? ""}`;
+      for (const [nameKey, charId] of nameToId.entries()) {
+        if (nameKey.length > 1) {
+          const escaped = nameKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          if (new RegExp(`\\b${escaped}\\b`, "i").test(fullText)) {
+            charIdSet.add(charId);
+          }
+        }
+      }
+
+      const hasGroupTerm =
+        /\b(all three|all \d+|the trio|trio|the duo|duo|both of them|both characters|the pair|pair of them|everyone|everybody|all of them|the gang|the group|the team|the crew|the friends|the roommates)\b/i.test(
+          fullText,
+        );
+      if (hasGroupTerm && nameToId.size <= 5) {
+        for (const charId of nameToId.values()) {
+          charIdSet.add(charId);
+        }
+      }
+
+      const characterIds = Array.from(charIdSet);
 
       return {
         id: createId(),

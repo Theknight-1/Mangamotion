@@ -8,7 +8,7 @@ import { IconLogo } from "./icon-logo";
 import { Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Storyboard AI", href: "/storyboard" },
+  { label: "Storyboard Studio", href: "/#storyboard", badge: "NEW" },
   { label: "Features", href: "/#features" },
   { label: "How it works", href: "/#how-it-works" },
   { label: "Pricing", href: "/pricing" },
@@ -72,9 +72,14 @@ export const Navbar = () => {
                 href={l.href}
                 className="text-sm text-[#e8d5a3]/65 no-underline px-3.5 py-2 rounded-[10px] 
                            transition-all duration-200 ease-in-out
-                           hover:bg-[#c9a84c]/8 hover:text-[#e8d5a3]"
+                           hover:bg-[#c9a84c]/8 hover:text-[#e8d5a3] flex items-center gap-1.5"
               >
-                {l.label}
+                <span>{l.label}</span>
+                {"badge" in l && l.badge && (
+                  <span className="rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/40 px-1.5 py-0.2 text-[9px] font-extrabold text-[#c9a84c] tracking-wider">
+                    {l.badge}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
@@ -170,9 +175,14 @@ export const Navbar = () => {
               onClick={() => setMobileOpen(false)}
               className="text-sm text-[#e8d5a3]/65 no-underline px-3 py-3 rounded-lg
                          transition-colors duration-200
-                         hover:bg-[#c9a84c]/8 hover:text-[#e8d5a3]"
+                         hover:bg-[#c9a84c]/8 hover:text-[#e8d5a3] flex items-center justify-between"
             >
-              {l.label}
+              <span>{l.label}</span>
+              {"badge" in l && l.badge && (
+                <span className="rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/40 px-1.5 py-0.2 text-[9px] font-extrabold text-[#c9a84c] tracking-wider">
+                  {l.badge}
+                </span>
+              )}
             </Link>
           ))}
 

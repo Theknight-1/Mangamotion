@@ -31,11 +31,25 @@ export interface GeneratedCharacterData {
   consistencyNotes: string;
 }
 
+export interface GeneratedLocationData {
+  name: string;
+  description: string;
+  lightingNotes: string;
+}
+
+export interface GeneratedObjectData {
+  name: string;
+  description: string;
+  importance: "key_prop" | "recurring" | "background";
+}
+
 export interface BreakdownResult {
   title: string;
   synopsis: string;
   scenes: GeneratedSceneData[];
   characters: GeneratedCharacterData[];
+  locations: GeneratedLocationData[];
+  objects: GeneratedObjectData[];
 }
 
 function parseJsonWithRepair(raw: string): any {
@@ -70,9 +84,13 @@ export async function generateSceneBreakdown(params: {
 }): Promise<BreakdownResult> {
   const { scriptText, genre, title = "Untitled Storyboard" } = params;
 
-  const prompt = `You are a legendary Hollywood film director, master storyboard artist, and visual cinematographer specializing in "${genre}" storytelling.
+  const prompt = `You are a master Hollywood screenwriter, executive storyboard director, and visual cinematographer specializing in "${genre}" storytelling.
 
-Analyze the following script or story concept and produce a comprehensive, structured scene-by-scene storyboard breakdown and character roster.
+Your task is to analyze the following story/script and convert it into a production-ready, highly cinematic Storyboard Package consisting of:
+1. Complete, scene-by-scene SCREENPLAY NARRATIVE with full character action, dialogue, and beats.
+2. Definitive ENVIRONMENTAL CONTINUITY ANCHORS for each scene (location, lighting sources, architecture, key props).
+3. A meticulously detailed CHARACTER ROSTER with locked visual anchors (facial traits, hairstyle, exact clothing layers, colors, materials).
+4. Granular, cinema-grade SHOTLIST (4 to 8 distinct shots per scene) capturing every dramatic beat, camera angle, character pose, insert/close-up, and dialogue exchange.
 
 PROJECT TITLE SUGGESTION: ${title}
 GENRE: ${genre}
@@ -82,59 +100,95 @@ STORY INPUT:
 ${scriptText.slice(0, 15000)}
 """
 
-CRITICAL STORYBOARD ART DIRECTION RULES:
-1. VISUAL KEYFRAME FORMATTING (NOT SCREENPLAY PROSE):
-   - Image models generate 1 static frozen frame at a time.
-   - NEVER use temporal literature or motion words like "Suddenly", "quick cuts", "afterwards", "meanwhile", or "as time passes".
-   - NEVER describe negative action transitions (e.g. do NOT write "the lights turn off" or "lanterns extinguish" — instead describe the concrete visual state: "pitch-black darkness, cold blue moonlight on cobblestone, dark unlit glass lanterns, terrified villagers staring into shadows").
-2. SCENE-WIDE ENVIRONMENTAL CONTINUITY:
-   - In each scene's "description", establish the definitive visual setting: architecture, location landmarks, time-of-day, ambient lighting direction, and color temperature.
-   - Every shot within the same scene MUST explicitly stay anchored in that exact environment so consecutive shots feel like one seamless continuous film sequence.
-3. CHARACTER VISUAL ANCHORS:
-   - Identify every distinct character with specific physical features, signature hairstyle, clothing materials, and visual anchors so model sheets can maintain 100% identity locking across shots.
-   - In shot descriptions, explicitly state which characters are in frame, their exact poses, emotional expressions, and spatial placement (foreground/midground/background).
+CRITICAL PRODUCTION RULES:
+
+1. SCREENPLAY FIDELITY & DIALOGUE PRESERVATION:
+   - In each scene's "narrationText", provide the FULL, evocative screenplay narrative.
+   - Do NOT summarize or write a generic voiceover! Preserve every joke, character beat, physical action, prop detail, and quote all character dialogue in full (e.g. Dave mutters: "Why do they even make shelves that need assembly?").
+   - Maintain the authentic pacing, comedic/dramatic tone, and natural progression of the story.
+
+2. SCENE-WIDE ENVIRONMENTAL CONTINUITY ANCHORS:
+   - In each scene's "description", define the exact physical environment: room/location layout, specific lighting sources (e.g. "single warm leaning floor lamp in the corner casting dramatic golden shadows"), background architecture (e.g. "half-assembled pine bookshelf, dark teal couch, hardwood floor scattered with cardboard and screws"), and ambient color grading.
+   - This environmental anchor will be injected into every shot within the scene to guarantee seamless visual continuity.
+
+3. CHARACTER IDENTITY LOCKING:
+   - For every character, define specific, invariant physical traits: age, facial features, hair style and color, and an EXACT signature outfit (e.g. "heather-grey crewneck t-shirt and blue denim jeans" or "burgundy zip-up hoodie over white tee").
+   - Consistency Notes must include signature visual anchors so character model sheets lock their identity across all shots.
+
+4. GRANULAR CINEMATIC SHOT DECOMPOSITION:
+   - Break down each scene into 4 to 8 granular, progressive storyboard shots (Wide establishing -> Medium action -> Close-up insert -> Character entrance -> Reaction -> Over-the-shoulder / two-shot).
+   - In each shot's "description": Describe a CONCRETE, FROZEN KEYFRAME. Explicitly name every character present, their exact spatial pose, emotional expression, visual interaction with props, and camera lighting.
+   - In each shot's "characterNames": Explicitly list ALL characters visible in that frame (e.g. ["Dave", "Tina"]). If the scene features multiple characters interacting, list everyone in frame. NEVER leave out visible characters.
+   - In each shot's "dialogue": Include the specific spoken dialogue line occurring during that shot, or empty string if silent/action.
 
 OUTPUT REQUIREMENTS:
 Return ONLY a valid JSON object matching this exact schema:
 {
   "title": "A captivating, polished title for the storyboard project",
-  "synopsis": "A 2-3 sentence overview of the narrative arc and tone",
+  "synopsis": "A compelling 2-3 sentence overview of the narrative arc, characters, and dramatic tone",
   "characters": [
     {
       "name": "Character Name",
-      "description": "Physical appearance, age, hair color/style, eye color, facial features",
-      "clothing": "Signature outfit, materials, colors, accessories",
-      "consistencyNotes": "Key visual anchors that must stay identical across all shots (e.g. scar over left eye, emerald tunic, silver belt buckle)"
+      "description": "Specific physical appearance, age, face shape, eye color, distinct hairstyle and hair color",
+      "clothing": "Exact signature outfit: garment types, layers, colors, materials, footwear, and accessories",
+      "consistencyNotes": "Visual identity anchors to lock across all shots (e.g. disheveled wavy brown hair, heather-grey crewneck, blue jeans)"
     }
   ],
   "scenes": [
     {
       "orderIndex": 0,
-      "title": "Scene 1: Scene Headline",
-      "description": "Definitive visual setting: exact location architecture, time-of-day, ambient lighting, color palette, and atmosphere",
-      "narrationText": "Engaging spoken voiceover / narration for this scene (2-4 sentences)",
-      "durationEstimate": 5.0,
+      "title": "Scene 1: Scene Headline / Location Heading",
+      "description": "Definitive visual setting: exact location layout, background architecture, primary lighting sources (e.g. leaning floor lamp), color temperature, and key props",
+      "narrationText": "Full screenplay scene text: complete character actions, environment interactions, physical comedy/drama, and formatted character dialogue in quotes",
+      "durationEstimate": 8.0,
       "shots": [
         {
           "orderIndex": 0,
-          "description": "Concrete frozen keyframe description: environment setting, lighting sources/shadows, character pose/expression/placement",
-          "shotType": "wide | medium | close-up | extreme-close-up | pov | establishing",
+          "description": "Concrete frozen keyframe: explicitly name characters in frame, their exact poses, facial expressions, spatial placement (foreground/background), interaction with props, and lighting atmosphere",
+          "shotType": "wide | medium | close-up | extreme-close-up | pov | establishing | over-the-shoulder",
           "cameraAngle": "eye-level | low-angle | high-angle | birds-eye | dutch-angle | over-the-shoulder",
           "perspective": "1-point | 2-point | 3-point | isometric | panoramic",
           "movement": "static | pan-left | pan-right | tilt-up | tilt-down | zoom-in | zoom-out | tracking | handheld",
-          "duration": 3.5,
-          "dialogue": "Spoken dialogue in quotes or empty string if silent",
-          "characterNames": ["Character Name"]
+          "duration": 3.0,
+          "dialogue": "Character dialogue line for this specific shot or empty string",
+          "characterNames": ["Dave"]
         }
       ]
+    }
+  ],
+  "locations": [
+    {
+      "name": "Distinct location name (e.g. Dave's Apartment - Living Room)",
+      "description": "Physical layout, architecture, furniture, notable background elements, color palette of the space",
+      "lightingNotes": "Primary and secondary light sources, color temperature, time of day, ambient mood (e.g. warm leaning floor lamp casting golden shadows, blue-tinted window moonlight)"
+    }
+  ],
+  "objects": [
+    {
+      "name": "Object or prop name (e.g. SuperBond Ultra Tube)",
+      "description": "Visual details: shape, size, color, material, branding, distinctive features",
+      "importance": "key_prop | recurring | background"
     }
   ]
 }
 
-RULES:
-- Divide the story into 3 to 8 structured, coherent dramatic scenes.
-- Each scene should contain 2 to 4 detailed keyframe shots.
-- Pacing must match the "${genre}" genre.
+5. LOCATION EXTRACTION:
+   - Extract EVERY distinct physical location from the story.
+   - Include room names, outdoor locations, building interiors.
+   - Each location must have detailed lighting notes for visual consistency.
+
+6. OBJECT & PROP EXTRACTION:
+   - Extract significant objects, props, and items mentioned in the story.
+   - Mark importance: "key_prop" for story-central items (the glue tube, the magic sword), "recurring" for items appearing across multiple scenes (a tote bag, a car), "background" for set dressing.
+   - Only extract objects that would need visual consistency across shots.
+
+Divide the story into 3 to 6 rich dramatic scenes.
+Generate 4 to 8 granular, cinema-grade keyframe shots per scene.
+
+MANDATORY SHOT DIVERSITY RULES:
+- Each scene's shots MUST use a varied progression of shot types: start with a WIDE or ESTABLISHING shot, progress through MEDIUM shots for action, use CLOSE-UP or EXTREME-CLOSE-UP for emotional beats and inserts, and include at least one OVER-THE-SHOULDER or REACTION shot for dialogue exchanges.
+- NO two consecutive shots may have the same shotType. If shot N is "medium", shot N+1 MUST be different (e.g. "close-up", "wide", "over-the-shoulder", "pov").
+- Each shot description must describe a VISUALLY DISTINCT frozen frame. Two shots showing "both characters leaning toward each other" is NOT allowed — one should be a wide two-shot, the next a close-up of one character's face, etc.
 
 Return ONLY the JSON object.`;
 
@@ -145,7 +199,7 @@ Return ONLY the JSON object.`;
         model: "gemini-2.5-flash",
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 16384,
           responseMimeType: "application/json",
         },
       });
@@ -237,6 +291,20 @@ Return ONLY the JSON object.`;
             characterNames: ["Protagonist"],
           },
         ],
+      },
+    ],
+    locations: [
+      {
+        name: "Primary Setting",
+        description: "Atmospheric location with dramatic cinematic lighting",
+        lightingNotes: "Warm ambient glow with deep contrast shadows",
+      },
+    ],
+    objects: [
+      {
+        name: "Key Story Item",
+        description: "Significant object central to the plot",
+        importance: "key_prop",
       },
     ],
   };

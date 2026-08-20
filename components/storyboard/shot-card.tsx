@@ -53,7 +53,13 @@ function PlaceholderFrame({ seed }: { seed: number | string }) {
   );
 }
 
-function MatchMeter({ score = 0.9, flagged = false }: { score?: number; flagged?: boolean }) {
+function MatchMeter({
+  score = 0.9,
+  flagged = false,
+}: {
+  score?: number;
+  flagged?: boolean;
+}) {
   const pct = Math.round(score * 100);
   const filled = Math.round(score * 5);
   return (
@@ -126,15 +132,7 @@ function ShotCard({ shot }: { shot: any }) {
             <PlaceholderFrame seed={shot.id} />
             <ViewfinderBrackets />
             {isGenerating && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80">
-                <Loader2
-                  size={18}
-                  className="motion-safe:animate-spin text-[#e08a3e]"
-                />
-                <span className="mt-2 font-mono text-[10px] tracking-wide text-[#e08a3e]">
-                  DEVELOPING FRAME…
-                </span>
-              </div>
+              <div className="absolute inset-0 z-20 animate-pulse bg-black/80" />
             )}
           </>
         ) : (
@@ -142,13 +140,7 @@ function ShotCard({ shot }: { shot: any }) {
             <ViewfinderBrackets />
             {isGenerating ? (
               <>
-                <Loader2
-                  size={18}
-                  className="motion-safe:animate-spin text-[#e08a3e]"
-                />
-                <span className="mt-2 font-mono text-[10px] tracking-wide text-[#e08a3e]">
-                  DEVELOPING FRAME…
-                </span>
+                <div className="absolute inset-0 z-20 animate-pulse bg-black/80" />
               </>
             ) : (
               <>

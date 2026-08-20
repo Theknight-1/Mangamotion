@@ -38,6 +38,16 @@ export interface ShotGenerationParams {
   aspectRatio: string;
   model: StoryboardModel;
   characters: ShotCharacter[];
+  locations?: Array<{
+    name: string;
+    description?: string | null;
+    lightingNotes?: string | null;
+  }>;
+  objects?: Array<{
+    name: string;
+    description?: string | null;
+    importance?: string;
+  }>;
   iterationInstruction?: string; // Optional prompt refinement for iterate action
 }
 
@@ -54,9 +64,10 @@ export function wrapWithSafetyDirectives(prompt: string): string {
 
 
 /**
- * Resolves characters relevant to a shot based on explicit tags
- * or character name mentions in shot description or dialogue.
- * Does NOT dump unrelated project characters if none are in the shot.
+ * Resolves characters relevant to a shot based on explicit tags,
+ * character name mentions, or collective group references (e.g. "trio",
+ * "all three", "both", "everyone", "the gang", "the group").
+ * Ensures full character identity locking and reference sheet injection.
  */
 export function resolveRelevantCharacters<
   T extends {
@@ -79,33 +90,54 @@ export function resolveRelevantCharacters<
 ): T[] {
   if (!characters.length) return [];
   const taggedCharIds = (shot.characterIds as string[]) || [];
+  const fullText = `${shot.description ?? ""} ${shot.dialogue ?? ""}`.trim();
 
-  return characters.filter((c) => {
+  // Check for collective group references like "trio", "all three", "everyone", "the gang", etc.
+  const hasGroupReference =
+    /\b(all three|all \d+|the trio|trio|the duo|duo|both of them|both characters|the pair|pair of them|everyone|everybody|all of them|the gang|the group|the team|the crew|the friends|the roommates|all together|together with each other)\b/i.test(
+      fullText,
+    );
+
+  const matched = characters.filter((c) => {
     // 1. Explicit ID tag check
     if (taggedCharIds.length > 0 && taggedCharIds.includes(c.id)) {
       return true;
     }
-    // 2. Mention of character name in shot description or dialogue
+
+    // 2. Explicit mention of character name in shot description or dialogue
     if (c.name && c.name.trim().length > 1) {
       const escaped = c.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const nameRegex = new RegExp(`\\b${escaped}\\b`, "i");
-      if (
-        (shot.description && nameRegex.test(shot.description)) ||
-        (shot.dialogue && nameRegex.test(shot.dialogue))
-      ) {
+      if (nameRegex.test(fullText)) {
         return true;
       }
     }
+
+    // 3. Collective group reference matches all characters when project has reasonable roster (<= 5 characters)
+    if (hasGroupReference && characters.length <= 5) {
+      return true;
+    }
+
     return false;
   });
+
+  return matched;
 }
 
 /**
- * Builds a curated, prioritized list of reference images for conditioning:
- * 1. If Regenerating: established current shot image frame as primary anchor
- * 2. Preceding frame (Shot N-1 within the same scene) for lighting/palette continuity
- * 3. Approved character model sheets for characters active in this shot
- * 4. Environment / style / prop visual reference
+ * Builds a curated, prioritized list of reference images for conditioning.
+ *
+ * PRIORITY ORDER (intentional):
+ * 1. Character model sheets FIRST — these are the primary identity anchors
+ * 2. If regenerating: the existing shot image
+ * 3. Environment / style / prop reference
+ * 4. Previous shot image LAST and ONLY for regeneration/iteration
+ *
+ * IMPORTANT: We intentionally DO NOT include the previous shot image during
+ * initial generation. Passing it as a conditioning reference causes the
+ * image model to copy the composition, angle, and framing — making every
+ * shot in a scene look nearly identical. Character sheets alone provide
+ * sufficient identity locking without copying camera framing.
  */
 export function buildRankedReferenceUrls(params: {
   characters: ShotCharacter[];
@@ -123,22 +155,7 @@ export function buildRankedReferenceUrls(params: {
   } = params;
   const references: string[] = [];
 
-  // 1. If regenerating an existing shot, prioritize the existing keyframe as the primary visual anchor
-  if (isRegeneration && currentShotImageUrl && typeof currentShotImageUrl === "string") {
-    references.push(currentShotImageUrl);
-  }
-
-  // 2. Preceding frame in same scene (for lighting, palette, and outfit state continuity)
-  if (
-    !isRegeneration &&
-    previousShotImageUrl &&
-    typeof previousShotImageUrl === "string" &&
-    !references.includes(previousShotImageUrl)
-  ) {
-    references.push(previousShotImageUrl);
-  }
-
-  // 3. Character Sheets for all active characters in the shot
+  // 1. Character Sheets FIRST — primary identity anchors
   for (const char of characters) {
     const sheet = char.approvedSheetUrl || char.pendingSheetUrl;
     if (sheet && typeof sheet === "string" && !references.includes(sheet)) {
@@ -153,7 +170,21 @@ export function buildRankedReferenceUrls(params: {
     }
   }
 
-  // 4. If regenerating and we also have a preceding shot, include it
+  // 2. If regenerating, include the existing shot as an anchor to refine from
+  if (isRegeneration && currentShotImageUrl && typeof currentShotImageUrl === "string") {
+    references.push(currentShotImageUrl);
+  }
+
+  // 3. Environment or prop reference
+  if (
+    environmentReferenceUrl &&
+    typeof environmentReferenceUrl === "string" &&
+    !references.includes(environmentReferenceUrl)
+  ) {
+    references.push(environmentReferenceUrl);
+  }
+
+  // 4. If regenerating, also include preceding frame for continuity
   if (
     isRegeneration &&
     previousShotImageUrl &&
@@ -163,17 +194,41 @@ export function buildRankedReferenceUrls(params: {
     references.push(previousShotImageUrl);
   }
 
-  // 5. Environment or prop reference
-  if (
-    environmentReferenceUrl &&
-    typeof environmentReferenceUrl === "string" &&
-    !references.includes(environmentReferenceUrl)
-  ) {
-    references.push(environmentReferenceUrl);
-  }
+  // NOTE: For initial generation (NOT regeneration), previous shot image
+  // is intentionally excluded. Including it causes the model to clone the
+  // composition, camera angle, and framing of the preceding shot.
 
   return references;
 }
+
+const ART_STYLE_DESCRIPTORS: Record<string, string> = {
+  animation_3d:
+    "Master 3D animated studio keyframe render, Pixar and DreamWorks feature animation aesthetic, stylized expressive character proportions, soft subsurface scattering, warm cinematic volumetric illumination, clean stylized geometry, rich emotional acting",
+  cinematic:
+    "Cinematic 35mm film still, master Hollywood cinematography, anamorphic lens depth, subtle organic film grain, natural shallow depth of field, atmospheric volumetric lighting, photorealistic color grading",
+  anime:
+    "Premium anime studio production keyframe, Makoto Shinkai and Ufotable aesthetic, crisp cel-shaded lines, radiant atmospheric lighting and particle glow, vibrant color palette, rich emotional expression",
+  dark_anime:
+    "Dark seinen anime aesthetic, MAPPA and Wit studio quality, gritty high-detail line art, moody desaturated tones with intense specular highlights, dramatic chiaroscuro shadow play",
+  comic:
+    "Western graphic novel illustration, bold ink outlines, dynamic halftone dot shading, high-contrast comic book aesthetic, expressive heroic character poses, clean panel art",
+  watercolor:
+    "Artistic fluid watercolor illustration, delicate washes on textured cold-press paper, organic pigment bleeding, expressive hand-painted brushwork, evocative ambient lighting",
+  soft_pencil:
+    "Refined graphite pencil concept sketch, delicate crosshatching, master draftsmanship, soft tonal gradients, clean paper background, fine art studio study",
+  photo_commercial:
+    "High-end commercial studio photography, razor-sharp focus, professional three-point softbox lighting, pristine clean environment, high commercial production value",
+  noir:
+    "Vintage 1940s film noir still, stark monochrome chiaroscuro lighting, deep dramatic shadows, high contrast, venetian blind light patterns, moody atmospheric haze",
+  flat_vector:
+    "Modern clean geometric flat vector art, bold harmonious color palette, crisp vector silhouettes, minimalist stylish composition",
+  graphic_novel:
+    "Gritty graphic novel ink illustration, heavy black shadow blocks, expressive ink splatters, high drama, stark narrative contrast",
+  charcoal:
+    "Moody expressive charcoal drawing on heavyweight vellum paper, rich deep carbon blacks, smudged midtones, dramatic atmospheric chiaroscuro",
+  stick_figure:
+    "Director stick figure choreography storyboard sketch, clean rapid framing lines, clear spatial blocking and camera direction arrows",
+};
 
 export function buildComprehensiveShotPrompt(params: {
   description: string;
@@ -195,6 +250,16 @@ export function buildComprehensiveShotPrompt(params: {
     clothing?: string | null;
     consistencyNotes?: string | null;
   }>;
+  locations?: Array<{
+    name: string;
+    description?: string | null;
+    lightingNotes?: string | null;
+  }>;
+  objects?: Array<{
+    name: string;
+    description?: string | null;
+    importance?: string;
+  }>;
   iterationInstruction?: string;
 }): string {
   const {
@@ -212,6 +277,8 @@ export function buildComprehensiveShotPrompt(params: {
     dialogue,
     artStyle,
     characters,
+    locations,
+    objects,
     iterationInstruction,
   } = params;
 
@@ -230,59 +297,119 @@ export function buildComprehensiveShotPrompt(params: {
                 ? `${aspectRatio} aspect ratio`
                 : "16:9 widescreen";
 
+  const styleDescriptor =
+    ART_STYLE_DESCRIPTORS[artStyle.toLowerCase()] ||
+    `Master ${artStyle}-style production storyboard keyframe`;
+
   const parts: string[] = [
-    `Master ${artStyle}-style production storyboard keyframe, ${ratioDescription} composition.`,
+    `${styleDescriptor}, ${ratioDescription} composition.`,
   ];
 
   // Setting / Environment continuity across the scene
   if (sceneTitle || sceneDescription) {
     const sceneContext = [
       sceneTitle ? `Scene: ${sceneTitle}` : "",
-      sceneDescription ? `Setting & Atmosphere: ${sceneDescription}` : "",
+      sceneDescription ? `Setting & Environmental Anchors: ${sceneDescription}` : "",
     ]
       .filter(Boolean)
       .join(". ");
-    parts.push(`${sceneContext}. Maintain consistent environment location, background architecture, and ambient scene lighting.`);
+    parts.push(
+      `${sceneContext}. Maintain strict environmental consistency: preserve the exact same room layout, background architecture, furniture, and lighting source positions.`,
+    );
+  }
+
+  // Location context — inject specific location details for environmental anchoring
+  if (locations && locations.length > 0) {
+    const locDescs = locations
+      .map((loc) => {
+        const details = [
+          `Location: "${loc.name}"`,
+          loc.description ? `Layout: ${loc.description}` : "",
+          loc.lightingNotes ? `Lighting: ${loc.lightingNotes}` : "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        return details;
+      })
+      .join("; ");
+    parts.push(
+      `Scene Locations: ${locDescs}. Maintain exact visual consistency with these established locations.`,
+    );
+  }
+
+  // Key objects/props — inject visual details for prop consistency
+  if (objects && objects.length > 0) {
+    const keyProps = objects.filter((o) => o.importance !== "background");
+    if (keyProps.length > 0) {
+      const objDescs = keyProps
+        .map(
+          (obj) =>
+            `"${obj.name}"${obj.description ? ` (${obj.description})` : ""}`,
+        )
+        .join(", ");
+      parts.push(
+        `Key Props & Objects in scene: ${objDescs}. Depict these objects with exact visual consistency across all shots.`,
+      );
+    }
   }
 
   // Shot Action & Composition
   parts.push(`Shot Action: ${description}.`);
 
-  // Cinematography details
-  if (shotType) parts.push(`Shot framing: ${shotType} shot.`);
+  // Aggressive shot framing descriptors — vague labels like "close-up"
+  // are ignored by image models. We need explicit composition rules.
+  const SHOT_FRAMING_DESCRIPTORS: Record<string, string> = {
+    "establishing":
+      "ESTABLISHING SHOT: Ultra-wide environmental master shot. Camera positioned far back showing the full location, architecture, and spatial layout. Characters are small figures within the larger environment. Emphasize scale, atmosphere, and world-building.",
+    "wide":
+      "WIDE SHOT: Full-body framing showing characters from head to toe with significant environment visible. Characters occupy roughly 30-50% of the frame height. Background architecture and props clearly visible.",
+    "medium":
+      "MEDIUM SHOT: Waist-up framing of the character(s). Body language, hand gestures, and facial expressions all visible. Environment partially visible in background.",
+    "close-up":
+      "CLOSE-UP SHOT: Character's face and upper shoulders fill the majority of the frame. Emphasize facial expression, emotion, and eye contact. Background is blurred or minimal. Intimate, emotionally intense framing.",
+    "extreme-close-up":
+      "EXTREME CLOSE-UP: A single detail fills the entire frame — eyes, hands on an object, a key prop, a texture. Hyper-detailed macro framing. No full face visible, just the critical detail.",
+    "pov":
+      "POINT-OF-VIEW SHOT: Camera positioned exactly where the character's eyes would be, showing what they see. First-person perspective. The viewing character is NOT visible in frame.",
+    "over-the-shoulder":
+      "OVER-THE-SHOULDER SHOT: Camera behind one character's shoulder/head (visible in foreground, blurred), looking at the other character who is the focal subject. Conversational framing.",
+    "reaction":
+      "REACTION SHOT: Medium close-up focused entirely on one character's emotional response. Their face fills the frame, showing surprise, fear, joy, or whatever the narrative demands.",
+  };
+
+  const framingDirective = shotType
+    ? SHOT_FRAMING_DESCRIPTORS[shotType.toLowerCase()] || `Shot framing: ${shotType} shot.`
+    : "";
+  if (framingDirective) parts.push(framingDirective);
+
   if (cameraAngle) parts.push(`Camera angle: ${cameraAngle}.`);
   if (perspective) parts.push(`Perspective: ${perspective} perspective.`);
   if (movement && movement !== "static") parts.push(`Camera motion: ${movement}.`);
-  if (dialogue) parts.push(`Dialogue context: "${dialogue}".`);
+  if (dialogue) parts.push(`Character dialogue context: "${dialogue}".`);
 
   // Character consistency details
   if (characters.length > 0) {
     const charDescriptions = characters
-      .map(
-        (c) =>
-          `Character "${c.name}" (${c.clothing || c.description || "defined character features"}${
-            c.consistencyNotes ? `, Visual Anchor: ${c.consistencyNotes}` : ""
-          })`,
-      )
+      .map((c) => {
+        const details = [
+          c.description ? `Appearance: ${c.description}` : "",
+          c.clothing ? `Outfit: ${c.clothing}` : "",
+          c.consistencyNotes ? `Identity Anchors: ${c.consistencyNotes}` : "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        return `Character "${c.name}" (${details || "defined character features"})`;
+      })
       .join("; ");
     parts.push(
-      `Strict character visual consistency: Depict the following character(s) with exact matching facial features, hairstyle, and outfit: ${charDescriptions}.`,
+      `Strict character visual consistency: Depict the following character(s) with exact matching facial structure, hairstyle, and signature outfit matching their reference model sheets: ${charDescriptions}.`,
     );
   }
 
-  // Sequential visual continuity or regeneration refinement directive
+  // Regeneration or fresh generation directive
   if (isRegeneration && currentShotImageUrl) {
     parts.push(
       "Regeneration & Variation Directive: High-fidelity visual variation and refinement of the existing frame. Strictly preserve the established scene environment, background architecture, character identity, and camera framing while rendering a fresh, enhanced cinematic composition.",
-    );
-  } else if (previousShotImageUrl) {
-    parts.push(
-      "Visual Continuity Directive: Seamless continuity with preceding keyframe — match established color grading, ambient lighting angle, and outfit state.",
-    );
-  } else {
-    // Initial establishing shot of the scene
-    parts.push(
-      "Scene Anchor Directive: Master establishing keyframe — establish definitive environmental lighting, world atmosphere, rich depth, and clean focal clarity.",
     );
   }
 

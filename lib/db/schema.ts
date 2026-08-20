@@ -248,6 +248,37 @@ export const storyboardShots = pgTable("storyboardShots", {
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
+export const storyboardLocations = pgTable("storyboardLocations", {
+  id: text("id").primaryKey(),
+  projectId: text("projectId")
+    .notNull()
+    .references(() => storyboardProjects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"), // physical layout, architecture, atmosphere
+  lightingNotes: text("lightingNotes"), // e.g. "warm floor lamp, golden hour window light"
+  referenceImageUrl: text("referenceImageUrl"), // user-uploaded reference
+  generatedImageUrl: text("generatedImageUrl"), // AI-generated reference for conditioning
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const storyboardObjects = pgTable("storyboardObjects", {
+  id: text("id").primaryKey(),
+  projectId: text("projectId")
+    .notNull()
+    .references(() => storyboardProjects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"), // visual details, materials, colors
+  importance: text("importance").notNull().default("recurring"),
+  // "key_prop" — central to the story (e.g. glue tube, magic sword)
+  // "recurring" — appears in multiple scenes (e.g. tote bag, car)
+  // "background" — set dressing, less critical
+  referenceImageUrl: text("referenceImageUrl"), // user-uploaded reference
+  generatedImageUrl: text("generatedImageUrl"), // AI-generated reference
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
 export const storyboardUsage = pgTable("storyboardUsage", {
   id: text("id").primaryKey(),
   userId: text("userId").notNull(),
