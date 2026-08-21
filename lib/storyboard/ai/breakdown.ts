@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { analyzeImageWithOpenRouter } from "@/lib/openrouter";
 
 const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
@@ -115,11 +114,33 @@ CRITICAL PRODUCTION RULES:
    - For every character, define specific, invariant physical traits: age, facial features, hair style and color, and an EXACT signature outfit (e.g. "heather-grey crewneck t-shirt and blue denim jeans" or "burgundy zip-up hoodie over white tee").
    - Consistency Notes must include signature visual anchors so character model sheets lock their identity across all shots.
 
-4. GRANULAR CINEMATIC SHOT DECOMPOSITION:
-   - Break down each scene into 4 to 8 granular, progressive storyboard shots (Wide establishing -> Medium action -> Close-up insert -> Character entrance -> Reaction -> Over-the-shoulder / two-shot).
-   - In each shot's "description": Describe a CONCRETE, FROZEN KEYFRAME. Explicitly name every character present, their exact spatial pose, emotional expression, visual interaction with props, and camera lighting.
-   - In each shot's "characterNames": Explicitly list ALL characters visible in that frame (e.g. ["Dave", "Tina"]). If the scene features multiple characters interacting, list everyone in frame. NEVER leave out visible characters.
-   - In each shot's "dialogue": Include the specific spoken dialogue line occurring during that shot, or empty string if silent/action.
+4. GRANULAR CINEMATIC SHOT DECOMPOSITION & SPATIAL CONTINUITY:
+   - Break down each scene into 4 to 8 granular, progressive storyboard shots.
+   - In each shot's "description": Describe a CONCRETE, FROZEN KEYFRAME with explicit spatial blocking (Foreground, Midground, Background), lighting, and pose.
+
+5. UNIVERSAL CO-PRESENCE & BACKGROUND STAGING ("NEVER DISAPPEAR" RULE):
+   - In ANY scene featuring 2+ characters or a protagonist facing an adversary/monster/partner:
+     * When the camera focuses on Character A (Medium or Close-up), DO NOT make Character B disappear from the universe!
+     * Explicitly place Character B in the background, in the midground, or use an Over-The-Shoulder (OTS) perspective (e.g. "Foreground: Ren gazing in shock at his glowing hand; Background: The towering Monster looming in the aisle behind him, out of focus").
+     * Or use Over-The-Shoulder framing (e.g. "OVER-THE-SHOULDER shot from behind the Monster's spiky shoulder looking past him at Ren").
+
+6. UNIVERSAL 3-BEAT CAUSE-AND-EFFECT CHAINS (APPLIES TO ALL GENRES):
+   - Never skip key intermediate beats! Always construct dramatic/action moments in complete 3-beat chains:
+     * ACTION / COMBAT:
+       - Beat 1 (Anticipation / Stance): Wind-up, energy charge, drawing weapon with adversary visible in background.
+       - Beat 2 (Physical Impact / Contact): The exact moment the punch/sword/blast makes direct physical contact with the adversary, shockwave rippling, adversary's body recoiling at point of impact.
+       - Beat 3 (Consequence / Aftermath): Adversary hurled backward through a wall/floor, debris and smoke erupting, hero left standing in follow-through combat stance.
+     * COMEDY / SITCOM:
+       - Beat 1 (Setup): Character confidently applying glue or attempting ambitious task.
+       - Beat 2 (Disaster Moment): Glue explodes or hand gets stuck to face/table in catastrophic freeze-frame.
+       - Beat 3 (Reaction / Punchline): Friend entering in background, staring in deadpan shock and disbelief.
+     * DRAMA / ROMANCE / SUSPENSE:
+       - Beat 1 (Build-up): Characters leaning in or reaching out across the space.
+       - Beat 2 (Climax Moment): The touch, confession, or discovery of the secret.
+       - Beat 3 (Emotional Impact): Tear falling, sudden turn of head, or realization in close-up with partner in background.
+
+7. 180-DEGREE STAGE LINE & SCREEN DIRECTION:
+   - Maintain consistent Left vs Right screen direction across consecutive cuts so camera perspective remains coherent (if Character A is on the left facing right in Shot 1, keep them on the left facing right in subsequent reverse shots).
 
 OUTPUT REQUIREMENTS:
 Return ONLY a valid JSON object matching this exact schema:
@@ -172,12 +193,12 @@ Return ONLY a valid JSON object matching this exact schema:
   ]
 }
 
-5. LOCATION EXTRACTION:
+8. LOCATION EXTRACTION:
    - Extract EVERY distinct physical location from the story.
    - Include room names, outdoor locations, building interiors.
    - Each location must have detailed lighting notes for visual consistency.
 
-6. OBJECT & PROP EXTRACTION:
+9. OBJECT & PROP EXTRACTION:
    - Extract significant objects, props, and items mentioned in the story.
    - Mark importance: "key_prop" for story-central items (the glue tube, the magic sword), "recurring" for items appearing across multiple scenes (a tote bag, a car), "background" for set dressing.
    - Only extract objects that would need visual consistency across shots.
@@ -185,18 +206,27 @@ Return ONLY a valid JSON object matching this exact schema:
 Divide the story into 3 to 6 rich dramatic scenes.
 Generate 4 to 8 granular, cinema-grade keyframe shots per scene.
 
-MANDATORY SHOT DIVERSITY RULES:
+MANDATORY SHOT DIVERSITY & CONTINUITY RULES:
 - Each scene's shots MUST use a varied progression of shot types: start with a WIDE or ESTABLISHING shot, progress through MEDIUM shots for action, use CLOSE-UP or EXTREME-CLOSE-UP for emotional beats and inserts, and include at least one OVER-THE-SHOULDER or REACTION shot for dialogue exchanges.
 - NO two consecutive shots may have the same shotType. If shot N is "medium", shot N+1 MUST be different (e.g. "close-up", "wide", "over-the-shoulder", "pov").
 - Each shot description must describe a VISUALLY DISTINCT frozen frame. Two shots showing "both characters leaning toward each other" is NOT allowed — one should be a wide two-shot, the next a close-up of one character's face, etc.
 
 Return ONLY the JSON object.`;
 
+// gemini-3.1-flash-image - 0.50$ Inp 3$ Out - 80%
+// gemini-3-flash-preview - 0.50$ Inp 3$ Out - 60%
+// gemini-3.1-flash-lite - 0.25$ Inp 1.5$ Out - 40%
+// gemini-3.5-flash-lite - 0.30$ Inp 2.50$ Out - 70%
+// gemini-3.7-flash - 0.75$ Inp 3.75 Out - 40%
+// Gemini 2.5 Pro - $1.25 INp and $10.00 for out - 
+// gemini-2.5-flash - $0.30 INp and $2.50 for out - 70%
+// gemini-2.5-flash-lite - 0.10$ Inp 0.40$ Out - 70%
+
   // Layer 1: Gemini 2.5 Flash / Pro
   try {
     if (process.env.GEMINI_API_KEY) {
       const model = genai.getGenerativeModel({
-        model: "gemini-2.5-flash",
+        model: "gemini-2.5-flash-lite",
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 16384,

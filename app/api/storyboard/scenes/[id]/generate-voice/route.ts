@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getOrCreateSubscription } from "@/app/actions/subscription/usages";
 import {
-  checkGenerationAllowed,
+  guardGenerationQuota,
   incrementGenerationUsage,
 } from "@/lib/storyboard/usage";
 import { generateSceneVoiceAudio } from "@/lib/storyboard/ai/voice";
@@ -68,19 +68,8 @@ export async function POST(request: Request, { params }: Params) {
     const subscription = await getOrCreateSubscription(session.user.id);
     const tier = subscription.tier as TierKey;
 
-    const quotaCheck = await checkGenerationAllowed(session.user.id, tier);
-    if (!quotaCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: "Monthly generation limit reached for your plan",
-          code: "GENERATION_LIMIT_REACHED",
-          limit: quotaCheck.limit,
-          used: quotaCheck.used,
-          tier,
-        },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await guardGenerationQuota(session.user.id, tier);
+    if (errorResponse) return errorResponse;
 
     const { audioUrl, duration } = await generateSceneVoiceAudio({
       sceneId: id,

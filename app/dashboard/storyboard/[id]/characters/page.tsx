@@ -262,10 +262,11 @@ export default function StoryboardCharactersPage({ params }: Props) {
   };
 
   const handleApproveSheet = async (char: StoryboardCharacter) => {
-    if (!char.pendingSheetUrl) return;
+    const sheetToApprove = char.pendingSheetUrl || char.approvedSheetUrl;
+    if (!sheetToApprove) return;
     addApprovingSheetId(char.id);
     try {
-      await storyboardApi.approveCharacterSheet(char.id, char.pendingSheetUrl);
+      await storyboardApi.approveCharacterSheet(char.id, sheetToApprove);
       mutateCharacters();
       toast.success(
         `Locked "${char.name}" reference sheet for identity conditioning!`,
@@ -310,7 +311,7 @@ export default function StoryboardCharactersPage({ params }: Props) {
           <Button
             variant="ghost"
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#c9a84c]/30 cursor-pointer px-4 py-2 text-xs font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition"
+            className="border border-[#c9a84c]/30 px-4 py-2 font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition"
           >
             <Plus size={13} /> Add Character
           </Button>
@@ -384,9 +385,12 @@ export default function StoryboardCharactersPage({ params }: Props) {
 
             {characters.map((char) => {
               const hasApproved = Boolean(char.approvedSheetUrl);
-              const hasPending = Boolean(char.pendingSheetUrl);
+              const hasPendingNew = Boolean(
+                char.pendingSheetUrl && char.pendingSheetUrl !== char.approvedSheetUrl,
+              );
+              const isApprovedAndLocked = hasApproved && !hasPendingNew;
               const activeSheetUrl =
-                char.approvedSheetUrl || char.pendingSheetUrl;
+                char.pendingSheetUrl || char.approvedSheetUrl;
               const refs = (char.referenceImageUrls as string[]) || [];
               const mode = char.conditioningMode || "both";
 
@@ -402,13 +406,17 @@ export default function StoryboardCharactersPage({ params }: Props) {
                           <h3 className="text-base font-bold text-white">
                             {char.name}
                           </h3>
-                          {hasApproved ? (
+                          {isApprovedAndLocked ? (
                             <span className="flex items-center gap-1 rounded-md bg-[#87da70]/10 px-2 py-0.5 text-[10px] font-bold text-[#87da70] border border-[#87da70]/30">
                               <ShieldCheck size={11} /> Locked Reference
                             </span>
-                          ) : (
+                          ) : hasPendingNew ? (
                             <span className="rounded-md bg-[#c9a84c]/10 px-2 py-0.5 text-[11px] tracking-wide font-bold text-[#e8d5a3] border border-[#c9a84c]/30">
                               Pending Approval
+                            </span>
+                          ) : (
+                            <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/40 border border-white/10">
+                              No Reference Sheet
                             </span>
                           )}
                         </div>
@@ -477,7 +485,7 @@ export default function StoryboardCharactersPage({ params }: Props) {
                           />
                           <button
                             onClick={() => setPreviewSheetUrl(activeSheetUrl)}
-                            className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/80 text-white backdrop-blur-sm hover:bg-black"
+                            className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/80 text-white backdrop-blur-sm hover:bg-black cursor-pointer"
                           >
                             <Eye size={12} />
                           </button>
@@ -555,9 +563,9 @@ export default function StoryboardCharactersPage({ params }: Props) {
                     </div>
 
                     {/* Visual Anchor Fields */}
-                    <div className="mt-3 space-y-2 text-[12px]">
+                    <div className="mt-3 space-y-2 text-[13px] leading-4">
                       <div>
-                        <span className="font-bold text-[#c9a84c] text-[10px] uppercase">
+                        <span className="font-bold text-[#c9a84c] text-[11px] uppercase">
                           Appearance:{" "}
                         </span>
                         <span className="text-white/80">
@@ -565,7 +573,7 @@ export default function StoryboardCharactersPage({ params }: Props) {
                         </span>
                       </div>
                       <div>
-                        <span className="font-bold text-[#c9a84c] text-[10px] uppercase">
+                        <span className="font-bold text-[#c9a84c] text-[11px] uppercase">
                           Signature Attire:{" "}
                         </span>
                         <span className="text-white/80">
@@ -603,11 +611,11 @@ export default function StoryboardCharactersPage({ params }: Props) {
                       )}
                     </button>
 
-                    {hasPending && (
-                      <button
+                    {hasPendingNew ? (
+                      <Button
                         onClick={() => handleApproveSheet(char)}
                         disabled={approvingSheetIds.has(char.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-[#87da70] px-2.5 py-1.5 text-xs font-bold text-black hover:bg-[#6ed85d] shadow-md shadow-[#87da70]/20 disabled:opacity-50"
+                        className="bg-[#87da70] hover:bg-[#6ed85d] text-black py-1.5 font-bold text-xs shadow-md shadow-[#87da70]/20 inline-flex items-center gap-1.5"
                       >
                         {approvingSheetIds.has(char.id) ? (
                           <Loader2 size={12} className="animate-spin" />
@@ -615,8 +623,16 @@ export default function StoryboardCharactersPage({ params }: Props) {
                           <Check size={12} />
                         )}
                         Approve &amp; Lock
-                      </button>
-                    )}
+                      </Button>
+                    ) : isApprovedAndLocked ? (
+                      <Button
+                        disabled
+                        className="bg-[#87da70]/15 text-[#87da70] border border-[#87da70]/30 py-1.5 font-semibold text-xs opacity-75 cursor-not-allowed inline-flex items-center gap-1.5"
+                      >
+                        <Check size={12} />
+                        Approved
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               );

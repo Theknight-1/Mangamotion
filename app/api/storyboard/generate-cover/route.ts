@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { put } from "@vercel/blob";
 import { getOrCreateSubscription } from "@/app/actions/subscription/usages";
 import {
-  checkGenerationAllowed,
+  guardGenerationQuota,
   incrementGenerationUsage,
   resolveAllowedModel,
 } from "@/lib/storyboard/usage";
@@ -55,18 +55,8 @@ export async function POST(request: Request) {
     // Tier usage gate
     const subscription = await getOrCreateSubscription(session.user.id);
     const tier = subscription.tier as TierKey;
-    const gate = await checkGenerationAllowed(session.user.id, tier);
-
-    if (!gate.allowed) {
-      return NextResponse.json(
-        {
-          error: "Monthly generation limit reached for your plan",
-          code: "STORYBOARD_GENERATION_LIMIT",
-          ...gate,
-        },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await guardGenerationQuota(session.user.id, tier);
+    if (errorResponse) return errorResponse;
 
     const model = resolveAllowedModel(tier, requestedModel);
 

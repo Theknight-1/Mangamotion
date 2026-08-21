@@ -462,16 +462,11 @@ export default function StoryboardBoardPage({ params }: Props) {
       {/* Top Studio Toolbar */}
       <header className="sticky top-0 z-30 border-b border-[#c9a84c]/15 bg-[#080e08]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() =>
-                router.push(`/dashboard/storyboard/${projectId}/characters`)
-              }
-              className="rounded-md border border-white/10 p-2 text-white/50 transition hover:bg-white/5 hover:text-white"
-            >
-              <ArrowLeft size={15} />
-            </button>
+          <div className="flex items-center justify-between w-full gap-2">
             <div>
+              <h1 className="text-xl font-bold text-white line-clamp-1">
+                {project?.title || "Storyboard Canvas"}
+              </h1>
               <div className="flex items-center gap-2">
                 <span className="rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 px-2 py-0.5 text-[10px] font-bold text-[#e8d5a3] uppercase">
                   {project?.genre || "Drama"}
@@ -480,46 +475,46 @@ export default function StoryboardBoardPage({ params }: Props) {
                   {project?.artStyle} &middot; {project?.aspectRatio}
                 </span>
               </div>
-              <h1 className="text-sm font-bold text-white line-clamp-1">
-                {project?.title || "Storyboard Canvas"}
-              </h1>
             </div>
 
             {/* Studio View Switcher Tabs */}
-            <div className="ml-2 flex items-center rounded-md border border-white/10 bg-black/40 p-0.5">
-              <button
+            <div className="flex items-center rounded-md border border-white/10 bg-black/40 p-0.5">
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setActiveStudioTab("storyboard")}
-                className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 rounded py-1.5 font-semibold transition ${
                   activeStudioTab === "storyboard"
                     ? "bg-[#c9a84c] text-black shadow"
                     : "text-white/50 hover:text-white"
                 }`}
               >
-                <LayoutGrid size={12} />
+                <LayoutGrid size={14} />
                 Storyboard
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setActiveStudioTab("shotlist")}
-                className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 rounded py-1.5 font-semibold transition ${
                   activeStudioTab === "shotlist"
                     ? "bg-[#c9a84c] text-black shadow"
                     : "text-white/50 hover:text-white"
                 }`}
               >
-                <TableIcon size={12} />
+                <TableIcon size={14} />
                 Shotlist
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Center/Right Toolbar */}
           <div className="flex items-center gap-2">
             {/* Locations Button */}
-            <button
+            <Button
               onClick={() => setShowLocationsModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+              className="py-2 text-white border border-white/30 hover:boarder-white/80"
+              variant="ghost"
             >
               <MapPin size={12} className="text-[#c9a84c]" />
               <span>Locations</span>
@@ -528,12 +523,13 @@ export default function StoryboardBoardPage({ params }: Props) {
                   {locationsData?.locations.length}
                 </span>
               )}
-            </button>
+            </Button>
 
             {/* Objects & Props Button */}
-            <button
+            <Button
               onClick={() => setShowObjectsModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+              className="py-2 text-white border border-white/30 hover:boarder-white/80"
+              variant="ghost"
             >
               <Box size={12} className="text-[#c9a84c]" />
               <span>Objects</span>
@@ -542,7 +538,7 @@ export default function StoryboardBoardPage({ params }: Props) {
                   {objectsData?.objects.length}
                 </span>
               )}
-            </button>
+            </Button>
 
             {/* Model Selector */}
             <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs">
@@ -563,22 +559,23 @@ export default function StoryboardBoardPage({ params }: Props) {
             </div>
 
             {/* Play Animatic */}
-            <button
+            <Button
               onClick={() => {
                 setAnimaticIndex(0);
                 setIsPlayingAnimatic(true);
                 setShowAnimaticModal(true);
               }}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-white transition hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+              variant="ghost"
+              className="border border-white/30 hover:boarder-white/80 py-2 text-white"
             >
               <Play size={12} /> Animatic
-            </button>
+            </Button>
 
             {/* Generate All Shots */}
-            <button
+            <Button
               onClick={handleGenerateAllShots}
               disabled={isGeneratingAll}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 px-3 py-1.5 text-xs font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition disabled:opacity-50"
+              className=" border-[#c9a84c]/30 bg-[#c9a84c]/10 py-2 font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition disabled:opacity-50"
             >
               {isGeneratingAll ? (
                 <>
@@ -589,15 +586,15 @@ export default function StoryboardBoardPage({ params }: Props) {
                   <Zap size={12} className="text-[#c9a84c]" /> Generate All
                 </>
               )}
-            </button>
+            </Button>
 
             {/* Export */}
-            <button
+            <Button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] px-3.5 py-1.5 text-xs font-bold text-[#060e06] shadow-md shadow-[#c9a84c]/20 hover:scale-[1.01] transition"
+              className=" rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] py-1.5 font-bold text-[#060e06] shadow-md shadow-[#c9a84c]/20 hover:scale-[1.01] transition"
             >
               <Download size={12} /> Export
-            </button>
+            </Button>
 
             <StoryboardUsageIndicator />
           </div>
@@ -622,7 +619,7 @@ export default function StoryboardBoardPage({ params }: Props) {
                 </div>
                 {/* Skeleton Shot Cards Grid */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                  {[1, 2, 3, 4].map((shotIdx) => (
+                  {[1, 2, 3].map((shotIdx) => (
                     <div
                       key={shotIdx}
                       className="overflow-hidden rounded-md border border-[#2c2a22]/40 bg-[#22331F]/30"
@@ -1365,6 +1362,7 @@ export default function StoryboardBoardPage({ params }: Props) {
               <Button
                 onClick={() => setActiveShotForIterate(null)}
                 variant="ghost"
+                className="text-white p-1.5"
               >
                 <X size={16} />
               </Button>
@@ -1414,7 +1412,7 @@ export default function StoryboardBoardPage({ params }: Props) {
                         prev ? `${prev}, ${chip}` : chip,
                       )
                     }
-                    className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60 hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+                    className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/60 hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
                   >
                     + {chip}
                   </button>

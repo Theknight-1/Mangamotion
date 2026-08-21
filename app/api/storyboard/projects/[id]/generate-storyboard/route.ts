@@ -128,7 +128,7 @@ export async function POST(request: Request, { params }: Params) {
         results.push({
           shotId: shot.id,
           status: "failed",
-          error: "Monthly generation limit reached",
+          error: "Monthly generation limit reached. Please upgrade to continue.",
         });
         break; // Stop when limit is reached
       }

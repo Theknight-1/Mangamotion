@@ -93,10 +93,9 @@ export function CharacterPanel({ projectId, maxCharacters }: Props) {
   }
 
   async function handleApprove(character: StoryboardCharacter) {
-    if (!character.pendingSheetUrl) return;
-    await storyboardApi.updateCharacter(character.id, {
-      approvedSheetUrl: character.pendingSheetUrl,
-    });
+    const sheetToApprove = character.pendingSheetUrl || character.approvedSheetUrl;
+    if (!sheetToApprove) return;
+    await storyboardApi.approveCharacterSheet(character.id, sheetToApprove);
     mutate();
   }
 
@@ -255,14 +254,21 @@ export function CharacterPanel({ projectId, maxCharacters }: Props) {
                 )}
                 {c.pendingSheetUrl || c.approvedSheetUrl ? "Regenerate" : "Generate"}
               </button>
-              {c.pendingSheetUrl && c.pendingSheetUrl !== c.approvedSheetUrl && (
+              {c.pendingSheetUrl && c.pendingSheetUrl !== c.approvedSheetUrl ? (
                 <button
                   onClick={() => handleApprove(c)}
                   className="flex-1 rounded-md cursor-pointer bg-[#87da70] py-2 text-[11px] font-semibold text-black transition hover:scale-[1.02]"
                 >
                   Approve
                 </button>
-              )}
+              ) : c.approvedSheetUrl ? (
+                <button
+                  disabled
+                  className="flex-1 rounded-md cursor-not-allowed bg-[#87da70]/15 text-[#87da70] border border-[#87da70]/30 py-2 text-[11px] font-semibold opacity-80 inline-flex items-center justify-center gap-1"
+                >
+                  <Check size={11} /> Approved
+                </button>
+              ) : null}
             </div>
           </div>
         ))}

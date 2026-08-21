@@ -58,6 +58,7 @@ export async function POST(request: Request, { params }: Params) {
       .update(storyboardCharacters)
       .set({
         approvedSheetUrl: sheetUrlToApprove,
+        pendingSheetUrl: null,
         updatedAt: new Date(),
       })
       .where(eq(storyboardCharacters.id, characterId))

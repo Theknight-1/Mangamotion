@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { storyboardUsage, storyboardProjects } from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
@@ -98,6 +99,37 @@ export async function checkGenerationAllowed(
     limit,
     used,
     remaining: Math.max(0, limit - used),
+  };
+}
+
+/**
+ * Reusable quota guard for API routes.
+ * Returns { errorResponse, allowed, gate }.
+ * If allowed is false, errorResponse is a pre-formatted 403 NextResponse ready to return.
+ */
+export async function guardGenerationQuota(
+  userId: string,
+  tier: TierKey,
+) {
+  const gate = await checkGenerationAllowed(userId, tier);
+  if (!gate.allowed) {
+    return {
+      allowed: false as const,
+      errorResponse: NextResponse.json(
+        {
+          error: "Monthly generation limit reached for your plan. Please upgrade to continue.",
+          code: "STORYBOARD_GENERATION_LIMIT",
+          ...gate,
+        },
+        { status: 403 },
+      ),
+      gate,
+    };
+  }
+  return {
+    allowed: true as const,
+    errorResponse: null,
+    gate,
   };
 }
 

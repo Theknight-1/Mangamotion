@@ -272,28 +272,29 @@ export function ShotListPanel({ projectId }: Props) {
                   className="flex cursor-pointer items-center justify-between border-b border-white/10 bg-[#0c130c] px-4 py-2.5 hover:bg-[#101810] transition"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-5 w-5 items-center justify-center rounded bg-[#c9a84c]/10 text-[10px] font-bold text-[#e8d5a3] border border-[#c9a84c]/20">
+                    <div className="flex h-5 w-5 items-center justify-center rounded bg-[#c9a84c]/10 text-xs font-bold text-[#e8d5a3] border border-[#c9a84c]/20">
                       {gIdx + 1}
                     </div>
-                    <span className="font-bold text-white text-xs">
+                    <span className="font-bold text-white text-base">
                       {sceneTitle}
                     </span>
-                    <span className="rounded bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
+                    <span className="rounded bg-white/5 px-2 py-0.5 text-xs text-white/40">
                       {group.shots.length} shot{group.shots.length === 1 ? "" : "s"}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-white/40">
-                    <button
+                  <div className="flex items-center gap-2 text-white/50">
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAddShot(group.scene?.id);
                       }}
-                      className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/70 hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
+                      className=" border border-white/10 py-1 text-xs font-semibold text-white/70 hover:border-[#c9a84c]/40 hover:text-[#e8d5a3]"
                     >
                       <Plus size={10} /> Add Shot
-                    </button>
+                    </Button>
                     {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
                   </div>
                 </div>
@@ -303,7 +304,7 @@ export function ShotListPanel({ projectId }: Props) {
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[1000px] text-left">
                       <thead>
-                        <tr className="border-b border-white/10 bg-black/40 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                        <tr className="border-b border-white/10 bg-black/40 text-xs font-bold uppercase tracking-wider text-white/40">
                           <th className="w-12 px-3 py-2.5 text-center">#</th>
                           <th className="w-24 px-3 py-2.5">Visual</th>
                           <th className="px-3 py-2.5">Shot Action &amp; Description</th>
@@ -363,7 +364,7 @@ export function ShotListPanel({ projectId }: Props) {
                               {/* Description (Editable) */}
                               <td className="px-3 py-2">
                                 <textarea
-                                  rows={4}
+                                  rows={6}
                                   defaultValue={shot.description}
                                   onBlur={(e) =>
                                     e.target.value !== shot.description &&
