@@ -150,6 +150,7 @@ export interface StoryboardShot {
   estDuration?: number | null;
 
   generatedImageUrl?: string | null;
+  voiceAudioUrl?: string | null;
   generationStatus: GenerationStatus;
   regenerateCount: number;
   modelUsed?: StoryboardModel | null;

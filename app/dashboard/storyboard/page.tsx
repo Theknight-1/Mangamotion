@@ -26,6 +26,13 @@ import { Button } from "@/components/loader-button";
 import { DeleteModal } from "@/components/ui/delete-modal";
 import Image from "next/image";
 import { getStoryboardStepRoute } from "@/lib/storyboard/steps";
+import {
+  Dropzone,
+  Field,
+  TextArea,
+  TextInput,
+  Select,
+} from "@/components/ui/input";
 
 const INSPIRATION_CHIPS = [
   "A cyberpunk detective investigates a rogue android partner in Neo-Tokyo",
@@ -232,81 +239,43 @@ function StoryboardModal({
               </p>
             </div>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => onClose()}
               className="
-              flex h-8 w-8 shrink-0 items-center justify-center
+              p-1
               cursor-pointer
-              rounded-md
-              text-white/70
+              text-white
               transition-all
-              hover:bg-white/[0.06]
               hover:text-white/80
             "
             >
               <X size={18} />
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* ───────────────── FORM ───────────────── */}
         <form
           onSubmit={handleSubmit}
-          className="relative flex-1 hide-scrollbar overflow-y-auto"
+          className="relative flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/[0.08] hover:scrollbar-thumb-[#c9a84c]/50"
         >
           <div className="px-6 py-6 md:px-7 space-y-6">
             {/* Project title */}
-            <div className="space-y-2">
-              <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-white/70">
-                Project Title
-              </label>
-
-              <input
+            <Field required label="Project Title">
+              <TextInput
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Shadows of Shibuya"
-                className="
-                h-11 w-full
-                rounded-lg
-                border border-white/[0.08]
-                bg-black/30
-                px-3.5
-                text-sm
-                text-white
-                outline-none
-                placeholder:text-white/30
-                transition-all
-                hover:border-white/[0.12]
-                focus:border-[#c9a84c]/35
-                focus:bg-black/30
-                focus:ring-1
-                focus:ring-[#c9a84c]/10
-              "
               />
-            </div>
+            </Field>
 
             {/* ───────── STORY INPUT ───────── */}
-            <div className="space-y-2.5">
-              <div className="flex items-end justify-between">
-                <div>
-                  <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-white/70">
-                    Story / Screenplay
-                  </label>
-
-                  <p className="text-xs text-white/50 tracking-wide">
-                    Describe your story, scenes, or logline description.
-                  </p>
-                </div>
-
-                <span className="hidden text-[9px] text-white/20 sm:block">
-                  Text input
-                </span>
-              </div>
-
-              <div className="relative">
-                <textarea
+            <div className="relative">
+              <Field label="Story / Screenplay">
+                <TextArea
                   rows={4}
                   value={ideaText}
                   onChange={(e) => {
@@ -318,36 +287,16 @@ function StoryboardModal({
                   placeholder={
                     "Paste your screenplay, write a narrative outline, or describe the sequence beat-by-beat..."
                   }
-                  className="
-                  min-h-[110px]
-                  w-full
-                  resize-none
-                  rounded-lg
-                  border border-white/[0.08]
-                  bg-black/30
-                  p-4
-                  text-sm
-                  leading-6
-                  text-white
-                  outline-none
-                  placeholder:text-white/30
-                  transition-all
-                  hover:border-white/[0.12]
-                  focus:border-[#c9a84c]/35
-                  focus:bg-black/30
-                  focus:ring-1
-                  focus:ring-[#c9a84c]/10
-                "
                 />
+              </Field>
 
-                {/* Character count */}
-                <div className="pointer-events-none absolute bottom-3 right-3">
-                  <span className="rounded bg-black/30 px-1.5 py-0.5 text-[9px] text-white/20">
-                    {ideaText.length > 0
-                      ? `${ideaText.length.toLocaleString()} chars`
-                      : "Optional"}
-                  </span>
-                </div>
+              {/* Character count */}
+              <div className="pointer-events-none absolute bottom-3 right-3">
+                <span className="rounded bg-black/30 px-1.5 py-0.5 text-[9px] text-white/20">
+                  {ideaText.length > 0
+                    ? `${ideaText.length.toLocaleString()} chars`
+                    : "Optional"}
+                </span>
               </div>
             </div>
 
@@ -356,7 +305,7 @@ function StoryboardModal({
               <div className="space-y-2.5 pt-2 border-t border-white/[0.06]">
                 <div className="flex items-end justify-between">
                   <div>
-                    <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-white/60">
+                    <label className="text-[13px] font-semibold uppercase tracking-[0.12em] text-white/70">
                       Existing Screenplay (Optional)
                     </label>
                     <p className="text-xs text-white/50 tracking-wide">
@@ -769,7 +718,9 @@ export default function StoryboardHubPage() {
         {/* Sidebar header */}
         <div className="flex h-[64px] items-center justify-between border-b border-white/[0.06] px-4">
           <div>
-            <p className="text-lg font-semibold text-[#e8d5a3]">My Storyboards</p>
+            <p className="text-lg font-semibold text-[#e8d5a3]">
+              My Storyboards
+            </p>
           </div>
 
           <button
@@ -934,8 +885,10 @@ export default function StoryboardHubPage() {
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-64 animate-pulse rounded-md border border-white/[0.05] bg-[#0d120d]/90"
-                  />
+                    className="relative aspect-[4/3] w-full rounded bg-[#0d0c0a]"
+                  >
+                    <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-white/[0.02] via-white/[0.05] to-white/[0.02]" />
+                  </div>
                 ))}
               </div>
             </section>

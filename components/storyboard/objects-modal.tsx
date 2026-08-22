@@ -2,20 +2,12 @@
 
 import { useState, useRef } from "react";
 import useSWR from "swr";
-import {
-  Box,
-  Plus,
-  Trash2,
-  Upload,
-  Loader2,
-  X,
-  Sparkles,
-  Tag,
-  ShieldAlert,
-} from "lucide-react";
+import { Box, Plus, Trash2, Upload, Loader2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { storyboardApi, swrKeys } from "@/lib/api";
-import type { StoryboardObject, ObjectImportance } from "@/types/storyboard";
+import type { ObjectImportance } from "@/types/storyboard";
+import { Button } from "../loader-button";
+import { Dropzone, Field, TextArea, TextInput, Select } from "../ui/input";
 
 interface Props {
   isOpen: boolean;
@@ -49,7 +41,10 @@ export function ObjectsModal({ isOpen, onClose, projectId }: Props) {
     try {
       const formData = new FormData();
       Array.from(e.target.files).forEach((f) => formData.append("files", f));
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
       const json = await res.json();
       if (json.files && json.files.length > 0) {
         setReferenceImageUrl(json.files[0].url);
@@ -113,35 +108,37 @@ export function ObjectsModal({ isOpen, onClose, projectId }: Props) {
               <Box size={16} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-lg font-bold text-white">
                 Key Story Props &amp; Objects ({objects.length})
               </h3>
-              <p className="text-[11px] text-white/50">
-                Visual consistency anchors for key items, tools, vehicles &amp; weapons
+              <p className="text-xs text-white/50">
+                Visual consistency anchors for key items, tools, vehicles &amp;
+                weapons
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-white/40 hover:text-white"
-          >
+          <Button onClick={onClose} className="p-1 text-white" variant="ghost">
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/[0.08] hover:scrollbar-thumb-[#c9a84c]/50 p-6 space-y-4 text-xs">
           {/* Top action bar */}
           <div className="flex items-center justify-between">
-            <span className="text-white/40 text-[11px]">
+            <span className="text-white/50 text-sm">
               Key props are injected into generation prompts across scenes
             </span>
-            <button
+            <Button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 px-3 py-1 text-xs font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition"
+              className=" border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-sm py-1.5 font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition"
             >
-              <Plus size={12} /> {showAddForm ? "Cancel" : "Add Prop"}
-            </button>
+              <Plus
+                size={14}
+                className={`${showAddForm ? "-rotate-45" : ""}`}
+              />{" "}
+              {showAddForm ? "Cancel" : "Add Location"}
+            </Button>
           </div>
 
           {/* Add form */}
@@ -150,94 +147,67 @@ export function ObjectsModal({ isOpen, onClose, projectId }: Props) {
               onSubmit={handleCreate}
               className="rounded-md border border-white/15 bg-black/40 p-4 space-y-3"
             >
-              <div>
-                <label className="block font-semibold text-white/70">
-                  Prop / Object Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. SuperBond Ultra Glue Tube"
-                  className="mt-1 w-full rounded border border-white/10 bg-black/50 px-2.5 py-1.5 text-xs text-white focus:border-[#c9a84c]/50 focus:outline-none"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-white/70">
-                    Story Importance
-                  </label>
-                  <select
+                <Field label="Prop / Object Name" required>
+                  <TextInput
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. SuperBond Ultra Glue Tube"
+                  />
+                </Field>
+                <Field label="Importance">
+                  <Select
                     value={importance}
-                    onChange={(e) => setImportance(e.target.value as ObjectImportance)}
-                    className="mt-1 w-full rounded border border-white/10 bg-black/50 px-2.5 py-1.5 text-xs text-white focus:border-[#c9a84c]/50 focus:outline-none"
+                    onChange={(e) =>
+                      setImportance(e.target.value as ObjectImportance)
+                    }
                   >
                     <option value="key_prop">Key Prop (Story Central)</option>
-                    <option value="recurring">Recurring (Multiple scenes)</option>
+                    <option value="recurring">
+                      Recurring (Multiple scenes)
+                    </option>
                     <option value="background">Background Set Dressing</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-white/70">
-                    Reference Photo
-                  </label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="mt-1 flex cursor-pointer items-center justify-center rounded border border-dashed border-white/15 bg-black/30 p-1.5 text-center hover:border-[#c9a84c]/40"
-                  >
-                    {isUploading ? (
-                      <Loader2 size={12} className="animate-spin text-[#c9a84c]" />
-                    ) : referenceImageUrl ? (
-                      <span className="text-[#87da70] font-semibold text-[11px]">
-                        Attached ✓
-                      </span>
-                    ) : (
-                      <span className="text-white/40 text-[11px] flex items-center gap-1">
-                        <Upload size={11} /> Upload
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  </Select>
+                </Field>
               </div>
+              <Field label="Reference Image">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <Dropzone
+                  isUploading={isUploading}
+                  imageUrl={referenceImageUrl}
+                  onClick={() => fileInputRef.current?.click()}
+                />
+              </Field>
 
-              <div>
-                <label className="block font-semibold text-white/70">
-                  Visual Appearance &amp; Details
-                </label>
-                <textarea
-                  rows={2}
+              <Field label="Visual Appearance &amp; Details">
+                <TextArea
+                  rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Shape, colors, material, branding, distinctive markings..."
-                  className="mt-1 w-full rounded border border-white/10 bg-black/50 p-2 text-xs text-white focus:border-[#c9a84c]/50 focus:outline-none"
                 />
-              </div>
+              </Field>
 
               <div className="flex justify-end gap-2 pt-1">
-                <button
+                <Button
                   type="button"
+                  variant={"ghost"}
                   onClick={() => setShowAddForm(false)}
-                  className="rounded px-3 py-1 text-white/50 hover:text-white"
+                  className="py-1.5 text-white/50 hover:text-white"
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="rounded bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] px-4 py-1 font-bold text-black disabled:opacity-50"
-                >
+                </Button>
+                <Button type="submit" disabled={isSaving} className="py-1.5">
                   {isSaving ? "Saving..." : "Save Prop"}
-                </button>
+                </Button>
               </div>
             </form>
           )}
@@ -251,9 +221,12 @@ export function ObjectsModal({ isOpen, onClose, projectId }: Props) {
           ) : objects.length === 0 ? (
             <div className="rounded border border-dashed border-white/10 bg-black/20 p-8 text-center text-white/40">
               <Box size={24} className="mx-auto text-white/20 mb-2" />
-              <p className="font-semibold text-white/60">No props or key objects tracked</p>
+              <p className="font-semibold text-white/60">
+                No props or key objects tracked
+              </p>
               <p className="text-[10px] text-white/30 mt-1">
-                Important story objects will appear here from breakdown or manual entry.
+                Important story objects will appear here from breakdown or
+                manual entry.
               </p>
             </div>
           ) : (
@@ -261,34 +234,36 @@ export function ObjectsModal({ isOpen, onClose, projectId }: Props) {
               {objects.map((obj) => (
                 <div
                   key={obj.id}
-                  className="flex flex-col justify-between rounded-md border border-white/10 bg-black/40 p-3.5 hover:border-[#c9a84c]/30 transition"
+                  className="flex flex-col justify-between rounded-md border border-white/10 bg-black/40 p-3 hover:border-[#c9a84c]/30 transition"
                 >
                   <div>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-white text-sm">
+                        <h4 className="font-bold text-white text-base">
                           {obj.name}
                         </h4>
                         <span
-                          className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                          className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
                             obj.importance === "key_prop"
                               ? "bg-[#c9a84c]/20 text-[#e8d5a3] border border-[#c9a84c]/40"
                               : "bg-white/10 text-white/60"
                           }`}
                         >
-                          {obj.importance === "key_prop" ? "Key Prop" : obj.importance}
+                          {obj.importance === "key_prop"
+                            ? "Key Prop"
+                            : obj.importance}
                         </span>
                       </div>
                       <button
                         onClick={() => handleDelete(obj.id)}
-                        className="text-white/30 hover:text-red-400 p-0.5"
+                        className="text-white/30 hover:text-red-400 p-0.5 cursor-pointer"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
 
                     {obj.description && (
-                      <p className="mt-1.5 text-white/70 line-clamp-2 text-[11px] leading-relaxed">
+                      <p className="mt-1.5 text-white/70 line-clamp-2 text-[13px]">
                         {obj.description}
                       </p>
                     )}

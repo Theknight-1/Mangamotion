@@ -243,6 +243,7 @@ export const storyboardShots = pgTable("storyboardShots", {
 
   consistencyScore: real("consistencyScore"),
   consistencyFlagged: boolean("consistencyFlagged").notNull().default(false),
+  voiceAudioUrl: text("voiceAudioUrl"),
 
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),

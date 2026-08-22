@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { storyboardApi, swrKeys } from "@/lib/api";
-import { StoryboardUsageIndicator } from "@/components/storyboard/usage-indicator";
 import { AnimaticEditorModal } from "@/components/storyboard/animatic-editor-modal";
 import { LocationsModal } from "@/components/storyboard/locations-modal";
 import { ObjectsModal } from "@/components/storyboard/objects-modal";
@@ -105,7 +104,8 @@ export default function StoryboardBoardPage({ params }: Props) {
   const { id: projectId } = use(params);
   const router = useRouter();
 
-  const [selectedModel, setSelectedModel] = useState<StoryboardModel>("flux");
+  const [selectedModel, setSelectedModel] =
+    useState<StoryboardModel>("nano-banana");
   const [activeShotForEdit, setActiveShotForEdit] =
     useState<StoryboardShot | null>(null);
   const [activeShotForIterate, setActiveShotForIterate] =
@@ -426,37 +426,6 @@ export default function StoryboardBoardPage({ params }: Props) {
     }
   };
 
-  // Animatic Player loop
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isPlayingAnimatic && shots.length > 0) {
-      const currentShot = shots[animaticIndex];
-      const parentScene = currentShot?.sceneId
-        ? sceneMap.get(currentShot.sceneId)
-        : null;
-
-      if (parentScene?.voiceAudioUrl) {
-        const audio = new Audio(parentScene.voiceAudioUrl);
-        audio.play().catch(() => {});
-        setCurrentAudio(audio);
-      }
-
-      const durationMs = Math.max(2, currentShot?.duration || 3) * 1000;
-      timer = setTimeout(() => {
-        if (animaticIndex < shots.length - 1) {
-          setAnimaticIndex((prev) => prev + 1);
-        } else {
-          setIsPlayingAnimatic(false);
-          setAnimaticIndex(0);
-        }
-      }, durationMs);
-    }
-    return () => {
-      clearTimeout(timer);
-      if (currentAudio) currentAudio.pause();
-    };
-  }, [isPlayingAnimatic, animaticIndex, shots]);
-
   return (
     <div className="min-h-screen bg-[#060e06] text-[#e8d5a3] selection:bg-[#c9a84c] selection:text-black">
       {/* Top Studio Toolbar */}
@@ -468,10 +437,10 @@ export default function StoryboardBoardPage({ params }: Props) {
                 {project?.title || "Storyboard Canvas"}
               </h1>
               <div className="flex items-center gap-2">
-                <span className="rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 px-2 py-0.5 text-[10px] font-bold text-[#e8d5a3] uppercase">
+                <span className="bg-[#c9a84c]/10 px-2 py-0.5 text-[10px] font-bold text-[#e8d5a3] uppercase">
                   {project?.genre || "Drama"}
                 </span>
-                <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60 uppercase">
+                <span className="bg-white/5 px-2 py-0.5 text-[10px] text-white/60 uppercase">
                   {project?.artStyle} &middot; {project?.aspectRatio}
                 </span>
               </div>
@@ -489,7 +458,7 @@ export default function StoryboardBoardPage({ params }: Props) {
                     : "text-white/50 hover:text-white"
                 }`}
               >
-                <LayoutGrid size={14} />
+                <LayoutGrid size={15} />
                 Storyboard
               </Button>
               <Button
@@ -502,47 +471,49 @@ export default function StoryboardBoardPage({ params }: Props) {
                     : "text-white/50 hover:text-white"
                 }`}
               >
-                <TableIcon size={14} />
+                <TableIcon size={15} />
                 Shotlist
               </Button>
             </div>
           </div>
 
           {/* Center/Right Toolbar */}
-          <div className="flex items-center gap-2">
+          <div className="w-full flex items-center justify-between">
             {/* Locations Button */}
-            <Button
-              onClick={() => setShowLocationsModal(true)}
-              className="py-2 text-white border border-white/30 hover:boarder-white/80"
-              variant="ghost"
-            >
-              <MapPin size={12} className="text-[#c9a84c]" />
-              <span>Locations</span>
-              {(locationsData?.locations?.length ?? 0) > 0 && (
-                <span className="rounded bg-[#c9a84c]/20 px-1.5 py-0.2 text-[10px] font-bold text-[#e8d5a3]">
-                  {locationsData?.locations.length}
-                </span>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowLocationsModal(true)}
+                className="py-2 text-white border border-white/30 hover:boarder-white/80"
+                variant="ghost"
+              >
+                <MapPin size={15} className="text-[#c9a84c]" />
+                <span>Locations</span>
+                {(locationsData?.locations?.length ?? 0) > 0 && (
+                  <span className="rounded bg-[#c9a84c]/20 px-1.5 py-0.2 text-[10px] font-bold text-[#e8d5a3]">
+                    {locationsData?.locations.length}
+                  </span>
+                )}
+              </Button>
 
-            {/* Objects & Props Button */}
-            <Button
-              onClick={() => setShowObjectsModal(true)}
-              className="py-2 text-white border border-white/30 hover:boarder-white/80"
-              variant="ghost"
-            >
-              <Box size={12} className="text-[#c9a84c]" />
-              <span>Objects</span>
-              {(objectsData?.objects?.length ?? 0) > 0 && (
-                <span className="rounded bg-[#c9a84c]/20 px-1.5 py-0.2 text-[10px] font-bold text-[#e8d5a3]">
-                  {objectsData?.objects.length}
-                </span>
-              )}
-            </Button>
+              {/* Objects & Props Button */}
+              <Button
+                onClick={() => setShowObjectsModal(true)}
+                className="py-2 text-white border border-white/30 hover:boarder-white/80"
+                variant="ghost"
+              >
+                <Box size={15} className="text-[#c9a84c]" />
+                <span>Objects</span>
+                {(objectsData?.objects?.length ?? 0) > 0 && (
+                  <span className="rounded bg-[#c9a84c]/20 px-1.5 py-0.2 text-[10px] font-bold text-[#e8d5a3]">
+                    {objectsData?.objects.length}
+                  </span>
+                )}
+              </Button>
+            </div>
 
             {/* Model Selector */}
-            <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs">
-              <Sparkles size={12} className="text-[#c9a84c]" />
+            {/* <div className="hidden sm:flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs">
+              <Sparkles size={15} className="text-[#c9a84c]" />
               <select
                 value={selectedModel}
                 onChange={(e) =>
@@ -556,47 +527,43 @@ export default function StoryboardBoardPage({ params }: Props) {
                   </option>
                 ))}
               </select>
+            </div> */}
+
+            <div className="flex items-center gap-2">
+              {/* Play Animatic */}
+              <Button
+                onClick={() => setShowAnimaticModal(true)}
+                variant="ghost"
+                className="border border-white/30 hover:border-white/80 py-2 text-white"
+              >
+                <Play size={15} /> Animatic
+              </Button>
+
+              {/* Generate All Shots */}
+              <Button
+                onClick={handleGenerateAllShots}
+                disabled={isGeneratingAll}
+                className=" border-[#c9a84c]/30 bg-[#c9a84c]/10 py-2 font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition disabled:opacity-50"
+              >
+                {isGeneratingAll ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" /> Batch...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={15} className="text-[#c9a84c]" /> Generate All
+                  </>
+                )}
+              </Button>
+
+              {/* Export */}
+              <Button
+                onClick={() => setShowExportModal(true)}
+                className=" rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] py-1.5 font-bold text-[#060e06] shadow-md shadow-[#c9a84c]/20 hover:scale-[1.01] transition"
+              >
+                <Download size={15} /> Export
+              </Button>
             </div>
-
-            {/* Play Animatic */}
-            <Button
-              onClick={() => {
-                setAnimaticIndex(0);
-                setIsPlayingAnimatic(true);
-                setShowAnimaticModal(true);
-              }}
-              variant="ghost"
-              className="border border-white/30 hover:boarder-white/80 py-2 text-white"
-            >
-              <Play size={12} /> Animatic
-            </Button>
-
-            {/* Generate All Shots */}
-            <Button
-              onClick={handleGenerateAllShots}
-              disabled={isGeneratingAll}
-              className=" border-[#c9a84c]/30 bg-[#c9a84c]/10 py-2 font-bold text-[#e8d5a3] hover:bg-[#c9a84c]/20 transition disabled:opacity-50"
-            >
-              {isGeneratingAll ? (
-                <>
-                  <Loader2 size={12} className="animate-spin" /> Batch...
-                </>
-              ) : (
-                <>
-                  <Zap size={12} className="text-[#c9a84c]" /> Generate All
-                </>
-              )}
-            </Button>
-
-            {/* Export */}
-            <Button
-              onClick={() => setShowExportModal(true)}
-              className=" rounded-md bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] py-1.5 font-bold text-[#060e06] shadow-md shadow-[#c9a84c]/20 hover:scale-[1.01] transition"
-            >
-              <Download size={12} /> Export
-            </Button>
-
-            <StoryboardUsageIndicator />
           </div>
         </div>
       </header>
@@ -683,7 +650,7 @@ export default function StoryboardBoardPage({ params }: Props) {
               return (
                 <div key={scene.id} className="space-y-4">
                   {/* Scene Header Strip */}
-                  <div className="flex flex-wrap items-center justify-between rounded-md border border-[#2c2a22] bg-[#0f0e0b] p-4">
+                  <div className="flex flex-wrap md:flex-nowrap items-center justify-between rounded-md border border-[#2c2a22] bg-[#0f0e0b] p-4">
                     <div className="flex items-center gap-3">
                       <span className="flex h-6 max-w-6 w-full items-center justify-center rounded bg-gradient-to-br from-[#c9a84c] to-[#e8d5a3] font-mono text-xs font-bold text-[#121210]">
                         {sceneIndex + 1}
@@ -700,17 +667,19 @@ export default function StoryboardBoardPage({ params }: Props) {
                       </div>
                     </div>
 
-                    {scene.voiceAudioUrl && (
-                      <button
-                        onClick={() => {
-                          const audio = new Audio(scene.voiceAudioUrl!);
-                          audio.play();
-                        }}
-                        className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-2.5 py-2 text-xs font-semibold text-[#e8d5a3] hover:bg-white/10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e08a3e]"
-                      >
-                        <Volume2 size={16} />
-                      </button>
-                    )}
+                    <div className="w-max">
+                      {scene.voiceAudioUrl && (
+                        <Button
+                          onClick={() => {
+                            const audio = new Audio(scene.voiceAudioUrl!);
+                            audio.play();
+                          }}
+                          className="inline-block  border border-white/10 bg-white/5 px-2.5 py-2 font-semibold text-[#e8d5a3] hover:bg-white/10 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e08a3e]"
+                        >
+                          <Volume2 size={16} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Grid of Shot Cards */}
@@ -1351,7 +1320,7 @@ export default function StoryboardBoardPage({ params }: Props) {
       {/* Iterate Prompt Modal with Preview */}
       {activeShotForIterate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-md border border-[#c9a84c]/25 bg-[#090f09] p-6 shadow-2xl">
+          <div className="w-full max-w-xl rounded-md border border-[#c9a84c]/25 bg-[#090f09] p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-[#c9a84c]" />
@@ -1471,10 +1440,10 @@ export default function StoryboardBoardPage({ params }: Props) {
                   <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[#e8d5a3] group-hover:bg-[#c9a84c] group-hover:text-black transition">
                     <Film size={18} />
                   </div>
-                  <h4 className="mt-3 text-xs font-bold text-white">
+                  <h4 className="mt-3 text-base font-bold text-white">
                     Slideshow Video
                   </h4>
-                  <p className="mt-1 text-[11px] text-white/50 leading-snug">
+                  <p className="mt-1 text-xs text-white/50 leading-snug">
                     Concatenates illustrated shot images with scene narration
                     voice audio into an MP4 video.
                   </p>
@@ -1498,10 +1467,10 @@ export default function StoryboardBoardPage({ params }: Props) {
                   <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[#e8d5a3] group-hover:bg-[#c9a84c] group-hover:text-black transition">
                     <Video size={18} />
                   </div>
-                  <h4 className="mt-3 text-xs font-bold text-white">
+                  <h4 className="mt-3 text-base font-bold text-white">
                     Animated Video
                   </h4>
-                  <p className="mt-1 text-[11px] text-white/50 leading-snug">
+                  <p className="mt-1 text-xs text-white/50 leading-snug">
                     Hands off all shots into Manga Recap&apos;s dynamic camera
                     pan &amp; zoom timeline editor.
                   </p>
@@ -1525,10 +1494,10 @@ export default function StoryboardBoardPage({ params }: Props) {
                   <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[#e8d5a3] group-hover:bg-[#c9a84c] group-hover:text-black transition">
                     <FileText size={18} />
                   </div>
-                  <h4 className="mt-3 text-xs font-bold text-white">
+                  <h4 className="mt-3 text-base font-bold text-white">
                     Download PDF
                   </h4>
-                  <p className="mt-1 text-[11px] text-white/50 leading-snug">
+                  <p className="mt-1 text-xs text-white/50 leading-snug">
                     Generates a studio-grade storyboard PDF sheet with
                     thumbnails, dialogue, and camera directions.
                   </p>
@@ -1552,7 +1521,14 @@ export default function StoryboardBoardPage({ params }: Props) {
         shots={shots}
         scenes={scenes}
         projectId={projectId}
-        onSceneUpdated={() => mutateScenes()}
+        onSceneUpdated={() => {
+          mutateScenes();
+          mutateShots();
+        }}
+        onShotUpdated={() => {
+          mutateShots();
+          mutateScenes();
+        }}
       />
 
       {/* Locations Management Slide-over / Modal */}
@@ -1575,14 +1551,13 @@ export default function StoryboardBoardPage({ params }: Props) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-3 sm:p-6 cursor-pointer"
           onClick={() => setPreviewSheetUrl(null)}
         >
-          <div className="relative h-[85vh] w-[90vw] rounded-md overflow-hidden">
+          <div className="relative max-w-5xl overflow-hidden rounded-md border border-white/20">
             <Image
+              width={1000}
+              height={1000}
               src={previewSheetUrl}
               alt="Sheet preview"
-              fill
-              sizes="95vw"
-              className="object-contain"
-              priority
+              className="w-full h-auto"
             />
           </div>
         </div>

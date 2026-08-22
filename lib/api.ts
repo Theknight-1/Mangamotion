@@ -402,6 +402,19 @@ export const storyboardApi = {
       method: "POST",
       body: JSON.stringify(params),
     }),
+  generateShotVoice: (
+    id: string,
+    params?: { text?: string; voiceId?: string; speed?: number },
+  ) =>
+    request<{
+      success: boolean;
+      audioUrl: string;
+      duration: number;
+      shot: StoryboardShot;
+    }>(`/api/storyboard/shots/${id}/generate-voice`, {
+      method: "POST",
+      body: JSON.stringify(params || {}),
+    }),
 
   // Orchestration & Exports
   generateStoryboard: (id: string, model?: string) =>

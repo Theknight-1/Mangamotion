@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
   Users2,
-  Sparkles,
   ArrowRight,
-  ArrowLeft,
   Plus,
   Trash2,
   CheckCircle2,
@@ -15,21 +13,21 @@ import {
   Loader2,
   Image as ImageIcon,
   Check,
-  AlertCircle,
   Eye,
-  Camera,
-  Shirt,
-  UserCheck,
-  Rotate3D,
   RotateCcw,
   X,
   Upload,
   Layers,
-  FileImage,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { storyboardApi, swrKeys } from "@/lib/api";
-import { StoryboardUsageIndicator } from "@/components/storyboard/usage-indicator";
+import {
+  Dropzone,
+  Field,
+  TextArea,
+  TextInput,
+  Select,
+} from "@/components/ui/input";
 import type { StoryboardCharacter, ConditioningMode } from "@/types/storyboard";
 import { Button } from "@/components/loader-button";
 import Image from "next/image";
@@ -386,7 +384,8 @@ export default function StoryboardCharactersPage({ params }: Props) {
             {characters.map((char) => {
               const hasApproved = Boolean(char.approvedSheetUrl);
               const hasPendingNew = Boolean(
-                char.pendingSheetUrl && char.pendingSheetUrl !== char.approvedSheetUrl,
+                char.pendingSheetUrl &&
+                char.pendingSheetUrl !== char.approvedSheetUrl,
               );
               const isApprovedAndLocked = hasApproved && !hasPendingNew;
               const activeSheetUrl =
@@ -533,9 +532,10 @@ export default function StoryboardCharactersPage({ params }: Props) {
                           {refs.map((url, rIdx) => (
                             <div
                               key={rIdx}
-                              className="group relative h-12 w-12 shrink-0 overflow-hidden rounded border border-white/15 bg-black"
+                              className="group relative h-14 w-14 shrink-0 overflow-hidden rounded border border-white/15 bg-black"
                             >
-                              <img
+                              <Image
+                                fill
                                 src={url}
                                 alt={`Ref ${rIdx + 1}`}
                                 className="h-full w-full object-cover"
@@ -660,7 +660,11 @@ export default function StoryboardCharactersPage({ params }: Props) {
               <h3 className="text-lg font-bold text-white">
                 Add Character to Roster
               </h3>
-              <Button onClick={() => setShowAddModal(false)} className="text-white py-1 px-1" variant="ghost">
+              <Button
+                onClick={() => setShowAddModal(false)}
+                className="text-white py-1 px-1"
+                variant="ghost"
+              >
                 <X size={20} />
               </Button>
             </div>
@@ -669,19 +673,14 @@ export default function StoryboardCharactersPage({ params }: Props) {
               onSubmit={handleCreateCharacter}
               className="mt-4 space-y-3.5 text-[13px]"
             >
-              <div>
-                <label className="block font-semibold text-white/70">
-                  Character Name *
-                </label>
-                <input
+              <Field required label="Character Name">
+                <TextInput
                   type="text"
-                  required
                   value={newCharName}
                   onChange={(e) => setNewCharName(e.target.value)}
                   placeholder="e.g. Ren Kurosawa"
-                  className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-[#c9a84c]/50 focus:outline-none"
                 />
-              </div>
+              </Field>
 
               {/* Conditioning Mode Selector */}
               <div>
@@ -776,12 +775,13 @@ export default function StoryboardCharactersPage({ params }: Props) {
                     {newCharReferences.map((url, i) => (
                       <div
                         key={i}
-                        className="group relative h-14 w-14 overflow-hidden rounded-md border border-white/20 bg-black"
+                        className="group relative h-20 w-20 overflow-hidden rounded-md border border-white/20 bg-black"
                       >
-                        <img
+                        <Image
                           src={url}
                           alt={`Uploaded ref ${i + 1}`}
                           className="h-full w-full object-cover"
+                          fill
                         />
                         <button
                           type="button"
@@ -791,9 +791,9 @@ export default function StoryboardCharactersPage({ params }: Props) {
                               prev.filter((_, idx) => idx !== i),
                             );
                           }}
-                          className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/80 text-white/80 hover:bg-red-500 hover:text-white"
+                          className="absolute top-0 right-0 flex h-4 w-4 bg-black/80 text-white/80 hover:text-white cursor-pointer"
                         >
-                          <X size={10} />
+                          <X size={16} />
                         </button>
                       </div>
                     ))}
@@ -864,7 +864,7 @@ export default function StoryboardCharactersPage({ params }: Props) {
           onClick={() => setPreviewSheetUrl(null)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md cursor-pointer"
         >
-          <div className="relative max-w-4xl overflow-hidden rounded-md border border-white/20">
+          <div className="relative max-w-5xl overflow-hidden rounded-md border border-white/20">
             <Image
               width={1000}
               height={1000}

@@ -21,6 +21,7 @@ function serialize(row: typeof storyboardShots.$inferSelect): StoryboardShot {
     movement: (row.movement as StoryboardShot["movement"]) ?? null,
     generationStatus: row.generationStatus as StoryboardShot["generationStatus"],
     modelUsed: (row.modelUsed as StoryboardShot["modelUsed"]) ?? null,
+    voiceAudioUrl: row.voiceAudioUrl ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -72,6 +73,8 @@ export async function PATCH(request: Request, { params }: Params) {
       characterIds,
       sceneId,
       draftNarration,
+      estDuration,
+      voiceAudioUrl,
     } = body;
 
     const updates: Partial<typeof storyboardShots.$inferInsert> = {
@@ -87,6 +90,8 @@ export async function PATCH(request: Request, { params }: Params) {
     if (characterIds !== undefined) updates.characterIds = characterIds;
     if (sceneId !== undefined) updates.sceneId = sceneId;
     if (draftNarration !== undefined) updates.draftNarration = draftNarration;
+    if (estDuration !== undefined) updates.estDuration = estDuration;
+    if (voiceAudioUrl !== undefined) updates.voiceAudioUrl = voiceAudioUrl;
 
     const [updated] = await db
       .update(storyboardShots)
